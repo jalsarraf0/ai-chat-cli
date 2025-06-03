@@ -1,5 +1,5 @@
 ###############################################################################
-# CI – AI-Chat-Fedora42 · PR-only (dev) · fast · coverage-gate · security · docs
+# CI – AI-Chat-Fedora42 · PR-only (dev) · coverage-gate · security · docs
 ###############################################################################
 name: CI – AI-Chat-Fedora42
 
@@ -31,10 +31,10 @@ defaults:
   run:
     shell: bash -Eeuo pipefail {0}
 
-###############################################################################
-# 1 ▸ Coverage gate  (tests + threshold check)
-###############################################################################
 jobs:
+###############################################################################
+# 1 ▸ Coverage gate (tests + threshold check)
+###############################################################################
   coverage-gate:
     runs-on: [self-hosted, Linux, X64]
 
@@ -46,20 +46,24 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Restore Go build cache
+      # ───── Cache Go build objects and modules ─────
+      - name: Cache Go modules & build cache
         uses: actions/cache@v4
         with:
-          path: ~/.cache/go-build
-          key: go-build-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+          path: |
+            ~/go/pkg/mod          # modules
+            ~/.cache/go-build     # compiled objects
+          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            go-build-${{ env.GO_VERSION }}-
+            ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+            ${{ runner.os }}-go-
 
       - name: Run unit tests & collect coverage
         run: |
           export GOMAXPROCS=${GOMAXPROCS}
           go test -covermode=atomic -coverprofile=coverage.out ./...
 
-      - name: Enforce coverage gate (${{ env.COVERAGE_GATE }} %)
+      - name: Enforce coverage gate (${{ env.COVERAGE_GATE }}%)
         run: |
           pct=$(go tool cover -func coverage.out | awk '/^total:/ {gsub("%","");print $3}')
           echo "Total coverage: ${pct}%"
@@ -89,6 +93,17 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Cache Go modules & build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+            ${{ runner.os }}-go-
+
       - name: Run gosec
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
@@ -109,6 +124,17 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+
+      - name: Cache Go modules & build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+            ${{ runner.os }}-go-
 
       - name: Generate API documentation
         run: |
