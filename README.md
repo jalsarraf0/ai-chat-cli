@@ -1,3 +1,8 @@
+
+[![CI](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml)
+
+ai-chat CLI provides a simple command line interface for AI chat interactions.
+
 # AI‑Chat‑CLI
 
 [![CI – AI‑Chat‑Fedora42](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml)
@@ -87,3 +92,4 @@ The project enforces **≥ 80 % coverage** and runs `gosec` in CI.
 ## License
 
 MIT © 2025 Jamal Al‑Sarraf
+
