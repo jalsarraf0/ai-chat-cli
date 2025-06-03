@@ -1,7 +1,0 @@
-run:
-  skip-dirs:
-    - dist
-linters:
-  enable:
-    - gosec
-    - gocritic
