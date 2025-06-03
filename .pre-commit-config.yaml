@@ -1,0 +1,14 @@
+repos:
+  - repo: local
+    hooks:
+      - id: gofumpt
+        name: gofumpt
+        language: system
+        entry: gofumpt -w
+        types: [go]
+      - id: golangci-lint
+        name: golangci-lint
+        language: system
+        entry: bash -c 'GOTOOLCHAIN=go1.22.4 golangci-lint run'
+        types: [go]
+        pass_filenames: false
