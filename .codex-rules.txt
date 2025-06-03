@@ -1,0 +1,9 @@
+Commit and PR guidelines for this repository:
+
+- Use branches named `codex/{feature}`.
+- Start the first commit line with an imperative phrase, max 72 characters.
+- Update or create tests with each change and keep coverage above 81%.
+- Update `docs/` when public interfaces change.
+- Ensure CI is green before marking a PR ready for review.
+- PRs created by Codex must apply the `codex-generated` label.
+

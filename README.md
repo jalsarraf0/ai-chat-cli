@@ -83,7 +83,7 @@ The project enforces **≥ 80 % coverage** and runs `gosec` in CI.
 
 ## Contributing
 
-1. Read `.codex-rules.txt` to understand commit/PR guidelines.
+1. Read `.codex-rules.txt` and `AGENTS.md` to understand the workflow rules.
 2. Create a branch `codex/your-feature`.
 3. Open a draft PR; ensure CI is green before requesting review.
 
