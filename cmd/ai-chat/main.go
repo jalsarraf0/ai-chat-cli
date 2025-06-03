@@ -1,7 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"context"
+	"log"
+)
 
 func main() {
-	fmt.Println("ai-chat CLI bootstrap")
+	if err := Execute(context.Background()); err != nil {
+		log.Fatalf("execute: %v", err)
+	}
 }
