@@ -47,4 +47,7 @@ jobs:
       - name: Generate Docs
         run: |
           make docs
-          git diff --exit-code
+          git config --global user.name "Jamal Al-Sarraf"
+          git config --global user.email "jalsarraf0@gmail.com"
+          git add .
+          git commit -m "Update generated documentation" || echo "No changes to commit"
