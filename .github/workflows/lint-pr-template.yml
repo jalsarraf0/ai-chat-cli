@@ -1,0 +1,29 @@
+name: Lint PR Template
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  check-template:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const required = ["Tests pass", "Lint clean", "Docs updated"];
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            const body = pr.body || "";
+            for (const item of required) {
+              const pattern = new RegExp(`- \[x\] ${item}`, 'i');
+              if (!pattern.test(body)) {
+                core.setFailed(`Checklist item '${item}' not checked`);
+              }
+            }
