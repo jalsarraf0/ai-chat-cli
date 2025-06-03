@@ -14,8 +14,8 @@ Runs unmodified on **Linux (bash/zsh/fish)**, **macOS (zsh)**, and **Windows (Po
 | Phase | Milestone                                  | Status |
 |-------|--------------------------------------------|--------|
 | 0     | Repo bootstrap, CI badge                   | ✅ done |
-| 1     | Core CLI (`version`, `ping`, completions)  | 🔨 in‑progress |
-| 2     | Shell detection & command runner           | ⏭ next |
+| 1     | Core CLI (`version`, `ping`, completions)  | ✅ done |
+| 2     | Shell detection & command runner           | 🔨 in-progress |
 | 6     | Bubble Tea TUI chat window                 | ⏳ pending |
 | 12    | v1.0 multi‑platform release                | 🚀 future |
 
@@ -33,7 +33,7 @@ make build
 
 # Run
 ./bin/ai-chat version
-./bin/ai-chat ping
+./bin/ai-chat ping --debug
 ```
 
 > **Prerequisite:** Go 1.24.3+ (already bundled in most dev containers).
