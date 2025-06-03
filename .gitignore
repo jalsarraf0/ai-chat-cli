@@ -7,3 +7,4 @@
 
 # Go modules cache
 vendor/
+coverage.out
