@@ -105,4 +105,14 @@ func newManCmd(root *cobra.Command) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&dir, "dir", "dist/man", "directory to write man pages")
 	return cmd
+
+	"context"
+	"log"
+)
+
+func main() {
+	if err := Execute(context.Background()); err != nil {
+		log.Fatalf("execute: %v", err)
+	}
+
 }
