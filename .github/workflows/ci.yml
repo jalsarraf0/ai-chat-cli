@@ -6,7 +6,7 @@ on:
     branches: [ dev ]
 jobs:
   coverage-gate:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -27,7 +27,7 @@ jobs:
           name: coverage
           path: coverage.out
   security-scan:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: coverage-gate
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
       - name: Run gosec
         run: gosec ./...
   docs:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: security-scan
     steps:
       - uses: actions/checkout@v4
