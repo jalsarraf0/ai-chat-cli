@@ -4,6 +4,8 @@
 
 A lightweight command-line interface for interacting with AI chat services, providing streamlined workflows for rapid experimentation.
 
+Configuration is stored in a YAML file; see [docs/config.md](docs/config.md) for available keys.
+
 ## Quick Start
 
 ```bash
@@ -19,3 +21,4 @@ The CLI auto-detects Bash, Zsh, Fish, PowerShell and Cmd, running seamlessly acr
 
 - `ping` – prints `pong` if the backend is reachable
 - `version` – shows semantic version, commit and build date
+- `config` – manage settings stored in `~/.config/ai-chat/config.yaml` (run `ai-chat config show` to print the path and contents)
