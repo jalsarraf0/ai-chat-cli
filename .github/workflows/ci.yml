@@ -1,24 +1,81 @@
-name: CI
+name: ci
 on:
-  push:
-    branches: [ dev, phase0/bootstrap ]
   pull_request:
-    branches: [ dev ]
+  push:
+    branches: [dev, '**/phase*']
+
+env:
+  GO_VERSION: "1.22.x"
+  GOLINT_VERSION: v1.54.2
+  CACHE_DIR: ${{ github.workspace }}/go-cache
+
 jobs:
-  coverage-gate:
-    runs-on: self-hosted
+  test-linux:
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
-      - name: Install Tools
+          go-version: ${{ env.GO_VERSION }}
+      - name: Install golangci-lint
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          go install golang.org/x/tools/cmd/godoc@latest
-      - name: Run Tests
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |
+            sh -s -- -b "$(go env GOPATH)/bin" "${GOLINT_VERSION}"
+          golangci-lint --version
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - run: make lint test
+        shell: bash
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Install golangci-lint
         run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |
+            sh -s -- -b "$(go env GOPATH)/bin" "${GOLINT_VERSION}"
+          golangci-lint --version
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - run: make lint test
+        shell: bash
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |
+            sh -s -- -b "$(go env GOPATH)/bin" "${GOLINT_VERSION}"
+          golangci-lint --version
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - run: make lint test
+        shell: bash
+  coverage-gate:
+    runs-on: [self-hosted, linux]
+    needs: [test-linux, test-macos, test-windows]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - run: |
           go test -race -covermode=atomic -coverprofile=coverage.out ./...
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
           if [ ${pct%.*} -lt 83 ]; then echo "::error::coverage < 83%" && exit 1; fi
@@ -27,20 +84,17 @@ jobs:
           name: coverage
           path: coverage.out
   security-scan:
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     needs: coverage-gate
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
-      - name: Install gosec
-        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
-      - name: Run gosec
-        run: gosec ./...
+          go-version: ${{ env.GO_VERSION }}
+      - run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - run: gosec ./...
   docs:
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     needs: security-scan
     steps:
       - uses: actions/checkout@v4
