@@ -7,6 +7,7 @@ on:
 env:
   GO_VERSION: "1.22.x"
   GOLINT_VERSION: v1.54.2
+  SHELLCHECK_VERSION: "v0.9.0"
   CACHE_DIR: ${{ github.workspace }}/go-cache
 
 jobs:
@@ -22,15 +23,29 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |
             sh -s -- -b "$(go env GOPATH)/bin" "${GOLINT_VERSION}"
           golangci-lint --version
+      - name: Install ShellCheck
+        run: |
+          curl -L https://github.com/koalaman/shellcheck/releases/download/${SHELLCHECK_VERSION}/shellcheck-${SHELLCHECK_VERSION}.linux.x86_64.tar.xz |
+            tar -xJ && sudo mv shellcheck-*/shellcheck /usr/local/bin/
+          shellcheck --version
+      - name: Build prompt snippets
+        run: make prompt
       - name: Cache
         uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_DIR }}
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - name: ShellCheck
+        run: |
+          if [ -d dist/prompt ]; then
+            shellcheck dist/prompt/*
+          else
+            echo "::notice::dist/prompt absent – skipping ShellCheck"
+          fi
       - run: make lint test
         shell: bash
   test-macos:
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -49,7 +64,7 @@ jobs:
       - run: make lint test
         shell: bash
   test-windows:
-    runs-on: windows-latest
+    runs-on: [self-hosted, windows]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -78,7 +93,7 @@ jobs:
       - run: |
           go test -race -covermode=atomic -coverprofile=coverage.out ./...
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
-          if [ ${pct%.*} -lt 83 ]; then echo "::error::coverage < 83%" && exit 1; fi
+          if [ ${pct%.*} -lt 90 ]; then echo "::error::coverage < 90%" && exit 1; fi
       - uses: actions/upload-artifact@v4
         with:
           name: coverage

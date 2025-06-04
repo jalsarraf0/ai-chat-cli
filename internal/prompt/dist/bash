@@ -1,0 +1,6 @@
+__ai_chat_prompt() {
+  if [ -f .ai-chat.yml ]; then
+    PS1="\[$(tput setaf 2)\](ai)› \[$(tput sgr0)\]"
+  fi
+}
+PROMPT_COMMAND="__ai_chat_prompt;$PROMPT_COMMAND"

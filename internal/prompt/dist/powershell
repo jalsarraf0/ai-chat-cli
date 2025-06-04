@@ -1,0 +1,7 @@
+function global:prompt {
+    if (Test-Path '.ai-chat.yml') {
+        Write-Host '(ai)> ' -NoNewline -ForegroundColor Green
+    }
+    Write-Host $(Get-Location) -NoNewline
+    return '> '
+}

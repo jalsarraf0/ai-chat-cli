@@ -19,3 +19,16 @@ The CLI auto-detects Bash, Zsh, Fish, PowerShell and Cmd, running seamlessly acr
 
 - `ping` – prints `pong` if the backend is reachable
 - `version` – shows semantic version, commit and build date
+
+### Shell Completion
+
+| Shell | Install |
+|-------|--------|
+| Bash | `ai-chat completion bash --out ~/.ai-chat/completion.bash` |
+| Zsh | `ai-chat completion zsh --out ~/.ai-chat/completion.zsh` |
+| Fish | `ai-chat completion fish --out ~/.ai-chat/completion.fish` |
+| PowerShell | `ai-chat completion powershell --out ~/.ai-chat/completion.ps1` |
+
+### Prompt
+
+Run `ai-chat init` to install completions and a prompt enhancer showing `(ai)›` in green when a `.ai-chat.yml` file is present.
