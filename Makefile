@@ -6,12 +6,16 @@ format:
 	gofumpt -l -w $(GOFILES)
 
 lint:
-	GOTOOLCHAIN=go1.22.4 golangci-lint run ./...
+        GOTOOLCHAIN=go1.22.4 golangci-lint run ./...
 
-test:
-	go test -race -covermode=atomic -coverprofile=coverage.out ./...
-	pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $$3}'); \
-	if [ $${pct%.*} -lt 83 ]; then echo "::error::coverage < 83%" && exit 1; fi
+test: lint
+	go test -p $(GOMAXPROCS) -race -covermode=atomic -coverprofile=coverage.out ./...
+	@$(MAKE) coverage-gate
+
+coverage-gate:
+	@pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $$3}'); \
+	if [ $${pct%.*} -lt 90 ]; then \
+	echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
 
 docs:
 	@git ls-files '*.md' | xargs -r sed -i 's/[ \t]*$$//' && git diff --exit-code || true
@@ -26,4 +30,8 @@ shell-test:
 	go test -run TestShell ./internal/shell/...
 
 cross:
-	GOOS=windows GOARCH=amd64 $(MAKE) build
+        GOOS=windows GOARCH=amd64 $(MAKE) build
+
+prompt:
+	@mkdir -p dist/prompt && echo '#!/bin/sh\necho prompt' > dist/prompt/stub.sh
+	chmod +x dist/prompt/stub.sh

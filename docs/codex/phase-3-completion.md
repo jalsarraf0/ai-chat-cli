@@ -5,7 +5,7 @@ Save this file as docs/codex/phase‑3‑completion.md
 Author: Jamal Al‑Sarraf <jalsarraf0@gmail.com>
 -->
 
-# Phase 3 Prompt – Shell Completion & Prompt UX 🚀  
+# Phase 3 Prompt – Shell Completion & Prompt UX 🚀
 *CI matrix → **Linux (self-hosted)** · **macOS (macos-latest)** · **Windows (windows-latest)** · coverage ≥ 90 %*
 
 ---
@@ -138,11 +138,11 @@ _All other `f.Close()` calls already handled._
 
 ## ✅ Acceptance Criteria
 
-* Linux (self-hosted), macOS (`macos-latest`), Windows (`windows-latest`) jobs pass.  
-* ShellCheck step passes or skips gracefully.  
-* `golangci-lint run ./...` zero issues.  
-* `go test -race ./...` green.  
-* Coverage gate ≥ 90 %.  
+* Linux (self-hosted), macOS (`macos-latest`), Windows (`windows-latest`) jobs pass.
+* ShellCheck step passes or skips gracefully.
+* `golangci-lint run ./...` zero issues.
+* `go test -race ./...` green.
+* Coverage gate ≥ 90 %.
 * Signed commit by **Jamal Al-Sarraf <jalsarraf0@gmail.com>**.
 
 ---
