@@ -78,7 +78,7 @@ jobs:
       - run: |
           go test -race -covermode=atomic -coverprofile=coverage.out ./...
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
-          if [ ${pct%.*} -lt 83 ]; then echo "::error::coverage < 83%" && exit 1; fi
+          if [ ${pct%.*} -lt 88 ]; then echo "::error::coverage < 88%" && exit 1; fi
       - uses: actions/upload-artifact@v4
         with:
           name: coverage

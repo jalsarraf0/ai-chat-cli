@@ -9,6 +9,7 @@ import (
 
 	"github.com/jalsarraf0/ai-chat-cli/internal/shell"
 	"github.com/jalsarraf0/ai-chat-cli/pkg/chat"
+	"github.com/jalsarraf0/ai-chat-cli/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -17,26 +18,31 @@ var (
 	chatClient    chat.Client = chat.NewMockClient()
 	verbose       bool
 	detectedShell shell.Kind
+	cfgFile       string
 )
 
 func newRootCmd() *cobra.Command {
-	var cfgFile string
 	detectedShell = shell.Detect()
 	cmd := &cobra.Command{
 		Use:   "ai-chat",
 		Short: "Interact with AI chat services",
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := config.Load(cfgFile); err != nil {
+				return err
+			}
 			if verbose {
 				if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "shell=%s\n", detectedShell); err != nil {
 					cmd.Println("Error:", err)
 				}
 			}
+			return nil
 		},
 	}
-	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
+	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default auto)")
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	cmd.AddCommand(newPingCmd(chatClient))
 	cmd.AddCommand(newVersionCmd(Version, Commit, Date))
+	cmd.AddCommand(newConfigCmd())
 	return cmd
 }
 
