@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"bytes"
+	"path/filepath"
 	"testing"
+
+	"github.com/jalsarraf0/ai-chat-cli/pkg/config"
 )
 
 func TestRootExecute(t *testing.T) {
@@ -21,12 +24,15 @@ func TestRootExecute(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv("SHELL", "/bin/bash")
+			t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+			config.Reset()
+			cfg := filepath.Join(t.TempDir(), "c.yaml")
 			cmd := newRootCmd()
 			outBuf := new(bytes.Buffer)
 			errBuf := new(bytes.Buffer)
 			cmd.SetOut(outBuf)
 			cmd.SetErr(errBuf)
-			cmd.SetArgs(tt.args)
+			cmd.SetArgs(append([]string{"--config", cfg}, tt.args...))
 			if err := cmd.Execute(); err != nil {
 				t.Fatalf("execute: %v", err)
 			}
