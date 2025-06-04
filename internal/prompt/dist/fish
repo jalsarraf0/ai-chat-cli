@@ -1,0 +1,8 @@
+function fish_prompt
+    if test -f .ai-chat.yml
+        set_color green
+        printf '(ai)› '
+        set_color normal
+    end
+    fish_default_prompt
+end

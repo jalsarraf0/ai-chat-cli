@@ -21,7 +21,7 @@ func TestRootExecute(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv("SHELL", "/bin/bash")
-			cmd := newRootCmd()
+			cmd := NewRootCmd()
 			outBuf := new(bytes.Buffer)
 			errBuf := new(bytes.Buffer)
 			cmd.SetOut(outBuf)
