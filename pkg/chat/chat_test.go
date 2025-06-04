@@ -42,3 +42,13 @@ func TestClientImplementations(t *testing.T) {
 		})
 	}
 }
+
+func TestNewMockClient(t *testing.T) {
+	c := NewMockClient()
+	if err := c.Ping(context.Background()); err != nil {
+		t.Fatalf("ping: %v", err)
+	}
+	if v, err := c.Version(context.Background()); err != nil || v != "mock" {
+		t.Fatalf("version: %v %q", err, v)
+	}
+}
