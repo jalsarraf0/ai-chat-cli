@@ -19,7 +19,7 @@ var (
 	detectedShell shell.Kind
 )
 
-func newRootCmd() *cobra.Command {
+func NewRootCmd() *cobra.Command {
 	var cfgFile string
 	detectedShell = shell.Detect()
 	cmd := &cobra.Command{
@@ -37,13 +37,15 @@ func newRootCmd() *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	cmd.AddCommand(newPingCmd(chatClient))
 	cmd.AddCommand(newVersionCmd(Version, Commit, Date))
+	cmd.AddCommand(newCompletionCmd(cmd))
+	cmd.AddCommand(newInitCmd(cmd))
 	return cmd
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	if err := newRootCmd().Execute(); err != nil {
+	if err := NewRootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}
 }

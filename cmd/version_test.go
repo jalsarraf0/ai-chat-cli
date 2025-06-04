@@ -5,29 +5,24 @@ import (
 	"testing"
 )
 
-func TestVersionCmd(t *testing.T) {
-	tests := []struct {
-		name string
-		args []string
-		want string
-	}{
-		{"short", []string{"--short"}, "1.2.3\n"},
-		{"full", nil, "1.2.3 abc now\n"},
+func TestVersionCommand(t *testing.T) {
+	t.Parallel()
+	cmd := newVersionCmd("1.0.0", "abc", "now")
+	out := new(bytes.Buffer)
+	cmd.SetOut(out)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
 	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("SHELL", "/bin/bash")
-			cmd := newVersionCmd("1.2.3", "abc", "now")
-			buf := new(bytes.Buffer)
-			cmd.SetOut(buf)
-			cmd.SetArgs(tt.args)
-			if err := cmd.Execute(); err != nil {
-				t.Fatalf("execute: %v", err)
-			}
-			if buf.String() != tt.want {
-				t.Fatalf("want %q got %q", tt.want, buf.String())
-			}
-		})
+	want := "1.0.0 abc now\n"
+	if out.String() != want {
+		t.Fatalf("want %q got %q", want, out.String())
+	}
+	out.Reset()
+	cmd.SetArgs([]string{"--short"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("short: %v", err)
+	}
+	if out.String() != "1.0.0\n" {
+		t.Fatalf("short wrong")
 	}
 }

@@ -1,0 +1,4 @@
+_ai_chat_precmd() {
+  [[ -f .ai-chat.yml ]] && PROMPT="%F{green}(ai)› %f"
+}
+precmd_functions+=(_ai_chat_precmd)
