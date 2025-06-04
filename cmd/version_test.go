@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
@@ -29,5 +30,17 @@ func TestVersionCmd(t *testing.T) {
 				t.Fatalf("want %q got %q", tt.want, buf.String())
 			}
 		})
+	}
+}
+
+type versionErrWriter struct{}
+
+func (versionErrWriter) Write(p []byte) (int, error) { return 0, fmt.Errorf("werr") }
+
+func TestVersionWriteError(t *testing.T) {
+	cmd := newVersionCmd("1.2.3", "abc", "now")
+	cmd.SetOut(versionErrWriter{})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
