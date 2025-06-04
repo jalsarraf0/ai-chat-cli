@@ -42,3 +42,10 @@ func TestClientImplementations(t *testing.T) {
 		})
 	}
 }
+func TestNewMockClient(t *testing.T) {
+	t.Parallel()
+	c := NewMockClient()
+	if v, err := c.Version(context.Background()); err != nil || v != "mock" {
+		t.Fatalf("NewMockClient unexpected: v=%s err=%v", v, err)
+	}
+}
