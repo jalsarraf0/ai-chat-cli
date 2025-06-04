@@ -1,24 +1,59 @@
 name: CI
 on:
   push:
-    branches: [ dev, phase0/bootstrap ]
+    branches: [ dev, phase2/cross-shell ]
   pull_request:
     branches: [ dev ]
+
 jobs:
-  coverage-gate:
-    runs-on: self-hosted
+  test-linux:
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-      - name: Install Tools
-        run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          go install golang.org/x/tools/cmd/godoc@latest
-      - name: Run Tests
-        run: |
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/ai-chat-cli/go
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - run: make lint test
+  test-macos:
+    runs-on: [self-hosted, macOS]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/ai-chat-cli/go
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - run: make lint test
+  test-windows:
+    runs-on: [self-hosted, windows]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/ai-chat-cli/go
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - run: make lint test
+  coverage-gate:
+    runs-on: [self-hosted, linux]
+    needs: test-linux
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - run: |
           go test -race -covermode=atomic -coverprofile=coverage.out ./...
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
           if [ ${pct%.*} -lt 83 ]; then echo "::error::coverage < 83%" && exit 1; fi
@@ -27,20 +62,17 @@ jobs:
           name: coverage
           path: coverage.out
   security-scan:
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     needs: coverage-gate
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-      - name: Install gosec
-        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
-      - name: Run gosec
-        run: gosec ./...
+      - run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - run: gosec ./...
   docs:
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     needs: security-scan
     steps:
       - uses: actions/checkout@v4
