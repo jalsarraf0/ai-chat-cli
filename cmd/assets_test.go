@@ -1,0 +1,63 @@
+package cmd
+
+import (
+	"bytes"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/jalsarraf0/ai-chat-cli/pkg/config"
+	"github.com/jalsarraf0/ai-chat-cli/pkg/embedutil"
+)
+
+func TestAssetsCommands(t *testing.T) {
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	config.Reset()
+	cfg := filepath.Join(t.TempDir(), "c.yaml")
+	root := newRootCmd()
+	out := new(bytes.Buffer)
+	root.SetOut(out)
+	root.SetArgs([]string{"--config", cfg, "assets", "list"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	lines := bytes.Split(bytes.TrimSpace(out.Bytes()), []byte("\n"))
+	if len(lines) != 4 {
+		t.Fatalf("want 4 lines got %d", len(lines))
+	}
+
+	// cat
+	root = newRootCmd()
+	out.Reset()
+	root.SetOut(out)
+	root.SetArgs([]string{"--config", cfg, "assets", "cat", "templates/system.tmpl"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("cat: %v", err)
+	}
+	want, _ := embedutil.Read("templates/system.tmpl")
+	if !bytes.Equal(out.Bytes(), want) {
+		t.Fatalf("cat output mismatch")
+	}
+
+	// export
+	dest := filepath.Join(t.TempDir(), "x", "y.json")
+	root = newRootCmd()
+	root.SetArgs([]string{"--config", cfg, "assets", "export", "themes/light.json", dest})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("export: %v", err)
+	}
+	b1, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("read dest: %v", err)
+	}
+	b2, _ := embedutil.Read("themes/light.json")
+	if !bytes.Equal(b1, b2) {
+		t.Fatalf("export mismatch")
+	}
+	// overwrite with --force
+	root = newRootCmd()
+	root.SetArgs([]string{"--config", cfg, "assets", "export", "themes/light.json", dest, "--force"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("export force: %v", err)
+	}
+}

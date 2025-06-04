@@ -22,3 +22,13 @@ The CLI auto-detects Bash, Zsh, Fish, PowerShell and Cmd, running seamlessly acr
 - `ping` – prints `pong` if the backend is reachable
 - `version` – shows semantic version, commit and build date
 - `config` – manage settings stored in `~/.config/ai-chat/config.yaml` (run `ai-chat config show` to print the path and contents)
+
+## Embedded Assets
+
+Embedded templates and colour themes can be inspected with `ai-chat assets`:
+
+```bash
+./ai-chat assets list
+./ai-chat assets cat templates/system.tmpl
+./ai-chat assets export themes/light.json /tmp/theme.json
+```
