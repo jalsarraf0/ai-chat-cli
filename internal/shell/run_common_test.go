@@ -7,7 +7,6 @@ import (
 )
 
 func TestRunCmd_LookPathStub(t *testing.T) {
-	t.Parallel()
 
 	lookPathMu.Lock()
 	orig := lookPath
@@ -58,5 +57,20 @@ func TestRunCmd_LookPathStub(t *testing.T) {
 	}
 	if stdout != want || stderr != "" {
 		t.Fatalf("unexpected output: %q / %q", stdout, stderr)
+	}
+}
+
+func TestRunCmdLookPathError(t *testing.T) {
+	lookPathMu.Lock()
+	orig := lookPath
+	lookPath = func(string) (string, error) { return "", context.DeadlineExceeded }
+	lookPathMu.Unlock()
+	defer func() {
+		lookPathMu.Lock()
+		lookPath = orig
+		lookPathMu.Unlock()
+	}()
+	if _, _, err := runCmd(context.Background(), "missing", nil); err == nil {
+		t.Fatalf("expected error")
 	}
 }
