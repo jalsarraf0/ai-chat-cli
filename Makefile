@@ -1,4 +1,4 @@
-.PHONY: format lint test docs
+.PHONY: format lint test docs build man shell-test cross
 
 GOFILES := $(shell find . -type f -name '*.go' -not -path './vendor/*')
 
@@ -15,3 +15,15 @@ test:
 
 docs:
 	@git ls-files '*.md' | xargs -r sed -i 's/[ \t]*$$//' && git diff --exit-code || true
+
+build:
+	go build -o bin/ai-chat ./cmd/ai-chat
+
+man:
+	cobra-cli man --dir docs/man
+
+shell-test:
+	go test -run TestShell ./internal/shell/...
+
+cross:
+	GOOS=windows GOARCH=amd64 $(MAKE) build

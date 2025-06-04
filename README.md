@@ -13,6 +13,8 @@ go build -o ai-chat
 ./ai-chat ping
 ```
 
+The CLI auto-detects Bash, Zsh, Fish, PowerShell and Cmd, running seamlessly across shells. Linux jobs run on self-hosted runners while macOS and Windows use GitHub-hosted runners.
+
 ### Commands
 
 - `ping` – prints `pong` if the backend is reachable
