@@ -38,6 +38,9 @@ shell-test:
 cross:
         GOOS=windows GOARCH=amd64 $(MAKE) build
 
+tui: ## run terminal UI
+	go run ./cmd/ai-chat tui --height 20
+
 embed-check: ## verify embedded FS is up to date
 	go run scripts/embedgen.go
 	@git diff --quiet internal/assets || (echo "::error::embed drift"; exit 1)
