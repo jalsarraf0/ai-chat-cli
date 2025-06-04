@@ -44,6 +44,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newVersionCmd(Version, Commit, Date))
 	cmd.AddCommand(newAssetsCmd())
 	cmd.AddCommand(newConfigCmd())
+	cmd.AddCommand(newTuiCmd())
 	return cmd
 }
 
