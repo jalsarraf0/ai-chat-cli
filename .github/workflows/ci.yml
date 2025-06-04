@@ -97,9 +97,17 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - run: go install github.com/securego/gosec/v2/cmd/gosec@latest
       - run: gosec ./...
+  embed-drift:
+    needs: security-scan
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set GOMAXPROCS
+        run: echo "GOMAXPROCS=$(nproc)" >> $GITHUB_ENV
+      - run: make embed-check
   docs:
     runs-on: [self-hosted, linux]
-    needs: security-scan
+    needs: embed-drift
     steps:
       - uses: actions/checkout@v4
       - name: Generate Docs

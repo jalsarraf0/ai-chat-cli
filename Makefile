@@ -38,6 +38,11 @@ shell-test:
 cross:
         GOOS=windows GOARCH=amd64 $(MAKE) build
 
+embed-check: ## verify embedded FS is up to date
+	go run scripts/embedgen.go
+	@git diff --quiet internal/assets || (echo "::error::embed drift"; exit 1)
+
+
 prompt:
 	@mkdir -p dist/prompt && echo '#!/bin/sh\necho prompt' > dist/prompt/stub.sh
 	chmod +x dist/prompt/stub.sh

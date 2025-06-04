@@ -42,6 +42,7 @@ func newRootCmd() *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	cmd.AddCommand(newPingCmd(chatClient))
 	cmd.AddCommand(newVersionCmd(Version, Commit, Date))
+	cmd.AddCommand(newAssetsCmd())
 	cmd.AddCommand(newConfigCmd())
 	return cmd
 }
