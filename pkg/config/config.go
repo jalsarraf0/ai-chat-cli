@@ -29,9 +29,9 @@ func Load(p string) error {
 	v.SetConfigType("yaml")
 	v.SetEnvPrefix("AICHAT")
 	v.AutomaticEnv()
-        if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
-                return err
-        }
+	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+		return err
+	}
 	if err := v.ReadInConfig(); err != nil {
 		var e viper.ConfigFileNotFoundError
 		if errors.As(err, &e) {
@@ -63,7 +63,9 @@ func Set(key string, val any) error {
 }
 
 // GetString returns a string value.
-func GetString(key string) string { return v.GetString(key) }
+func GetString(key string) string   { return v.GetString(key) }
+func GetFloat64(key string) float64 { return v.GetFloat64(key) }
+func GetInt(key string) int         { return v.GetInt(key) }
 
 // defaultPath returns the platform-specific config file path.
 func defaultPath() string { return defaultPathImpl() }

@@ -43,6 +43,8 @@ jobs:
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLINT_VERSION}
           golangci-lint --version
+      - name: Clean cache
+        run: rm -rf "${{ env.CACHE_DIR }}"
       - name: Cache
         uses: actions/cache@v3
         with:

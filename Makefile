@@ -14,8 +14,10 @@ else
 PARFLAG := -p $(GOMAXPROCS)
 endif
 
-test: lint
-	go test $(PARFLAG) -race -covermode=atomic -coverprofile=coverage.out ./...
+unit:
+	go test $(PARFLAG) -race -covermode=atomic -coverprofile=coverage.out -tags unit ./...
+
+test: lint unit
 	@$(MAKE) coverage-gate
 
 coverage-gate:
@@ -49,3 +51,7 @@ embed-check: ## verify embedded FS is up to date
 prompt:
 	@mkdir -p dist/prompt && echo '#!/bin/sh\necho prompt' > dist/prompt/stub.sh
 	chmod +x dist/prompt/stub.sh
+
+
+live-openai-test:
+	go test ./pkg/llm/openai -run Live -v

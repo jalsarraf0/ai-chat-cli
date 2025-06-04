@@ -191,3 +191,20 @@ func TestLoadDirError(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 }
+
+func TestGetters(t *testing.T) {
+	Reset()
+	dir := t.TempDir()
+	file := filepath.Join(dir, "c.yaml")
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	if err := Load(file); err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	v.Set("x", 1.5)
+	if GetFloat64("x") != 1.5 {
+		t.Fatalf("float")
+	}
+	if GetInt("missing") != 0 {
+		t.Fatalf("int default")
+	}
+}
