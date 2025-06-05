@@ -1,5 +1,5 @@
-.PHONY: format lint test docs build man shell-test cross
-	
+.PHONY: format lint lint-all static security test docs build man shell-test cross
+		
 GOFILES := $(shell git ls-files '*.go')
 
 format:
@@ -7,6 +7,15 @@ format:
 
 lint: ## static analysis
 	golangci-lint run ./...
+
+lint-all:
+	golangci-lint run ./...
+
+static:
+	staticcheck ./...
+
+security:
+	gosec ./... && govulncheck ./...
 
 ifeq ($(strip $(GOMAXPROCS)),)
 PARFLAG :=

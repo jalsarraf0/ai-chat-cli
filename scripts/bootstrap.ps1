@@ -7,7 +7,8 @@ function Install-Tools {
         [string[]]$Pkgs = @(
             'mvdan.cc/gofumpt@latest',
             'honnef.co/go/tools/cmd/staticcheck@latest',
-            'github.com/securego/gosec/v2/cmd/gosec@latest'
+            'github.com/securego/gosec/v2/cmd/gosec@latest',
+            'golang.org/x/vuln/cmd/govulncheck@latest'
         )
     )
 
@@ -19,7 +20,7 @@ function Install-Tools {
     }
 
     $missing = @()
-    foreach ($t in @('gofumpt','staticcheck','gosec')) {
+    foreach ($t in @('gofumpt','staticcheck','gosec','govulncheck')) {
         if (-not (Get-Command $t -ErrorAction SilentlyContinue)) {
             $missing += $t
         }

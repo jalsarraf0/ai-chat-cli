@@ -1,0 +1,17 @@
+version: 2
+run:
+  deadline: 5m
+  skip-dirs:
+    - examples
+linters:
+  enable:
+    - revive
+    - gocritic
+    - misspell
+    - nestif
+issues:
+  exclude-rules:
+    - linters:
+        - revive
+        - gocritic
+      text: ".*"
