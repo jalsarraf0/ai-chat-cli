@@ -23,6 +23,7 @@ The CLI auto-detects Bash, Zsh, Fish, PowerShell and Cmd, running seamlessly acr
 - `version` – shows semantic version, commit and build date
 - `config` – manage settings stored in `~/.config/ai-chat/config.yaml` (run `ai-chat config show` to print the path and contents)
 - `tui` – interactive terminal UI (see [docs/tui.md](docs/tui.md))
+- `ask` – send a prompt to the LLM
 
 ## Embedded Assets
 
@@ -33,3 +34,15 @@ Embedded templates and colour themes can be inspected with `ai-chat assets`:
 ./ai-chat assets cat templates/system.tmpl
 ./ai-chat assets export themes/light.json /tmp/theme.json
 ```
+
+### Ask
+
+```bash
+./ai-chat ask "Hello" --model gpt-3.5-turbo
+```
+
+| Flag | Description |
+|------|-------------|
+| `--model` | model ID |
+| `--temperature` | sampling temperature |
+| `--max_tokens` | token limit |

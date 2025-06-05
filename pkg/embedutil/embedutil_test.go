@@ -31,3 +31,13 @@ func TestMustText(t *testing.T) {
 		t.Fatalf("missing variable in %q", txt)
 	}
 }
+
+func TestMustTextPanic(t *testing.T) {
+	t.Parallel()
+	defer func() {
+		if recover() == nil {
+			t.Fatalf("expected panic")
+		}
+	}()
+	MustText("missing.txt")
+}
