@@ -24,7 +24,7 @@ jobs:
             runs-on: macos-latest
             shell: bash
           - os: windows
-            runs-on: windows-latest
+            runs-on: [self-hosted, windows]
             shell: pwsh
 
     runs-on: ${{ matrix.runs-on }}
@@ -70,12 +70,38 @@ jobs:
 
       - name: Lint
         run: make lint
-      - name: Unit tests
-        run: make unit
-      - name: Coverage gate
-        run: make coverage-gate
+      - name: Install portable GNU Make
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -AllowInsecureRedirect -Uri https://gnuwin32.sourceforge.net/downlinks/make-bin-zip.php -OutFile make.zip
+          Expand-Archive make.zip -DestinationPath $env:USERPROFILE\gnumake
+          Echo "${env:USERPROFILE}\gnumake\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding ascii -Append
+      - name: Run unit tests
+        run: ./scripts/test-slice.sh
+      - name: Upload slice coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: cov-${{ matrix.os }}-${{ strategy.job-index }}
+          path: coverage.out
       - name: Security scan
         run: make security-scan
+
+  bench:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+      - name: Run benchmarks
+        run: go test -bench ./... -benchmem -run=^$ | tee bench.txt
+      - name: Upload bench artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-linux
+          path: bench.txt
 
   quality:
     needs: test
@@ -87,8 +113,23 @@ jobs:
           go-version: 1.24.x
           cache: true
 
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cov-*
+          merge-multiple: true
+
       - name: Bootstrap tools
         run: ./scripts/bootstrap-tools.sh install_tools
+
+      - name: Install gocovmerge
+        run: go install github.com/wadey/gocovmerge@latest
+
+      - name: Merge coverage
+        run: |
+          gocovmerge $(find .. -name 'coverage.out') > all.cov
+          go tool cover -func all.cov | grep total:
+          TOTAL=$(go tool cover -func all.cov | awk '/total:/ {print $3}' | tr -d '%')
+          awk -v t="$TOTAL" 'BEGIN {exit (t < 92)}'
 
       - name: Lint (all linters)
         run: golangci-lint run ./...
