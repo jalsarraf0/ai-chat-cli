@@ -59,6 +59,8 @@ cross:
 
 tui: ## run terminal UI
 	go run ./cmd/ai-chat tui --height 20
+bench:
+	go test -bench ./... -benchmem -run=^$
 
 embed-check: ## verify embedded FS is up to date
 	go run scripts/embedgen.go

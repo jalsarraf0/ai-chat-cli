@@ -11,74 +11,138 @@ env:
   CACHE_DIR: ${{ github.workspace }}/go-cache
 
 jobs:
-  test:
-    name: unit-coverage (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: linux
-            runs-on: [self-hosted, linux]
-            shell: bash
-          - os: macos
-            runs-on: macos-latest
-            shell: bash
-          - os: windows
-            runs-on: windows-latest
-            shell: pwsh
-
-    runs-on: ${{ matrix.runs-on }}
-    defaults:
-      run:
-        shell: ${{ matrix.shell }}
-
+  test-linux:
+    name: unit-coverage (linux)
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-
       - name: Tidy modules
         run: |
           go mod tidy --go=1.24
           go mod verify
-
-
       - name: Bootstrap critical tools
-        if: runner.os != 'Windows'
         run: ./scripts/bootstrap-tools.sh install_tools
-      - name: Bootstrap critical tools (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./scripts/bootstrap.ps1
-
-      - name: Export GOMAXPROCS (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Export GOMAXPROCS
         run: echo "GOMAXPROCS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu)" >> $GITHUB_ENV
-      - name: Export GOMAXPROCS (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: echo "GOMAXPROCS=$Env:NUMBER_OF_PROCESSORS" >> $Env:GITHUB_ENV
-
       - name: Cache
         uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_DIR }}
-          key: ${{ matrix.os }}-go-${{ hashFiles('**/go.sum') }}
-
+          key: linux-go-${{ hashFiles('**/go.sum') }}
       - name: Lint
         run: make lint
-      - name: Unit tests
-        run: make unit
-      - name: Coverage gate
-        run: make coverage-gate
+      - name: Run unit tests
+        run: ./scripts/test-slice.sh
+      - name: Upload slice coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: cov-linux-${{ strategy.job-index }}
+          path: coverage.out
       - name: Security scan
         run: make security-scan
 
+  test-windows:
+    name: unit-coverage (windows)
+    runs-on: [self-hosted, windows]
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Tidy modules
+        run: |
+          go mod tidy --go=1.24
+          go mod verify
+      - name: Bootstrap critical tools (Windows)
+        shell: pwsh
+        run: ./scripts/bootstrap.ps1
+      - name: Export GOMAXPROCS (Windows)
+        shell: pwsh
+        run: echo "GOMAXPROCS=$Env:NUMBER_OF_PROCESSORS" >> $Env:GITHUB_ENV
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CACHE_DIR }}
+          key: windows-go-${{ hashFiles('**/go.sum') }}
+      - name: Install portable GNU Make
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -AllowInsecureRedirect -Uri https://gnuwin32.sourceforge.net/downlinks/make-bin-zip.php -OutFile make.zip
+          Expand-Archive make.zip -DestinationPath $env:USERPROFILE\gnumake
+          Echo "${env:USERPROFILE}\gnumake\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding ascii -Append
+      - name: Lint
+        run: make lint
+      - name: Run unit tests
+        run: ./scripts/test-slice.sh
+      - name: Upload slice coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: cov-windows-${{ strategy.job-index }}
+          path: coverage.out
+      - name: Security scan
+        run: make security-scan
+
+  test-macos:
+    name: unit-coverage (macos)
+    needs: [test-linux, test-windows]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Tidy modules
+        run: |
+          go mod tidy --go=1.24
+          go mod verify
+      - name: Bootstrap critical tools
+        run: ./scripts/bootstrap-tools.sh install_tools
+      - name: Export GOMAXPROCS
+        run: echo "GOMAXPROCS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu)" >> $GITHUB_ENV
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CACHE_DIR }}
+          key: macos-go-${{ hashFiles('**/go.sum') }}
+      - name: Lint
+        run: make lint
+      - name: Run unit tests
+        run: ./scripts/test-slice.sh
+      - name: Upload slice coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: cov-macos-${{ strategy.job-index }}
+          path: coverage.out
+      - name: Security scan
+        run: make security-scan
+
+  bench:
+    needs: test-macos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+      - name: Run benchmarks
+        run: go test -bench ./... -benchmem -run=^$ | tee bench.txt
+      - name: Upload bench artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-linux
+          path: bench.txt
+
   quality:
-    needs: test
+    needs: test-macos
     runs-on: [self-hosted, linux, quality]
     steps:
       - uses: actions/checkout@v4        # repo already present on runner
@@ -87,8 +151,23 @@ jobs:
           go-version: 1.24.x
           cache: true
 
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cov-*
+          merge-multiple: true
+
       - name: Bootstrap tools
         run: ./scripts/bootstrap-tools.sh install_tools
+
+      - name: Install gocovmerge
+        run: go install github.com/wadey/gocovmerge@latest
+
+      - name: Merge coverage
+        run: |
+          gocovmerge $(find .. -name 'coverage.out') > all.cov
+          go tool cover -func all.cov | grep total:
+          TOTAL=$(go tool cover -func all.cov | awk '/total:/ {print $3}' | tr -d '%')
+          awk -v t="$TOTAL" 'BEGIN {exit (t < 92)}'
 
       - name: Lint (all linters)
         run: golangci-lint run ./...
@@ -102,7 +181,7 @@ jobs:
       - name: Security scan – govulncheck
         run: govulncheck ./...
   embed-drift:
-    needs: test
+    needs: test-macos
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
