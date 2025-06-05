@@ -1,3 +1,4 @@
+// Package tui implements the terminal UI.
 package tui
 
 import (
@@ -81,11 +82,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case tea.WindowSizeMsg:
-		if m.height == 0 && msg.Height > 0 {
-			m.height = msg.Height
-		} else {
-			m.height = msg.Height
-		}
+		m.height = msg.Height
 		m.input.Width = msg.Width
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -95,9 +92,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			lines := m.historyHeight()
 			if lines > 0 {
 				m.cursor += lines
-				max := len(m.history)
-				if m.cursor > max-lines {
-					m.cursor = max - lines
+				maxIdx := len(m.history)
+				if m.cursor > maxIdx-lines {
+					m.cursor = maxIdx - lines
 				}
 				if m.cursor < 0 {
 					m.cursor = 0

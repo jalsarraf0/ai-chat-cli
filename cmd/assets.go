@@ -24,7 +24,7 @@ func newAssetsListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List embedded assets",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			for _, n := range embedutil.List() {
 				if _, err := fmt.Fprintln(cmd.OutOrStdout(), n); err != nil {
 					return err
@@ -57,7 +57,7 @@ func newAssetsExportCmd() *cobra.Command {
 		Use:   "export <name> <file>",
 		Args:  cobra.ExactArgs(2),
 		Short: "Export asset to file",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			data, err := embedutil.Read(args[0])
 			if err != nil {
 				return err

@@ -1,0 +1,27 @@
+site_name: AI Chat CLI
+nav:
+  - Home: index.md
+  - Configuration: config.md
+  - LLM: llm.md
+  - TUI: tui.md
+  - Security: security.md
+  - Releases: releases.md
+  - Assets: assets.md
+  - Credits: credits.md
+  - Codex:
+      - phase-0-bootstrap: codex/phase-0-bootstrap.md
+      - phase-1-core-cli: codex/phase-1-core-cli.md
+      - phase-2-cross-shell: codex/phase-2-cross-shell.md
+      - phase-3-completion: codex/phase-3-completion.md
+      - phase-4-config: codex/phase-4-config.md
+      - phase-5-embedding: codex/phase-5-embedding.md
+      - phase-6-tui: codex/phase-6-tui.md
+      - phase-7-llm: codex/phase-7-llm.md
+      - phase-8-release: codex/phase-8-release.md
+      - phase-9_2: codex/phase-9_2.md
+      - phase-9_3-fix: codex/phase-9_3-fix.md
+      - phase-9_3: codex/phase-9_3.md
+      - phase-9_4-quality-security: codex/phase-9_4-quality-security.md
+      - phase-9_4-lint-v2: codex/phase-9_4-lint-v2.md
+      - addon-always-online: codex/addons/always-online.md
+  - Tutorial: tutorials/plugin_dev.md

@@ -40,10 +40,10 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Install golangci-lint
+      - name: Tidy modules
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@master
-          golangci-lint --version
+          go mod tidy --go=1.24
+          go mod verify
 
 
       - name: Bootstrap critical tools
@@ -76,6 +76,31 @@ jobs:
         run: make coverage-gate
       - name: Security scan
         run: make security-scan
+
+  quality:
+    needs: test
+    runs-on: [self-hosted, linux, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.x
+          cache: true
+
+      - name: Bootstrap tools
+        run: ./scripts/bootstrap-tools.sh install_tools
+
+      - name: Lint (all linters)
+        run: golangci-lint run ./...
+
+      - name: Staticcheck
+        run: staticcheck ./...
+
+      - name: Security scan – gosec
+        run: gosec ./...
+
+      - name: Security scan – govulncheck
+        run: govulncheck ./...
   embed-drift:
     needs: test
     runs-on: [self-hosted, linux]
@@ -93,7 +118,7 @@ jobs:
         run: ./scripts/bootstrap.ps1
       - run: make embed-check
   docs:
-    needs: embed-drift
+    needs: quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

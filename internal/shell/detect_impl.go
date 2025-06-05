@@ -1,3 +1,4 @@
+// Package shell detects the user's shell.
 package shell
 
 func detectFromEnv(shellPath, comspec string) Kind {
