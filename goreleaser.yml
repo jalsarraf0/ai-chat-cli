@@ -29,18 +29,19 @@ archives:
 checksum:
   name_template: "checksums.txt"
 signs:
-  - cmd: cosign sign --key $COSIGN_PRIVATE_KEY --password-stdin ${{ .Artifact }}
+  - cmd: cosign
+    stdin: "{{ .Env.COSIGN_PASSWORD }}"
+    args:
+      - sign-blob
+      - "--key=$COSIGN_PRIVATE_KEY"
+      - "--output-signature=${signature}"
+      - "${artifact}"
     artifacts: checksum
 brews:
-  - tap:
-      owner: jalsarraf0
-      name: homebrew-ai-chat-cli
-    folder: Formula
-    commit_author:
-      name: Jamal Al-Sarraf
-      email: jalsarraf0@gmail.com
-    homepage: https://github.com/jalsarraf0/ai-chat-cli
-    description: AI chat CLI
+  - name: ai-chat-cli
+    homepage: "https://github.com/jalsarraf0/ai-chat-cli"
+    description: "AI-powered Chat CLI"
+    test: "ai-chat --help"
 dockers:
   - image_templates:
       - ghcr.io/jalsarraf0/ai-chat-cli:{{ .Version }}
