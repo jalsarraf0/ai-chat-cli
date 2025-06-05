@@ -80,3 +80,13 @@ release:
 
 live-openai-test:
 	go test ./pkg/llm/openai -run Live -v
+
+.PHONY: bench bench-json
+
+# Run benchmarks once without saving output
+bench:
+	go test -run=^$ -bench=. ./...
+
+# Run benchmarks three times and save JSON results
+bench-json:
+	go test -run=^$ -bench=. -benchmem -count=3 -json ./... > bench.json

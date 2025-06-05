@@ -16,6 +16,7 @@ for pkg in \
   honnef.co/go/tools/cmd/staticcheck@latest \
   github.com/securego/gosec/v2/cmd/gosec@latest \
   golang.org/x/vuln/cmd/govulncheck@latest \
-  github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.1; do
+  github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.1 \
+  gotest.tools/gotestsum@latest; do
     GOFLAGS='-trimpath' go install "$pkg"
 done

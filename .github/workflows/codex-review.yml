@@ -1,0 +1,27 @@
+name: codex-review
+on:
+  workflow_dispatch:
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/codex-review-all.sh
+      - name: Commit reports
+        run: |
+          git config user.name "github-actions"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="codex-review-$(date +%s)"
+          git switch -c "$branch"
+          git add codex/reports
+          git commit -m "chore: add codex review reports"
+          git push origin "$branch"
+          echo "branch=$branch" >> "$GITHUB_ENV"
+      - uses: peter-evans/create-pull-request@v5
+        with:
+          branch: ${{ env.branch }}
+          base: dev
+          draft: true
+          title: Codex review reports
+          labels: phase-10-review
