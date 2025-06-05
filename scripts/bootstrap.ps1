@@ -9,6 +9,7 @@ function Install-Tools {
             'honnef.co/go/tools/cmd/staticcheck@latest',
             'github.com/securego/gosec/v2/cmd/gosec@latest',
             'golang.org/x/vuln/cmd/govulncheck@latest',
+            'gotest.tools/gotestsum/v2/cmd/gotestsum@v1.11.0',
             'github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.1'
         )
     )

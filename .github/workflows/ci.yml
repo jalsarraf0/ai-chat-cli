@@ -12,7 +12,7 @@ env:
 
 jobs:
   test:
-    name: unit-coverage (${{ matrix.os }})
+    name: unit-coverage (${{ matrix.os }}-${{ matrix.case }})
     strategy:
       fail-fast: false
       matrix:
@@ -20,12 +20,23 @@ jobs:
           - os: linux
             runs-on: [self-hosted, linux]
             shell: bash
+            case: 0/2
+            use_make: true
+          - os: linux
+            runs-on: [self-hosted, linux]
+            shell: bash
+            case: 1/2
+            use_make: true
           - os: macos
             runs-on: macos-latest
             shell: bash
+            case: 0/1
+            use_make: true
           - os: windows
             runs-on: windows-latest
             shell: pwsh
+            case: 0/1
+            use_make: false
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -69,9 +80,26 @@ jobs:
           key: ${{ matrix.os }}-go-${{ hashFiles('**/go.sum') }}
 
       - name: Lint
+        if: matrix.use_make == 'true'
         run: make lint
+      - name: Lint (Windows direct)
+        if: matrix.use_make == 'false'
+        run: golangci-lint run ./...
       - name: Unit tests
-        run: make unit
+        if: runner.os != 'Windows'
+        env:
+          CASE: ${{ matrix.case }}
+        run: |
+          IDX="${CASE%%/*}" TOT="${CASE##*/}"
+          if [[ "$TOT" != "$CASE" ]]; then
+            PKGS=$(go list ./... | awk -v idx="$IDX" -v tot="$TOT" 'NR % tot == idx')
+          else
+            PKGS="./..."
+          fi
+          go test -race -covermode=atomic -coverprofile=coverage.out $PKGS
+      - name: Unit (Windows direct)
+        if: runner.os == 'Windows'
+        run: go test ./... -race -covermode=atomic -coverprofile=coverage.out
       - name: Coverage gate
         run: make coverage-gate
       - name: Security scan
