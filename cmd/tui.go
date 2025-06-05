@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var teaRun = func(p *tea.Program) (tea.Model, error) { return p.Run() }
+
 var light bool
 var height int
 
@@ -19,7 +21,7 @@ func newTuiCmd() *cobra.Command {
 			m.UseLightTheme()
 		}
 		p := tea.NewProgram(m)
-		_, err := p.Run()
+		_, err := teaRun(p)
 		return err
 	}
 	return cmd
