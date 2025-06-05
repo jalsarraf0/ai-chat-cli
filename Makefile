@@ -44,14 +44,20 @@ tui: ## run terminal UI
 	go run ./cmd/ai-chat tui --height 20
 
 embed-check: ## verify embedded FS is up to date
-	go run scripts/embedgen.go
-	@git diff --quiet internal/assets || (echo "::error::embed drift"; exit 1)
+        go run scripts/embedgen.go
+        @git diff --quiet internal/assets || (echo "::error::embed drift"; exit 1)
 
 
 prompt:
-	@mkdir -p dist/prompt && echo '#!/bin/sh\necho prompt' > dist/prompt/stub.sh
-	chmod +x dist/prompt/stub.sh
+        @mkdir -p dist/prompt && echo '#!/bin/sh\necho prompt' > dist/prompt/stub.sh
+        chmod +x dist/prompt/stub.sh
+
+snapshot:
+	goreleaser build --snapshot --clean
+
+release:
+	goreleaser release --clean --sign
 
 
 live-openai-test:
-	go test ./pkg/llm/openai -run Live -v
+        go test ./pkg/llm/openai -run Live -v
