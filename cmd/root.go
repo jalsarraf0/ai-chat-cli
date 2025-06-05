@@ -10,12 +10,15 @@ import (
 	"github.com/jalsarraf0/ai-chat-cli/internal/shell"
 	"github.com/jalsarraf0/ai-chat-cli/pkg/chat"
 	"github.com/jalsarraf0/ai-chat-cli/pkg/config"
+	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
+	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/mock"
 	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var (
 	chatClient    chat.Client = chat.NewMockClient()
+	llmClient     llm.Client  = mock.New("hello")
 	verbose       bool
 	detectedShell shell.Kind
 	cfgFile       string
@@ -45,6 +48,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newAssetsCmd())
 	cmd.AddCommand(newConfigCmd())
 	cmd.AddCommand(newTuiCmd())
+	cmd.AddCommand(newAskCmd(llmClient))
 	return cmd
 }
 

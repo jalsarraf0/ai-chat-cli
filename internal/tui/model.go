@@ -3,26 +3,40 @@ package tui
 import (
 	"strings"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
+type llmTokenMsg struct {
+	Token string
+	Done  bool
+}
+
+func newSpinner() spinner.Model {
+	sp := spinner.New()
+	sp.Spinner = spinner.Line
+	return sp
+}
+
 // Model implements a simple chat interface.
 type Model struct {
-	history []string // chat log
-	cursor  int      // scroll offset
-	input   textinput.Model
-	height  int
-	light   bool
-	styles  Styles
+	history   []string // chat log
+	cursor    int      // scroll offset
+	input     textinput.Model
+	height    int
+	light     bool
+	styles    Styles
+	spinner   spinner.Model
+	streaming bool
 }
 
 // NewModel creates a Model with optional initial rows.
 func NewModel(initialRows int) Model {
 	ti := textinput.New()
 	ti.Prompt = "› "
-	m := Model{input: ti, height: initialRows}
+	m := Model{input: ti, height: initialRows, spinner: newSpinner()}
 	m.styles = LoadStyles(false)
 	ti.PromptStyle = m.styles.Cursor
 	ti.Cursor.Style = m.styles.Cursor
@@ -52,6 +66,20 @@ func (m *Model) historyHeight() int {
 // Update handles messages.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+	case llmTokenMsg:
+		if msg.Token != "" {
+			m.history = append(m.history, msg.Token)
+		}
+		if msg.Done {
+			m.streaming = false
+		} else {
+			m.streaming = true
+		}
+		return m, nil
 	case tea.WindowSizeMsg:
 		if m.height == 0 && msg.Height > 0 {
 			m.height = msg.Height
@@ -117,5 +145,8 @@ func (m Model) View() string {
 	}
 	historyView := m.styles.History.Render(b.String())
 	inputView := m.styles.Input.Render(m.input.View())
+	if m.streaming {
+		inputView += " " + m.spinner.View()
+	}
 	return lipgloss.JoinVertical(lipgloss.Left, historyView, inputView)
 }
