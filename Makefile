@@ -6,7 +6,7 @@ format:
 	gofumpt -l -w $(GOFILES)
 
 lint:
-        GOTOOLCHAIN=go1.22.4 golangci-lint run ./...
+	GOTOOLCHAIN=go1.22.4 golangci-lint run ./...
 
 ifeq ($(strip $(GOMAXPROCS)),)
 PARFLAG :=
@@ -38,7 +38,7 @@ shell-test:
 	go test -run TestShell ./internal/shell/...
 
 cross:
-        GOOS=windows GOARCH=amd64 $(MAKE) build
+	GOOS=windows GOARCH=amd64 $(MAKE) build
 
 tui: ## run terminal UI
 	go run ./cmd/ai-chat tui --height 20
@@ -51,6 +51,12 @@ embed-check: ## verify embedded FS is up to date
 prompt:
 	@mkdir -p dist/prompt && echo '#!/bin/sh\necho prompt' > dist/prompt/stub.sh
 	chmod +x dist/prompt/stub.sh
+
+snapshot:
+	goreleaser build --snapshot --clean
+
+release:
+	goreleaser release --clean --sign
 
 
 live-openai-test:
