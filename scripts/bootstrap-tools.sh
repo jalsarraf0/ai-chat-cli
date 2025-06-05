@@ -8,7 +8,7 @@ export PATH="$PWD/offline-bin:$PATH"
 mkdir -p offline-bin
 
 missing=()
-for t in gofumpt staticcheck gosec; do
+for t in gofumpt staticcheck gosec govulncheck golangci-lint; do
   command -v "$t" >/dev/null || missing+=("$t")
 done
 ((${#missing[@]})) || exit 0
@@ -20,6 +20,8 @@ echo "🔧 installing: ${missing[*]}"
 for pkg in \
   mvdan.cc/gofumpt@latest \
   honnef.co/go/tools/cmd/staticcheck@latest \
-  github.com/securego/gosec/v2/cmd/gosec@latest; do
+  github.com/securego/gosec/v2/cmd/gosec@latest \
+  golang.org/x/vuln/cmd/govulncheck@latest \
+  github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.1; do
     GOFLAGS='-trimpath' go install "$pkg"
 done

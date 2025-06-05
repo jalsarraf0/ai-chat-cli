@@ -22,9 +22,9 @@ func newConfigShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show",
 		Short: "Show configuration",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			p := configPath()
-                        b, err := os.ReadFile(p) // #nosec G304 -- path from user input
+			b, err := os.ReadFile(p) // #nosec G304 -- path from user input
 			if err != nil {
 				return err
 			}
@@ -39,7 +39,7 @@ func newConfigSetCmd() *cobra.Command {
 		Use:   "set <key> <value>",
 		Short: "Set a configuration key",
 		Args:  cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return config.Set(args[0], args[1])
 		},
 	}
@@ -50,7 +50,7 @@ func newConfigEditCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "edit",
 		Short: "Edit configuration file",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			if dryRun {
 				return nil
 			}
@@ -62,7 +62,7 @@ func newConfigEditCmd() *cobra.Command {
 					editor = "vi"
 				}
 			}
-                        e := exec.Command(editor, configPath()) // #nosec G204 -- user-controlled editor
+			e := exec.Command(editor, configPath()) // #nosec G204 -- user-controlled editor
 			e.Stdin = os.Stdin
 			e.Stdout = os.Stdout
 			e.Stderr = os.Stderr

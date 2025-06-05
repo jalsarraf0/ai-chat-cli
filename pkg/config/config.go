@@ -1,3 +1,4 @@
+// Package config handles configuration loading and saving.
 package config
 
 import (
@@ -34,11 +35,7 @@ func Load(p string) error {
 	}
 	if err := v.ReadInConfig(); err != nil {
 		var e viper.ConfigFileNotFoundError
-		if errors.As(err, &e) {
-			// missing file is fine
-		} else if errors.Is(err, os.ErrNotExist) {
-			// fs.PathError when file missing
-		} else {
+		if !errors.As(err, &e) && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 	}
@@ -63,9 +60,13 @@ func Set(key string, val any) error {
 }
 
 // GetString returns a string value.
-func GetString(key string) string   { return v.GetString(key) }
+func GetString(key string) string { return v.GetString(key) }
+
+// GetFloat64 returns a float64 value.
 func GetFloat64(key string) float64 { return v.GetFloat64(key) }
-func GetInt(key string) int         { return v.GetInt(key) }
+
+// GetInt returns an int value.
+func GetInt(key string) int { return v.GetInt(key) }
 
 // defaultPath returns the platform-specific config file path.
 func defaultPath() string { return defaultPathImpl() }
