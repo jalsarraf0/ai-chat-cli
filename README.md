@@ -1,6 +1,11 @@
 # AI-Chat-CLI
 
 [![CI Status](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml)
+[![Coverage Status](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml)
+[![Go Version](https://img.shields.io/badge/go-1.24.x-blue)](https://golang.org/dl/)
+[![Security](https://img.shields.io/badge/security-scanned-brightgreen)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/jalsarraf0/ai-chat-cli?label=release)](https://github.com/jalsarraf0/ai-chat-cli/releases/latest)
+[![Docker Image](https://img.shields.io/badge/container-ghcr.io%2Fjalsarraf0%2Fai--chat--cli-blue)](https://github.com/jalsarraf0/ai-chat-cli/pkgs/container/ai-chat-cli)
 
 A lightweight command-line interface for interacting with AI chat services, providing streamlined workflows for rapid experimentation.
 
