@@ -53,9 +53,11 @@ prompt:
 	chmod +x dist/prompt/stub.sh
 
 snapshot:
+	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
 	goreleaser build --snapshot --clean
 
 release:
+	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
 	goreleaser release --clean --sign
 
 
