@@ -81,10 +81,8 @@ func TestDefaultPathHome(t *testing.T) {
 		if p != want {
 			t.Fatalf("want %s got %s", want, p)
 		}
-	} else {
-		if !strings.Contains(p, ".config/ai-chat/config.yaml") {
-			t.Fatalf("unexpected %s", p)
-		}
+	} else if !strings.Contains(p, ".config/ai-chat/config.yaml") {
+		t.Fatalf("unexpected %s", p)
 	}
 }
 
@@ -99,10 +97,8 @@ func TestDefaultPathFallback(t *testing.T) {
 		if p != want {
 			t.Fatalf("want %s got %s", want, p)
 		}
-	} else {
-		if !strings.Contains(p, "ai-chat/config.yaml") {
-			t.Fatalf("unexpected %s", p)
-		}
+	} else if !strings.Contains(p, "ai-chat/config.yaml") {
+		t.Fatalf("unexpected %s", p)
 	}
 	if oldHome != "" {
 		t.Setenv("HOME", oldHome)

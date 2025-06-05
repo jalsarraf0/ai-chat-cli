@@ -1,3 +1,4 @@
+// Package openai implements an OpenAI-based Client.
 package openai
 
 import (
@@ -66,6 +67,7 @@ func New(opts ...Option) Client {
 	return c
 }
 
+// Completion sends a completion request to the OpenAI API.
 func (c Client) Completion(ctx context.Context, req llm.Request) (llm.Stream, error) {
 	body := bytes.Buffer{}
 	type msg struct {

@@ -1,6 +1,4 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
+// Package cmd provides CLI commands.
 package cmd
 
 import (
@@ -16,7 +14,7 @@ func newPingCmd(c chat.Client) *cobra.Command {
 	return &cobra.Command{
 		Use:   "ping",
 		Short: "Check connectivity",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := c.Ping(context.Background()); err != nil {
 				return err
 			}

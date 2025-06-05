@@ -12,3 +12,12 @@ Verify signatures locally with:
 ```bash
 cosign verify --certificate-identity-regexp 'github.com/.+' dist/*.tar.gz
 ```
+
+## Static Analysis
+
+The CI pipeline runs two scanners:
+
+1. **gosec** – detects common security issues.
+2. **govulncheck** – checks dependencies against the Go vulnerability database.
+
+Suppress individual warnings by adding `// #nosec` for gosec or `//govulncheck:ignore` for govulncheck above the offending line.

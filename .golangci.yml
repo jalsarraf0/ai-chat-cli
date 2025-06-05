@@ -1,0 +1,12 @@
+version: 2
+run:
+  deadline: 5m
+issues:
+  exclude-dirs:
+    - examples
+linters:
+  enable:
+    - revive
+    - gocritic
+    - misspell
+    - nestif

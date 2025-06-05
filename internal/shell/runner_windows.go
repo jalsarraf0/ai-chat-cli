@@ -6,6 +6,7 @@ import (
 	"context"
 )
 
+// Run executes a command via the user's shell on Windows.
 func Run(ctx context.Context, cmd string, args ...string) (string, string, error) {
 	lookPathMu.RLock()
 	lp := lookPath

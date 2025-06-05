@@ -1,3 +1,4 @@
+// Package echo provides simple string helpers.
 package echo
 
 // Repeat returns the input string n times.
