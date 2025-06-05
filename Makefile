@@ -20,9 +20,12 @@ unit: ## unit tests, offline
 test: lint unit
 	@$(MAKE) coverage-gate
 
+security-scan:
+	gosec ./...
+
 coverage-gate:
 	@pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $$3}'); \
-       if [ $${pct%.*} -lt 92 ]; then \
+	if [ $${pct%.*} -lt 92 ]; then \
        echo "::error::coverage < 92% (got $${pct}%)"; exit 1; fi
 
 docs:
@@ -54,7 +57,7 @@ prompt:
 
 snapshot:
 	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
-	goreleaser build --snapshot --clean
+	goreleaser release --snapshot --clean --skip=publish --skip=docker --skip=sign
 
 release:
 	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
