@@ -68,8 +68,8 @@ func TestUseLightTheme(t *testing.T) {
 func TestInitCmd(t *testing.T) {
 	t.Parallel()
 	m := NewModel(0)
-	if m.Init() == nil {
-		// nothing to assert; just execute for coverage
+	if cmd := m.Init(); cmd == nil {
+		t.Fatal("no command returned")
 	}
 }
 
