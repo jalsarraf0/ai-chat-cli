@@ -12,20 +12,35 @@ env:
 
 jobs:
   test:
-    name: unit-coverage (${{ matrix.os }})
+    name: unit-coverage (${{ matrix.name }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: linux
-            runs-on: [self-hosted, linux]
+          - name: linux-slice-0
+            slice: 0/4
+            runs-on: [self-hosted, Linux, docker]
             shell: bash
-          - os: macos
+          - name: linux-slice-1
+            slice: 1/4
+            runs-on: [self-hosted, Linux, docker]
+            shell: bash
+          - name: linux-slice-2
+            slice: 2/4
+            runs-on: [self-hosted, Linux, docker]
+            shell: bash
+          - name: linux-slice-3
+            slice: 3/4
+            runs-on: [self-hosted, Linux, docker]
+            shell: bash
+          - name: windows
+            slice: full
+            runs-on: [self-hosted, Windows, quality]
+            shell: pwsh
+          - name: macos
+            slice: full
             runs-on: macos-latest
             shell: bash
-          - os: windows
-            runs-on: windows-latest
-            shell: pwsh
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -66,14 +81,31 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_DIR }}
-          key: ${{ matrix.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ matrix.name }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Install mingw-make (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install make --yes --no-progress
 
       - name: Lint
         run: make lint
       - name: Unit tests
-        run: make unit
-      - name: Coverage gate
-        run: make coverage-gate
+        run: |
+          CASE="${{ matrix.slice }}"
+          if [[ "$CASE" == */* ]]; then
+            if command -v gotestsum >/dev/null; then
+              gotestsum --subset "$CASE" --packages ./... --coverprofile=coverage.out -- -race -covermode=atomic
+            else
+              go test $(go list ./... | gotestsum --subset "$CASE") -race -covermode=atomic -coverprofile=coverage.out
+            fi
+          else
+            go test -race -covermode=atomic -coverprofile=coverage.out ./...
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cov-${{ matrix.name }}
+          path: coverage.out
       - name: Security scan
         run: make security-scan
 
@@ -86,6 +118,23 @@ jobs:
         with:
           go-version: 1.24.x
           cache: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cov-*
+          merge-multiple: true
+          path: coverage-files
+
+      - name: Merge cover profiles
+        run: |
+          echo 'mode: atomic' > all.cov
+          find coverage-files -type f -name 'coverage.out' -exec tail -n +2 {} \; >> all.cov
+
+      - name: Coverage gate
+        run: |
+          pct=$(go tool cover -func=all.cov | awk '/^total:/{gsub("%","");print $3}')
+          echo "total=$pct%"
+          (( ${pct%.*} < 92 )) && exit 1 || exit 0
 
       - name: Bootstrap tools
         run: ./scripts/bootstrap-tools.sh install_tools
@@ -101,6 +150,20 @@ jobs:
 
       - name: Security scan – govulncheck
         run: govulncheck ./...
+
+  bench:
+    needs: quality
+    runs-on: [self-hosted, Linux, docker]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.x
+      - run: make bench-json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench
+          path: bench.json
   embed-drift:
     needs: test
     runs-on: [self-hosted, linux]
