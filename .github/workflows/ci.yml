@@ -11,136 +11,73 @@ env:
   CACHE_DIR: ${{ github.workspace }}/go-cache
 
 jobs:
-  test-linux:
-    runs-on: [self-hosted, linux]
+  test:
+    name: unit-coverage (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            runs-on: [self-hosted, linux]
+            shell: bash
+          - os: macos
+            runs-on: macos-latest
+            shell: bash
+          - os: windows
+            runs-on: windows-latest
+            shell: pwsh
+
+    runs-on: ${{ matrix.runs-on }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-      - name: Bootstrap critical tools
-        if: runner.os != 'Windows'
-        run: ./scripts/bootstrap-tools.sh
-      - name: Bootstrap critical tools (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./scripts/bootstrap.ps1
-      - name: Set GOMAXPROCS
-        run: echo "GOMAXPROCS=$(nproc)" >> $GITHUB_ENV
+          cache: true
+
       - name: Install golangci-lint
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-            | sh -s -- -b "$(go env GOPATH)/bin" "${{ env.GOLANGCI_INSTALL_VERSION }}"
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@master
           golangci-lint --version
-      - name: Cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.CACHE_DIR }}
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-      - run: make lint test
-        shell: bash
-  test-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
+
+
       - name: Bootstrap critical tools
         if: runner.os != 'Windows'
-        run: ./scripts/bootstrap-tools.sh
+        run: ./scripts/bootstrap-tools.sh install_tools
       - name: Bootstrap critical tools (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/bootstrap.ps1
-      - name: Set GOMAXPROCS
-        run: echo "GOMAXPROCS=$(sysctl -n hw.ncpu)" >> $GITHUB_ENV
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-            | sh -s -- -b "$(go env GOPATH)/bin" "${{ env.GOLANGCI_INSTALL_VERSION }}"
-          golangci-lint --version
-      - name: Clean cache
-        run: rm -rf "${{ env.CACHE_DIR }}"
-      - name: Cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.CACHE_DIR }}
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-      - run: make lint test
-        shell: bash
-  test-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Bootstrap critical tools
+
+      - name: Export GOMAXPROCS (Linux/macOS)
         if: runner.os != 'Windows'
-        run: ./scripts/bootstrap-tools.sh
-      - name: Bootstrap critical tools (Windows)
+        run: echo "GOMAXPROCS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu)" >> $GITHUB_ENV
+      - name: Export GOMAXPROCS (Windows)
         if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./scripts/bootstrap.ps1
-      - name: Set GOMAXPROCS
         shell: pwsh
         run: echo "GOMAXPROCS=$Env:NUMBER_OF_PROCESSORS" >> $Env:GITHUB_ENV
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-            | sh -s -- -b "$(go env GOPATH)/bin" "${{ env.GOLANGCI_INSTALL_VERSION }}"
-          golangci-lint --version
+
       - name: Cache
         uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_DIR }}
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-      - run: make lint test
-        shell: bash
-  coverage-gate:
-    runs-on: [self-hosted, linux]
-    needs: [test-linux, test-macos, test-windows]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Bootstrap critical tools
-        if: runner.os != 'Windows'
-        run: ./scripts/bootstrap-tools.sh
-      - name: Bootstrap critical tools (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./scripts/bootstrap.ps1
-      - name: Set GOMAXPROCS
-        run: echo "GOMAXPROCS=$(nproc)" >> $GITHUB_ENV
-      - run: |
-          go test -race -covermode=atomic -coverprofile=coverage.out -tags unit ./...
-          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
-          if [ ${pct%.*} -lt 92 ]; then echo "::error::coverage < 92%" && exit 1; fi
-      - uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage.out
-  security-scan:
-    runs-on: [self-hosted, linux]
-    needs: coverage-gate
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Bootstrap critical tools
-        if: runner.os != 'Windows'
-        run: ./scripts/bootstrap-tools.sh
-      - name: Bootstrap critical tools (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./scripts/bootstrap.ps1
-      - run: make security-scan
+          key: ${{ matrix.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Lint
+        run: make lint
+      - name: Unit tests
+        run: make unit
+      - name: Coverage gate
+        run: make coverage-gate
+      - name: Security scan
+        run: make security-scan
   embed-drift:
-    needs: security-scan
+    needs: test
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
@@ -154,31 +91,13 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/bootstrap.ps1
-      - name: Set GOMAXPROCS
-        run: echo "GOMAXPROCS=$(nproc)" >> $GITHUB_ENV
       - run: make embed-check
   docs:
-    runs-on: [self-hosted, linux]
     needs: embed-drift
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Bootstrap critical tools
-        if: runner.os != 'Windows'
-        run: ./scripts/bootstrap-tools.sh
-      - name: Bootstrap critical tools (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./scripts/bootstrap.ps1
-      - name: Generate Docs
-        run: |
-          make docs
-          git config --global user.name "Jamal Al-Sarraf"
-          git config --global user.email "jalsarraf0@gmail.com"
-          git add .
-          git commit -m "Update generated documentation" || echo "No changes to commit"
+      - run: make docs
 
   snapshot:
     runs-on: [self-hosted, linux]
@@ -195,8 +114,6 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/bootstrap.ps1
-      - name: Set GOMAXPROCS
-        run: echo "GOMAXPROCS=$(nproc)" >> $GITHUB_ENV
       - run: make snapshot
       - uses: actions/upload-artifact@v4
         with:
@@ -224,8 +141,6 @@ jobs:
         run: ./scripts/bootstrap.ps1
       - name: Install Cosign
         run: go install github.com/sigstore/cosign/v2/cmd/cosign@latest
-      - name: Set GOMAXPROCS
-        run: echo "GOMAXPROCS=$(nproc)" >> $GITHUB_ENV
       - run: goreleaser release --clean --skip=publish
       - name: Sign & attach SBOM
         run: |

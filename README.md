@@ -1,6 +1,6 @@
 # AI-Chat-CLI
 
-[![CI Status](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml)
+[![CI (Linux · macOS · Windows)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml)
 [![Coverage Status](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml)
 [![Go Version](https://img.shields.io/badge/go-1.24.x-blue)](https://golang.org/dl/)
 [![Security](https://img.shields.io/badge/Security-%F0%9F%94%92%20Cosign%20(OIDC)-brightgreen)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci.yml)
