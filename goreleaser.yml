@@ -1,0 +1,57 @@
+project_name: ai-chat-cli
+release:
+  github:
+    owner: jalsarraf0
+    name: ai-chat-cli
+builds:
+  - id: ai-chat
+    main: ./cmd/ai-chat
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, windows, darwin]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w -X github.com/jalsarraf0/ai-chat-cli/cmd.Version={{.Version}}
+      - -X github.com/jalsarraf0/ai-chat-cli/cmd.Commit={{.Commit}}
+      - -X github.com/jalsarraf0/ai-chat-cli/cmd.Date={{.Date}}
+archives:
+  - id: default
+    format: tar.gz
+    replacements:
+      darwin: macOS
+      windows: Windows
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE*
+      - completions/**
+      - internal/assets/themes/**
+    format_overrides:
+      - goos: windows
+        format: zip
+checksum:
+  name_template: "checksums.txt"
+sbom:
+  enabled: true
+  artifacts: true
+signs:
+  - cmd: cosign sign --key $COSIGN_PRIVATE_KEY --password-stdin ${{ .Artifact }}
+    artifacts: checksum
+brews:
+  - tap:
+      owner: jalsarraf0
+      name: homebrew-ai-chat-cli
+    folder: Formula
+    commit_author:
+      name: Jamal Al-Sarraf
+      email: jalsarraf0@gmail.com
+    brew:
+      homepage: https://github.com/jalsarraf0/ai-chat-cli
+      description: AI chat CLI
+dockers:
+  - image_templates:
+      - ghcr.io/jalsarraf0/ai-chat-cli:{{ .Version }}
+      - ghcr.io/jalsarraf0/ai-chat-cli:latest
+    dockerfile: Dockerfile
