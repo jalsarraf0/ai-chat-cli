@@ -30,6 +30,7 @@ The CLI auto-detects Bash, Zsh, Fish, PowerShell and Cmd, running seamlessly acr
 - `config` – manage settings stored in `~/.config/ai-chat/config.yaml` (run `ai-chat config show` to print the path and contents)
 - `tui` – interactive terminal UI (see [docs/tui.md](docs/tui.md))
 - `ask` – send a prompt to the LLM
+- [Plugin development tutorial](docs/tutorials/plugin_dev.md)
 
 ## Embedded Assets
 
