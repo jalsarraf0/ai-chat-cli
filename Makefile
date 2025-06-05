@@ -80,3 +80,6 @@ release:
 
 live-openai-test:
 	go test ./pkg/llm/openai -run Live -v
+
+bench:
+	go test -bench ./... -benchmem -run=^$

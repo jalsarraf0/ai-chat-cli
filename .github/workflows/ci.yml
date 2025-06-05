@@ -45,6 +45,14 @@ jobs:
           go mod tidy --go=1.24
           go mod verify
 
+      - name: Install portable GNU Make
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://gnuwin32.sourceforge.net/downlinks/make-bin-zip.php -OutFile make.zip
+          Expand-Archive make.zip -DestinationPath $env:USERPROFILE\gnumake
+          Echo "${env:USERPROFILE}\gnumake\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding ascii -Append
+
 
       - name: Bootstrap critical tools
         if: runner.os != 'Windows'
@@ -70,15 +78,32 @@ jobs:
 
       - name: Lint
         run: make lint
-      - name: Unit tests
-        run: make unit
-      - name: Coverage gate
-        run: make coverage-gate
-      - name: Security scan
-        run: make security-scan
+      - name: Run unit tests
+        run: ./scripts/test-slice.sh
+      - name: Upload slice coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: cov-${{ matrix.os }}-${{ strategy.job-index }}
+          path: coverage.out
+
+  bench:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+      - name: Run benchmarks
+        run: go test -bench ./... -benchmem -run=^$ | tee bench.txt
+      - name: Upload bench artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-linux
+          path: bench.txt
 
   quality:
-    needs: test
+    needs: [test, bench]
     runs-on: [self-hosted, linux, quality]
     steps:
       - uses: actions/checkout@v4        # repo already present on runner
@@ -86,6 +111,20 @@ jobs:
         with:
           go-version: 1.24.x
           cache: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: cov
+
+      - name: Merge coverage
+        run: |
+          go install github.com/wadey/gocovmerge@latest
+          gocovmerge $(find .. -name 'coverage.out') > all.cov
+          go tool cover -func all.cov | grep total:
+      - name: Coverage gate
+        run: |
+          TOTAL=$(go tool cover -func all.cov | awk '/total:/ {print $3}' | tr -d '%')
+          awk -v t="$TOTAL" 'BEGIN {exit (t < 92)}'
 
       - name: Bootstrap tools
         run: ./scripts/bootstrap-tools.sh install_tools

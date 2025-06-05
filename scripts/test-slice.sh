@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Allow CASE="1/4" etc.; empty means run full suite
+CASE=${CASE:-}
+
+# Warn & run full suite if malformed
+if [[ -n "$CASE" && ! "$CASE" =~ ^[0-9]+/[0-9]+$ ]]; then
+  echo "\u26A0\uFE0F  Invalid CASE: '$CASE' – running full suite instead"
+  CASE=""
+fi
+
+if [[ -n "$CASE" ]]; then
+  export GOTESTSUM_FORMAT=short-verbose
+  gotestsum --subset "${CASE}" --packages ./... --coverprofile=coverage.out             -- -race -covermode=atomic -tags unit
+else
+  go test -race -covermode=atomic -tags unit -coverprofile=coverage.out ./...
+fi
