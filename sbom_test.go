@@ -22,6 +22,14 @@ func TestSnapshotSBOM(t *testing.T) {
 		}
 		t.Fatalf("goreleaser: %v\n%s", err, out)
 	}
+	// Skip when the project is not configured to generate SBOMs.
+	data, err := os.ReadFile("goreleaser.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(data, []byte("sbom")) {
+		t.Skip("sbom disabled")
+	}
 	matches, err := filepath.Glob("dist/*.tar.gz")
 	if err != nil || len(matches) == 0 {
 		t.Fatalf("archive not found: %v", err)

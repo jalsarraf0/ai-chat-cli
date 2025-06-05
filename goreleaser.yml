@@ -5,7 +5,7 @@ release:
     name: ai-chat-cli
 builds:
   - id: ai-chat
-    main: ./cmd/ai-chat
+    main: .
     env:
       - CGO_ENABLED=0
     goos: [linux, windows, darwin]
@@ -17,9 +17,6 @@ builds:
 archives:
   - id: default
     format: tar.gz
-    replacements:
-      darwin: macOS
-      windows: Windows
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     files:
       - LICENSE*
@@ -31,9 +28,6 @@ archives:
         format: zip
 checksum:
   name_template: "checksums.txt"
-sbom:
-  enabled: true
-  artifacts: true
 signs:
   - cmd: cosign sign --key $COSIGN_PRIVATE_KEY --password-stdin ${{ .Artifact }}
     artifacts: checksum
@@ -45,9 +39,8 @@ brews:
     commit_author:
       name: Jamal Al-Sarraf
       email: jalsarraf0@gmail.com
-    brew:
-      homepage: https://github.com/jalsarraf0/ai-chat-cli
-      description: AI chat CLI
+    homepage: https://github.com/jalsarraf0/ai-chat-cli
+    description: AI chat CLI
 dockers:
   - image_templates:
       - ghcr.io/jalsarraf0/ai-chat-cli:{{ .Version }}
