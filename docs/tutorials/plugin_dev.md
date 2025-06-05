@@ -3,7 +3,6 @@
 This guide walks you through creating an external plugin for AI-Chat-CLI.
 Plugins extend the CLI without modifying its core.
 For the full specification, see
-[Phase 9 instructions](../codex/phase-9-plugin-system.md).
 
 ## 1. Create a Go module
 

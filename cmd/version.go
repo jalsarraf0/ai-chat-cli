@@ -1,6 +1,4 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
+// Package cmd provides CLI commands.
 package cmd
 
 import (
@@ -21,7 +19,7 @@ func newVersionCmd(version, commit, date string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Print version information",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			if short {
 				if _, err := fmt.Fprintln(cmd.OutOrStdout(), version); err != nil {
 					cmd.Println("Error:", err)

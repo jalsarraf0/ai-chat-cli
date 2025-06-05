@@ -1,3 +1,4 @@
+// Package llm defines language model interfaces.
 package llm
 
 import "context"

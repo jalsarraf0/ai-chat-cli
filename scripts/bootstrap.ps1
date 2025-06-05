@@ -7,7 +7,9 @@ function Install-Tools {
         [string[]]$Pkgs = @(
             'mvdan.cc/gofumpt@latest',
             'honnef.co/go/tools/cmd/staticcheck@latest',
-            'github.com/securego/gosec/v2/cmd/gosec@latest'
+            'github.com/securego/gosec/v2/cmd/gosec@latest',
+            'golang.org/x/vuln/cmd/govulncheck@latest',
+            'github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.1'
         )
     )
 
@@ -18,15 +20,7 @@ function Install-Tools {
         Write-Error 'Go 1.24.x is required.'; exit 1
     }
 
-    $missing = @()
-    foreach ($t in @('gofumpt','staticcheck','gosec')) {
-        if (-not (Get-Command $t -ErrorAction SilentlyContinue)) {
-            $missing += $t
-        }
-    }
-    if (-not $missing) { return }
-
-    Write-Host "🔧 installing: $($missing -join ', ')" -ForegroundColor Cyan
+    Write-Host '🔧 installing tools' -ForegroundColor Cyan
 
     foreach ($pkg in $Pkgs) {
         go install -trimpath $pkg

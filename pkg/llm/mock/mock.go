@@ -1,3 +1,4 @@
+// Package mock provides test implementations of llm.Client.
 package mock
 
 import (
@@ -17,7 +18,8 @@ func New(tokens ...string) Client {
 	return Client{tokens: tokens}
 }
 
-func (c Client) Completion(ctx context.Context, req llm.Request) (llm.Stream, error) {
+// Completion returns a stream of predetermined tokens.
+func (c Client) Completion(_ context.Context, _ llm.Request) (llm.Stream, error) {
 	return &stream{tokens: c.tokens}, nil
 }
 
