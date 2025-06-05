@@ -1,5 +1,5 @@
 .PHONY: format lint test docs build man shell-test cross
-
+	
 GOFILES := $(shell git ls-files '*.go')
 
 format:
@@ -54,11 +54,11 @@ prompt:
 
 snapshot:
 	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
-	goreleaser build --snapshot --clean
+	goreleaser release --snapshot --clean --skip=publish --skip=docker --skip=sign
 
 release:
 	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
-	goreleaser release --clean --sign
+	goreleaser release --clean --skip=publish --skip=docker
 
 
 live-openai-test:
