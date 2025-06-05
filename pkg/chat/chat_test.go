@@ -7,8 +7,8 @@ import (
 
 type errorClient struct{}
 
-func (errorClient) Ping(ctx context.Context) error              { return context.Canceled }
-func (errorClient) Version(ctx context.Context) (string, error) { return "", context.Canceled }
+func (errorClient) Ping(_ context.Context) error              { return context.Canceled }
+func (errorClient) Version(_ context.Context) (string, error) { return "", context.Canceled }
 
 func TestClientImplementations(t *testing.T) {
 	t.Parallel()

@@ -1,6 +1,4 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
+// Package cmd provides CLI commands.
 package cmd
 
 import (
@@ -29,7 +27,7 @@ func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ai-chat",
 		Short: "Interact with AI chat services",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := config.Load(cfgFile); err != nil {
 				return err
 			}

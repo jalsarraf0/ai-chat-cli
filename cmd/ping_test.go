@@ -14,12 +14,12 @@ type errClient struct{}
 
 type errWriter struct{}
 
-func (errWriter) Write(p []byte) (int, error) { return 0, context.DeadlineExceeded }
+func (errWriter) Write(_ []byte) (int, error) { return 0, context.DeadlineExceeded }
 
-func (stubClient) Ping(ctx context.Context) error              { return nil }
-func (stubClient) Version(ctx context.Context) (string, error) { return "", nil }
-func (errClient) Ping(ctx context.Context) error               { return context.DeadlineExceeded }
-func (errClient) Version(ctx context.Context) (string, error)  { return "", context.DeadlineExceeded }
+func (stubClient) Ping(_ context.Context) error              { return nil }
+func (stubClient) Version(_ context.Context) (string, error) { return "", nil }
+func (errClient) Ping(_ context.Context) error               { return context.DeadlineExceeded }
+func (errClient) Version(_ context.Context) (string, error)  { return "", context.DeadlineExceeded }
 
 func TestPingCommand(t *testing.T) {
 	tests := []struct {

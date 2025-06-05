@@ -35,7 +35,7 @@ func TestVersionCmd(t *testing.T) {
 
 type versionErrWriter struct{}
 
-func (versionErrWriter) Write(p []byte) (int, error) { return 0, fmt.Errorf("werr") }
+func (versionErrWriter) Write(_ []byte) (int, error) { return 0, fmt.Errorf("werr") }
 
 func TestVersionWriteError(t *testing.T) {
 	cmd := newVersionCmd("1.2.3", "abc", "now")

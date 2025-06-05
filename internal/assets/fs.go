@@ -1,3 +1,4 @@
+// Package assets contains embedded resources.
 package assets
 
 import "embed"

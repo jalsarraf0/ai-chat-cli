@@ -15,7 +15,7 @@ func newTuiCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "tui", Short: "Interactive terminal UI"}
 	cmd.Flags().BoolVar(&light, "light", false, "use light theme")
 	cmd.Flags().IntVar(&height, "height", 0, "override initial rows (0 = auto)")
-	cmd.RunE = func(c *cobra.Command, _ []string) error {
+	cmd.RunE = func(_ *cobra.Command, _ []string) error {
 		m := tui.NewModel(height)
 		if light {
 			m.UseLightTheme()
