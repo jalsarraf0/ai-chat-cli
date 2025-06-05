@@ -30,7 +30,7 @@ on:
     branches: [dev, main]
 
 env:
-  GO_VERSION: "1.22.x"
+  GO_VERSION: "1.24.x"
   GOLINT_VERSION: v1.54.2
   SHELLCHECK_VERSION: "v0.9.0"
 
