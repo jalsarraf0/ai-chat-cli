@@ -49,9 +49,9 @@ coverage-gate:
        echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
 
 docs:
-	@git ls-files "*.md" | xargs -r sed -i "s/[ \t]*$//" && git diff --exit-code || true
+	@git ls-files "*.md" | xargs -r sed -i "s/[ \t]*$$//" && git diff --exit-code || true
 	npm ci
-	npx mdbook build docs
+	mdbook build docs
 
 
 build:

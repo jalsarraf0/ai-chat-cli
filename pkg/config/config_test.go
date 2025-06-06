@@ -204,3 +204,16 @@ func TestGetters(t *testing.T) {
 		t.Fatalf("int default")
 	}
 }
+
+func TestSetInvalidModel(t *testing.T) {
+	Reset()
+	dir := t.TempDir()
+	file := filepath.Join(dir, "c.yaml")
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	if err := Load(file); err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if err := Set("model", "bogus"); err == nil {
+		t.Fatalf("expected error")
+	}
+}
