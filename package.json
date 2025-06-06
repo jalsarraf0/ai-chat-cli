@@ -3,6 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "devDependencies": {
-    "mdbook": "^2.0.1"
+    "mdbook": "1.4.1"
   }
 }
