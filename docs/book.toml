@@ -2,4 +2,4 @@
 title = "AI Chat CLI"
 language = "en"
 multilingual = false
-src = "docs"
+src = "."
