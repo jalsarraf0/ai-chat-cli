@@ -38,3 +38,16 @@ dockers:
       - ghcr.io/jalsarraf0/ai-chat-cli:{{ .Version }}
       - ghcr.io/jalsarraf0/ai-chat-cli:latest
     dockerfile: Dockerfile
+nfpms:
+  - id: linux-packages
+    builds:
+      - ai-chat
+    formats:
+      - deb
+      - rpm
+    vendor: AI Chat
+    maintainer: AI Chat <support@aichat.internal>
+    description: AI-powered Chat CLI
+    license: MIT
+    homepage: https://github.com/jalsarraf0/ai-chat-cli
+    bindir: /usr/local/bin
