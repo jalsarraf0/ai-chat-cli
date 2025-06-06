@@ -38,12 +38,15 @@ security-scan: ## Run gosec static analysis
 	GOFLAGS='-trimpath' gosec ./...
 
 coverage-gate:
-	@pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $$3}'); \
-	if [ $${pct%.*} -lt 85 ]; then \
-	echo "::error::coverage < 85% (got $${pct}%)"; exit 1; fi
+       @pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $$3}'); \
+       if [ $${pct%.*} -lt 90 ]; then \
+       echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
 
 docs:
-	@git ls-files '*.md' | xargs -r sed -i 's/[ \t]*$$//' && git diff --exit-code || true
+	@git ls-files "*.md" | xargs -r sed -i "s/[ \t]*$//" && git diff --exit-code || true
+	npm ci
+	npx mdbook build docs
+
 
 build:
 	go build -o bin/ai-chat ./cmd/ai-chat
