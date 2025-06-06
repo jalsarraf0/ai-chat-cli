@@ -161,6 +161,9 @@ jobs:
       - name: Fast pre-flight
         run: ./scripts/preflight-ci.sh
 
+
+
+
       - name: Setup GoReleaser
         run: GOFLAGS='' go install github.com/goreleaser/goreleaser@latest
       - name: Run GoReleaser
@@ -168,6 +171,8 @@ jobs:
       - name: SBOM (binary & source)
         run: |
           syft file:dist/ai-chat-cli_linux_amd64.tar.gz -o spdx-json > sbom-bin.json
+
+
 
       - uses: actions/download-artifact@v4
         with:
@@ -177,16 +182,26 @@ jobs:
         run: |
           syft file:dist/ai-chat-cli-linux-amd64 -o spdx-json > sbom-bin.json
 
+
           syft dir:. -o spdx-json > sbom-src.json
       - name: Verify OIDC issuer
         run: |
           [[ "$ACTIONS_ID_TOKEN_REQUEST_URL" =~ actions ]] || { echo "::error OIDC issuer missing"; exit 1; }
+
+
+
 
       - name: Cosign sign packages
         run: |
           for f in dist/*.{tar.gz,rpm,deb}; do
             cosign sign --yes "$f"
           done
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+
       - uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -199,6 +214,7 @@ jobs:
           files: |
             dist/ai-chat-cli-linux-amd64
             dist/ai-chat-cli-linux-amd64.sig
+
 
             sbom-bin.json
             sbom-src.json
