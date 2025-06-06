@@ -11,6 +11,15 @@ on:
   schedule:
     - cron: '0 2 * * *'   # nightly snapshot (UTC)
 
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GO_VERSION: '1.24.x'
   CACHE_DIR: ${{ github.workspace }}/go-cache
@@ -25,6 +34,8 @@ jobs:
     runs-on: [self-hosted, Linux, X64, quality]
     steps:
       - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -47,15 +58,21 @@ jobs:
     runs-on: [self-hosted, Linux, X64, quality]
     steps:
       - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
       - uses: actions/download-artifact@v4
         with:
           name: cov-linux
           path: .
-      - name: Merge coverage & enforce 93-96 %
+      - name: Coverage gate
         run: |
-          go install github.com/wadey/gocovmerge@latest
-          # already merged, but keep step idempotent
-          go run scripts/coverage-helper.go coverage.out 93 96
+          gocovmerge $(find . -name 'coverage.out') > all.cov
+          if [[ ! -s all.cov ]]; then
+            echo "::error::merged coverage file missing"; exit 1
+          fi
+          pct=$(go tool cover -func all.cov | awk '/total:/ {gsub("%","");print $3}')
+          echo "coverage=$pct"
+          awk -v p=$pct 'BEGIN {exit (p < 93)}'
 
   # ---------- Security scan ----------
   security:
@@ -63,8 +80,19 @@ jobs:
     runs-on: [self-hosted, Linux, X64, quality]
     steps:
       - uses: actions/checkout@v4
-      - name: Security suite
-        run: make security-scan
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+      - name: Verify shell scripts
+        run: |
+          find . -type f -name '*.sh' ! -executable -print -exec chmod u+x {} +
+      - name: gosec
+        run: gosec ./...
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy/db
+          key: ${{ runner.os }}-trivy-db-${{ hashFiles('**/go.sum') }}
+      - name: Trivy scan
+        run: trivy fs --severity HIGH,CRITICAL --exit-code 1 .
 
   # ---------- Build (Linux) ----------
   build-linux:
@@ -72,6 +100,8 @@ jobs:
     runs-on: [self-hosted, Linux, X64, quality]
     steps:
       - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -79,6 +109,8 @@ jobs:
         run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
       - name: Build binary
         run: GOOS=linux GOARCH=amd64 make build
+      - name: Govulncheck binary
+        run: govulncheck -mode=binary bin/ai-chat-cli-linux-amd64
       - uses: actions/upload-artifact@v4
         with:
           name: bin-linux
@@ -94,6 +126,9 @@ jobs:
     needs: build-linux
     runs-on: [self-hosted, Linux, X64, quality]
     steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
       - uses: actions/download-artifact@v4
         with:
           name: bin-linux
@@ -112,10 +147,10 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [build-linux, quality, security]
     runs-on: [self-hosted, Linux, X64, quality]
-    permissions:
-      id-token: write
-      contents: read
     steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
       - uses: actions/download-artifact@v4
         with:
           name: bin-linux
@@ -134,8 +169,10 @@ jobs:
     needs: release
     runs-on: [self-hosted, Linux, X64, quality]
     environment: artefact-registry
-    permissions: { contents: read }
     steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
       - uses: actions/download-artifact@v4
         with:
           name: bin-linux
@@ -158,6 +195,9 @@ jobs:
       name: staging
       url: https://staging.ai-chat.internal
     steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
       - name: Pull artefact
         run: |
           oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} \
@@ -180,6 +220,9 @@ jobs:
       name: production
       url: https://ai-chat.internal
     steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
       - name: Pull artefact
         run: |
           oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} \

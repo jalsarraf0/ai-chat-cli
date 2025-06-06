@@ -1,5 +1,4 @@
 .PHONY: format lint lint-all static security test docs build man shell-test cross
-		
 GOFILES := $(shell git ls-files '*.go')
 
 format:
@@ -49,13 +48,16 @@ coverage-gate:
        echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
 
 docs:
-	@git ls-files "*.md" | xargs -r sed -i "s/[ \t]*$//" && git diff --exit-code || true
+	@git ls-files "*.md" | xargs -r sed -i "s/[ 	]*$$//" && git diff --exit-code || true
 	npm ci
+	@echo '#!/usr/bin/env bash\nexec mdbook "$@"' > node_modules/.bin/mdbook
+	@chmod +x node_modules/.bin/mdbook
 	npx mdbook build docs
+	
 
 
 build:
-	go build -o bin/ai-chat ./cmd/ai-chat
+	go build -o bin/ai-chat-cli-linux-amd64 .
 
 man:
 	cobra-cli man --dir docs/man
