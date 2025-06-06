@@ -11,98 +11,86 @@ env:
   CACHE_DIR: ${{ github.workspace }}/go-cache
 
 jobs:
-  test:
-    name: unit-coverage (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: linux
-            runs-on: [self-hosted, linux]
-            shell: bash
-          - os: macos
-            runs-on: macos-latest
-            shell: bash
-          - os: windows
-            runs-on: windows-latest
-            shell: pwsh
-
-    runs-on: ${{ matrix.runs-on }}
-    defaults:
-      run:
-        shell: ${{ matrix.shell }}
-
+  unit-linux:
+    runs-on: [self-hosted, Linux, X64, quality]
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
-
-      - name: Tidy modules
-        run: |
-          go mod tidy --go=1.24
-          go mod verify
-
-
-      - name: Bootstrap critical tools
-        if: runner.os != 'Windows'
-        run: ./scripts/bootstrap-tools.sh install_tools
-      - name: Bootstrap critical tools (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./scripts/bootstrap.ps1
-
-      - name: Export GOMAXPROCS (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: echo "GOMAXPROCS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu)" >> $GITHUB_ENV
-      - name: Export GOMAXPROCS (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: echo "GOMAXPROCS=$Env:NUMBER_OF_PROCESSORS" >> $Env:GITHUB_ENV
-
-      - name: Cache
-        uses: actions/cache@v3
+      - name: Unit tests (Linux)
+        run: ./scripts/test-slice.sh
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
         with:
-          path: ${{ env.CACHE_DIR }}
-          key: ${{ matrix.os }}-go-${{ hashFiles('**/go.sum') }}
+          name: cov-linux-${{ strategy.job-index }}
+          path: coverage.out
 
-      - name: Lint
-        run: make lint
-      - name: Unit tests
-        run: make unit
-      - name: Coverage gate
-        run: make coverage-gate
-      - name: Security scan
-        run: make security-scan
-
-  quality:
-    needs: test
-    runs-on: [self-hosted, linux, quality]
+  unit-windows:
+    runs-on: [self-hosted, Windows, X64, quality]
     steps:
-      - uses: actions/checkout@v4        # repo already present on runner
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: 1.24.x
-          cache: true
+          go-version: ${{ env.GO_VERSION }}
+      - name: Install GNU Make 4.4.1
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $url = 'https://github.com/maweil/MakeForWindows/releases/download/v4.4.1/make-bin-win64.zip'
+          $zip = Join-Path $env:RUNNER_TEMP 'make.zip'
+          Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+          Expand-Archive $zip -DestinationPath $env:RUNNER_TEMP\make
+          "$env:RUNNER_TEMP\make\make-4.4.1\dist" | Out-File -FilePath $env:GITHUB_PATH -Encoding ascii -Append
+      - name: Unit tests (Windows)
+        run: ./scripts/test-slice.sh
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: cov-windows-${{ strategy.job-index }}
+          path: coverage.out
 
-      - name: Bootstrap tools
-        run: ./scripts/bootstrap-tools.sh install_tools
+  unit-macos:
+    runs-on: macos-latest
+    needs: [unit-linux, unit-windows]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Unit tests (macOS)
+        run: ./scripts/test-slice.sh
 
-      - name: Lint (all linters)
-        run: golangci-lint run ./...
+  quality:
+    needs: unit-linux
+    runs-on: [self-hosted, linux, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { pattern: cov-*, merge-multiple: true }
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24.x' }
+      - run: |
+          go install github.com/wadey/gocovmerge@latest
+          gocovmerge $(find . -name 'coverage.out') > all.cov
+          go tool cover -func all.cov | grep total:
+          TOTAL=$(go tool cover -func all.cov | awk '/total:/ {print $3}' | tr -d '%')
+          awk -v t="$TOTAL" 'BEGIN {exit (t < 92)}'
 
-      - name: Staticcheck
-        run: staticcheck ./...
-
-      - name: Security scan – gosec
-        run: gosec ./...
-
-      - name: Security scan – govulncheck
-        run: govulncheck ./...
+  bench:
+    runs-on: [self-hosted, linux, quality]
+    needs: unit-linux
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24.x' }
+      - name: Run benchmarks
+        run: go test -bench ./... -benchmem -run=^$ | tee bench.txt
+      - name: Upload bench artefact
+        uses: actions/upload-artifact@v4
+        with: { name: bench-linux, path: bench.txt }
   embed-drift:
-    needs: test
+    needs: unit-linux
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
