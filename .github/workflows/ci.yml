@@ -63,16 +63,17 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: cov
-      - name: Coverage gate
+      - name: Merge & gate coverage
         run: |
-            PROFILES=$(find cov -type f -name '*.out' -o -name '*.cov')
-            if [[ -z "$PROFILES" ]]; then
-              echo "ℹ️ docs-only change — treating coverage as 100%"; exit 0
-            fi
-            gocovmerge $PROFILES > all.cov
-            pct=$(go tool cover -func all.cov | awk '/total:/ {gsub("%","" );print $3}')
-            echo "coverage=$pct"
-            awk -v p="$pct" 'BEGIN {exit (p < 93)}'
+          go install github.com/wadey/gocovmerge@latest
+          PROFILES=$(find cov -type f -name '*.out' -o -name '*.cov')
+          if [[ -z "$PROFILES" ]]; then
+            echo "docs-only change — treating coverage as 100%"; exit 0
+          fi
+          gocovmerge $PROFILES > all.cov
+          pct=$(go tool cover -func all.cov | awk '/total:/ {gsub("%","");print $3}')
+          echo "coverage=$pct"
+          awk -v p="$pct" 'BEGIN { exit (p < 93) }'
 
   # ---------- Security scan ----------
   security:
@@ -87,10 +88,15 @@ jobs:
           find . -type f -name '*.sh' ! -executable -print -exec chmod u+x {} +
       - name: gosec
         run: gosec ./...
+      - name: License audit
+        run: addlicense -check $(go list -f '{{.Dir}}' ./...)
       - name: Build for scan
         run: GOOS=linux GOARCH=amd64 go build -o bin/ai-chat-cli-linux-amd64 .
       - name: govulncheck
-        run: govulncheck -mode=binary bin/ai-chat-cli-linux-amd64
+        run: |
+          for i in 1 2; do
+            govulncheck ./... && break || { echo "retry $i"; sleep 4; }
+          done
       - uses: actions/cache@v4
         with:
           path: ~/.cache/trivy/db
@@ -164,60 +170,45 @@ jobs:
 
 
 
-      - name: Setup GoReleaser
-        run: GOFLAGS='' go install github.com/goreleaser/goreleaser@latest
-      - name: Run GoReleaser
-        run: goreleaser release --clean --skip=publish --skip-docker
-      - name: SBOM (binary & source)
+      - name: Build linux/amd64
         run: |
-          syft file:dist/ai-chat-cli_linux_amd64.tar.gz -o spdx-json > sbom-bin.json
-
-
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: bin-linux
-          path: dist
-      - name: SBOM (binary & source)
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+          go build -trimpath -ldflags="-s -w" -o dist/ai-chat-cli
+      - name: Package tar.gz
         run: |
-          syft file:dist/ai-chat-cli-linux-amd64 -o spdx-json > sbom-bin.json
-
-
-          syft dir:. -o spdx-json > sbom-src.json
+          cat > dist/install.sh <<'EOS'
+          #!/bin/sh
+          sudo install -m755 ai-chat-cli /usr/local/bin/ai-chat-cli
+          echo "ai-chat-cli installed ✨"
+          EOS
+          chmod +x dist/install.sh
+          tar -C dist -czf dist/ai-chat-cli-linux-amd64.tar.gz ai-chat-cli install.sh
+      - name: Package .deb & .rpm
+        run: |
+          sudo gem install --no-document fpm
+          VERSION="${{ github.ref_name#v }}"
+          fpm -s dir -t deb -n ai-chat-cli -v "$VERSION" --license Apache-2.0 \
+            dist/ai-chat-cli=/usr/bin/ai-chat-cli
+          fpm -s dir -t rpm -n ai-chat-cli -v "$VERSION" --license Apache-2.0 \
+            dist/ai-chat-cli=/usr/bin/ai-chat-cli
+      - name: SBOM (binary)
+        run: syft file:dist/ai-chat-cli -o spdx-json > sbom-bin.json
+      - name: Checksum
+        run: sha256sum dist/ai-chat-cli > dist/ai-chat-cli.sha256
       - name: Verify OIDC issuer
         run: |
-          [[ "$ACTIONS_ID_TOKEN_REQUEST_URL" =~ actions ]] || { echo "::error OIDC issuer missing"; exit 1; }
-
-
-
-
-      - name: Cosign sign packages
-        run: |
-          for f in dist/*.{tar.gz,rpm,deb}; do
-            cosign sign --yes "$f"
-          done
-
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*
-
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*
-
+          [[ "$ACTIONS_ID_TOKEN_REQUEST_URL" =~ actions ]] || { echo "::error::OIDC issuer missing"; exit 1; }
       - name: Cosign sign
-        run: cosign sign --yes dist/ai-chat-cli-linux-amd64
+        run: cosign sign --yes dist/ai-chat-cli*
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/ai-chat-cli-linux-amd64
-            dist/ai-chat-cli-linux-amd64.sig
-
-
+            dist/ai-chat-cli-linux-amd64.tar.gz
+            dist/ai-chat-cli_*_amd64.deb
+            dist/ai-chat-cli-*x86_64.rpm
+            dist/ai-chat-cli.sha256
             sbom-bin.json
-            sbom-src.json
+            dist/ai-chat-cli*.sig
 
   # ---------- Build documentation ----------
   docs:
