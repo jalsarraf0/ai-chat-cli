@@ -51,7 +51,7 @@ coverage-gate:
 docs:
 	@git ls-files "*.md" | xargs -r sed -i "s/[ \t]*$//" && git diff --exit-code || true
 	npm ci
-	npx mdbook build docs
+	mdbook build docs
 
 
 build:
