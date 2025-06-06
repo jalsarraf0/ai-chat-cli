@@ -45,9 +45,10 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newVersionCmd(Version, Commit, Date))
 	cmd.AddCommand(newAssetsCmd())
 	cmd.AddCommand(newConfigCmd())
-	cmd.AddCommand(newTuiCmd())
-	cmd.AddCommand(newAskCmd(llmClient))
-	return cmd
+       cmd.AddCommand(newTuiCmd())
+       cmd.AddCommand(newAskCmd(llmClient))
+       cmd.AddCommand(newAIOpsCmd())
+       return cmd
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

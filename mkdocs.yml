@@ -3,6 +3,7 @@ nav:
   - Home: index.md
   - Configuration: config.md
   - LLM: llm.md
+  - AI-Ops: aiops.md
   - TUI: tui.md
   - Security: security.md
   - Releases: releases.md
