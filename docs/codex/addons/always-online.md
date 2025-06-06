@@ -1,80 +1,88 @@
-This document **augments** the baseline “Codex Rules”.
-If any statement here appears to conflict with the base rules, **apply both** – follow the stricter instruction or raise a question.
+# Codex Prompt - Always-Online & SUPREME-Release Add-On
+*(Save or overwrite as docs/codex/addons/always-online.md and include it in every change-set or PR.)*
 
-──────────────────────────────────────────────────────────────────────────────
-▍0. Internet Access Policy
-──────────────────────────────────────────────────────────────────────────────
-1. **Assume continuous Internet connectivity** in all local scripts, helper tools, and CI jobs.
-2. Whenever a dependency is missing or out-of-date you **MUST**:
+This document **augments** the baseline Codex Rules.
+If any statement here conflicts with the base rules, obey the *stricter* instruction or raise a question.
+
+---
+## \▍0. Internet Access Policy \ud83d\udca1
+1. **Assume continuous Internet connectivity** in all scripts, helper tools and CI jobs.
+2. Missing / outdated Go deps \u2192 run:
 
    ```bash
    go get -u ./...
    go mod tidy -e -v
    ```
 
-3. If a third-party CLI (e.g. `gosec`, `gomarkdoc`, `gocovmerge`) is absent, install it via:
+3. Missing CLI tool (e.g. `gosec`, `trivy`) \u2192 install via:
 
    ```bash
    go install <module>@latest
    ```
 
-   Fallback: download its release asset from GitHub Releases.
+   Fallback: fetch binary from GitHub Releases.
 
-──────────────────────────────────────────────────────────────────────────────
-▍1. Coverage Gate ≥ 83 %
-──────────────────────────────────────────────────────────────────────────────
-*The pipeline enforces **≥ 80 %**; you must deliver **≥ 83 %** to provide a 3-point safety margin.*
+---
+## \▍1. Coverage Gate \u2265\u200a93\u200a% \ud83d\udcc8
+Pipeline minimum is 90\u200a%; you **must deliver \u2265\u200a93\u200a%** for a 3\u2011pp buffer.
 
 ```bash
-# If slice testing is NOT active:
 go test -race -covermode=atomic -coverprofile=coverage.out ./...
+pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
+[[ ${pct%.*} -ge 93 ]] || { echo "::error::coverage < 93\u200a%"; exit 1; }
+```
 
-# If slice testing IS active (Phase 1+):
+For slice testing, merge first:
+
+```bash
 gocovmerge cover*.out > coverage.out
 ```
 
-```bash
-pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
-[[ ${pct%.*} -ge 83 ]] || { echo "::error::coverage < 83 %"; exit 1; }
-```
+---
+## \▍2. Full Security Suite \ud83d\udee1\ufe0f
+Every PR **must** pass **all** checks *with zero HIGH / CRITICAL findings*.
 
-──────────────────────────────────────────────────────────────────────────────
-▍2. Conflict-Free Pull Requests
-──────────────────────────────────────────────────────────────────────────────
-*No merge conflicts are tolerated.*
+| Tool | Command |
+|------|---------|
+| **Gosec** | `gosec ./...` |
+| **Govulncheck** | `govulncheck ./...` |
+| **Trivy (FS)** | `trivy fs --exit-code 1 --severity HIGH,CRITICAL .` |
+| **License Audit** | `addlicense -check $(go list -f '{{.Dir}}' ./...)` |
 
-1. Rebase your feature branch onto **`dev`** before opening / updating a PR:
+---
+## \▍3. CI / CD Flexibility \u2699\ufe0f
+*You **may** create or modify workflow files*, provided:
+
+1. **Gate order** stays **unit \u2192 quality \u2192 security \u2192 build \u2192 snapshot \u2192 release \u2192 docs**.
+2. Unit tests use `-race`, are table-driven (`t.Parallel()`).
+3. Jobs honour `GOFLAGS="-mod=vendor"` when set.
+4. Self-hosted **Linux & Windows** gates finish **before** `macos-latest`.
+5. Release jobs trigger only on `v*` tags and sign artefacts with `cosign`.
+
+---
+## \▍4. Conflict-Free Pull Requests \ud83d\udd00
+1. Rebase your branch on **`dev`** before each push:
 
    ```bash
    git fetch origin
    git rebase origin/dev
    ```
 
-2. Resolve any `<<<<`/`>>>>` markers locally, re-run the full test suite, regenerate docs, and only then:
+2. Resolve conflicts, rerun full suite, regenerate docs, then:
 
    ```bash
    git push --force-with-lease
    ```
 
-──────────────────────────────────────────────────────────────────────────────
-▍3. CI / CD Compliance
-──────────────────────────────────────────────────────────────────────────────
-*You **MAY edit** the **single** workflow file `.github/workflows/ci.yml` to extend existing jobs (e.g. slice fan-out), **but you MUST NOT add additional workflow files.***
+---
+## \▍5. Quick Pre-PR Checklist \u2705
+- [ ] `go vet ./...` passes.
+- [ ] `go test -race ./...` shows **\u2265\u200a93\u200a%** coverage.
+- [ ] Security suite (Gosec\u200a+\u200aGovulncheck\u200a+\u200aTrivy) green.
+- [ ] `go mod tidy -e` leaves no diff.
+- [ ] Docs regenerated (`make docs`) with no noise.
+- [ ] `shellcheck scripts/*.sh` passes (ignore **SC2086** where noted).
+- [ ] Branch rebased \u2014 **no conflicts**.
+- [ ] Commit message \u2264\u200a72 chars, imperative; PR labelled **codex-generated**.
 
-* Stages must still execute in the order:
-  **coverage-gate → security-scan → docs**.
-* Local helpers belong in `Makefile` or `scripts/` and must respect `GOFLAGS=-mod=vendor` when set.
-* All unit tests compile with `-race` and are table-driven (`t.Parallel()`).
-
-──────────────────────────────────────────────────────────────────────────────
-▍4. Quick Pre-PR Checklist
-──────────────────────────────────────────────────────────────────────────────
-- [ ] `go vet ./...` passes cleanly.
-- [ ] `go test -race ./...` ≥ 83 % coverage.
-- [ ] `go mod tidy -e` leaves no changes.
-- [ ] Docs regenerated (`make docs`) with no diff noise.
-- [ ] `shellcheck scripts/*.sh` passes (ignore **SC2086** where documented).
-- [ ] Branch rebased onto `dev` – **NO CONFLICTS**.
-- [ ] Commit message ≤ 72 chars, imperative; PR labelled **codex-generated**.
-
-> **Remember:** Internet is always available — fetch what you need, heal what you break, keep the gate green, and never ship conflicts.
+> **Always stay online, hit \u2265\u200a93\u200a% coverage, pass every security gate, and ship cleanly.**
