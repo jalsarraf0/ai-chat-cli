@@ -11,6 +11,11 @@ on:
   schedule:
     - cron: '0 2 * * *'   # nightly snapshot (UTC)
 
+permissions:
+  contents: write
+  packages: write
+  metadata: write
+
 env:
   GO_VERSION: '1.24.x'
   CACHE_DIR: ${{ github.workspace }}/go-cache
@@ -114,7 +119,9 @@ jobs:
     runs-on: [self-hosted, Linux, X64, quality]
     permissions:
       id-token: write
-      contents: read
+      contents: write
+      packages: write
+      metadata: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -134,7 +141,10 @@ jobs:
     needs: release
     runs-on: [self-hosted, Linux, X64, quality]
     environment: artefact-registry
-    permissions: { contents: read }
+    permissions:
+      contents: write
+      packages: write
+      metadata: write
     steps:
       - uses: actions/download-artifact@v4
         with:
