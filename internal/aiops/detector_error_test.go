@@ -12,15 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package testhttp provides HTTP helpers for tests.
-package testhttp
+package aiops
 
-import "net/http"
+import "testing"
 
-// RoundTripFunc allows custom HTTP behavior in tests.
-type RoundTripFunc func(*http.Request) (*http.Response, error)
-
-// RoundTrip executes the wrapped function.
-func (f RoundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return f(r)
+func TestNewRegexDetectorError(t *testing.T) {
+	if _, err := NewRegexDetector([]string{"["}); err == nil {
+		t.Fatalf("expected error")
+	}
 }

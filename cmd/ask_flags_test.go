@@ -12,15 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package testhttp provides HTTP helpers for tests.
-package testhttp
+//go:build unit
 
-import "net/http"
+package cmd
 
-// RoundTripFunc allows custom HTTP behavior in tests.
-type RoundTripFunc func(*http.Request) (*http.Response, error)
+import (
+	"bytes"
+	"testing"
 
-// RoundTrip executes the wrapped function.
-func (f RoundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return f(r)
+	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/mock"
+)
+
+func TestAskCmdFlags(t *testing.T) {
+	out := new(bytes.Buffer)
+	cmd := newAskCmd(mock.New("ok"))
+	cmd.SetOut(out)
+	cmd.SetArgs([]string{"--model", "gpt-4", "--temperature", "0.5", "--max_tokens", "5", "hi"})
+	cmd.SilenceErrors = true
+	cmd.SilenceUsage = true
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	if out.String() != "ok\n" {
+		t.Fatalf("unexpected %q", out.String())
+	}
 }

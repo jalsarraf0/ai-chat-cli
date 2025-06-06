@@ -1,3 +1,17 @@
+// Copyright 2025 The ai-chat-cli Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package config
 
 import (
@@ -202,5 +216,18 @@ func TestGetters(t *testing.T) {
 	}
 	if GetInt("missing") != 0 {
 		t.Fatalf("int default")
+	}
+}
+
+func TestSetInvalidModel(t *testing.T) {
+	Reset()
+	dir := t.TempDir()
+	file := filepath.Join(dir, "c.yaml")
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	if err := Load(file); err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if err := Set("model", "bogus"); err == nil {
+		t.Fatalf("expected error")
 	}
 }

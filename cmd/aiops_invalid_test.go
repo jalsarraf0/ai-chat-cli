@@ -12,15 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package testhttp provides HTTP helpers for tests.
-package testhttp
+//go:build unit
 
-import "net/http"
+package cmd
 
-// RoundTripFunc allows custom HTTP behavior in tests.
-type RoundTripFunc func(*http.Request) (*http.Response, error)
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
-// RoundTrip executes the wrapped function.
-func (f RoundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return f(r)
+func TestWatchCmd_BadConfig(t *testing.T) {
+	dir := t.TempDir()
+	cfg := filepath.Join(dir, "bad.yaml")
+	if err := os.WriteFile(cfg, []byte(":\n"), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	cmd := newWatchCmd()
+	cmd.SetArgs([]string{"--config", cfg})
+	cmd.SetIn(strings.NewReader(""))
+	cmd.SilenceErrors = true
+	cmd.SilenceUsage = true
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected error")
+	}
 }
