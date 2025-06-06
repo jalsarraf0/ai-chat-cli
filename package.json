@@ -1,0 +1,8 @@
+{
+  "name": "ai-chat-cli-docs",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "mdbook": "^2.0.1"
+  }
+}
