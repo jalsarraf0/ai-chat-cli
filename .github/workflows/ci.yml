@@ -1,0 +1,213 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - dev
+      - '**/phase*'
+    tags:
+      - 'v*.*.*'
+
+env:
+  GO_VERSION: '1.24.x'
+  CACHE_DIR: ${{ github.workspace }}/go-cache
+
+# ───────────────────────────────
+# CI  (build / test / sign)
+# ───────────────────────────────
+jobs:
+
+  # ---------- Unit (Linux) ----------
+  unit-linux:
+    runs-on: [self-hosted, Linux, X64, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Pre-flight
+        run: ./scripts/preflight-field.sh
+      - name: Run tests (4 slices)
+        run: |
+          for n in 1 2 3 4; do
+            CASE=$n/4 ./scripts/test-slice.sh
+          done
+          gocovmerge cover*.out > coverage.out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cov-linux
+          path: coverage.out
+
+  # ---------- Unit (Windows) ----------
+  unit-windows:
+    runs-on: [self-hosted, Windows, X64, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Run tests
+        shell: bash
+        run: ./scripts/test-slice.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cov-windows
+          path: coverage.out
+
+  # ---------- Unit (macOS) ----------
+  unit-macos:
+    needs: [unit-linux, unit-windows]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Run tests
+        run: ./scripts/test-slice.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cov-macos
+          path: coverage.out
+
+  # ---------- Quality ----------
+  quality:
+    needs: [unit-linux, unit-windows, unit-macos]
+    runs-on: [self-hosted, Linux, X64, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: cov }
+      - name: Merge coverage & gate 93 %
+        run: |
+          go install github.com/wadey/gocovmerge@latest
+          gocovmerge $(find cov -name 'coverage.out') > all.cov
+          total=$(go tool cover -func all.cov | awk '/total:/{sub(/%/,"");print $3}')
+          echo "Combined coverage: $total%"
+          (( ${total%.*} >= 93 )) || { echo "coverage <93%"; exit 1; }
+
+  # ---------- Security ----------
+  security:
+    needs: quality
+    runs-on: [self-hosted, Linux, X64, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Security scan
+        run: make security-scan
+
+  # ---------- Build matrix ----------
+  build-matrix:
+    needs: security
+    strategy:
+      matrix:
+        include:
+          - os: linux   ; runner: self-hosted,Linux,X64,quality ; GOOS: linux   ; GOARCH: amd64
+          - os: windows ; runner: self-hosted,Windows,X64,quality ; GOOS: windows ; GOARCH: amd64
+          - os: darwin  ; runner: macos-latest ; GOOS: darwin  ; GOARCH: amd64
+    runs-on: ${{ fromJson(format('["{0}"]', matrix.runner)) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: ${{ env.GO_VERSION }} }
+      - name: Build
+        run: GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} make build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.os }}
+          path: bin
+
+  # ---------- Snapshot (nightly) ----------
+  snapshot:
+    if: github.event_name == 'schedule'
+    needs: build-matrix
+    runs-on: [self-hosted, Linux, X64, quality]
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { pattern: bin-*, path: dist, merge-multiple: true }
+      - run: |
+          zip -r snapshot-${{ github.run_id }}.zip dist
+          syft packages dist -o spdx-json > sbom.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-${{ github.run_id }}
+          path: snapshot-${{ github.run_id }}.zip
+
+  # ---------- Release (tag) ----------
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-matrix, quality, security]
+    runs-on: [self-hosted, Linux, X64, quality]
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { pattern: bin-*, path: dist, merge-multiple: true }
+      - uses: actions/download-artifact@v4
+        with: { name: snapshot-${{ github.run_id }}, path: dist }
+      - name: Sign binaries
+        run: cosign sign --yes dist/bin-*
+      - uses: softprops/action-gh-release@v2
+        with: { files: dist/bin-* dist/sbom.json }
+
+# ───────────────────────────────
+# ★★  Continuous Delivery  ★★
+# ───────────────────────────────
+  publish-artefacts:
+    needs: release
+    runs-on: [self-hosted, Linux, X64, quality]
+    environment: artefact-registry
+    permissions: { contents: read }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { pattern: bin-*, merge-multiple: true, path: dist }
+      - uses: actions/download-artifact@v4
+        with: { name: snapshot-${{ github.run_id }}, path: dist }
+      - name: Login OCI
+        run: echo "${{ secrets.REGISTRY_TOKEN }}" | oras login --username ci --password-stdin ${{ secrets.REGISTRY_HOST }}
+      - name: Push artefacts
+        run: |
+          oras push ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} \
+            dist/bin-linux:application/x-tar \
+            dist/bin-windows:application/zip \
+            dist/bin-darwin:application/x-tar \
+            dist/sbom.json:application/spdx+json
+
+  deploy-staging:
+    needs: publish-artefacts
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.ai-chat.internal
+    steps:
+      - name: Pull artefacts
+        run: oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} --output /tmp/cli
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install ai-chat-staging charts/ai-chat \
+            --namespace ai-chat-staging \
+            --set image.registry=${{ secrets.REGISTRY_HOST }} \
+            --set image.tag=v${{ github.ref_name }}
+      - name: Smoke tests
+        run: kubectl -n ai-chat-staging rollout status deploy/ai-chat &&
+             ./infra/tests/smoke-staging.sh
+
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://ai-chat.internal
+    permissions: {}      # uses env protection rules for manual approval
+    steps:
+      - name: Pull artefacts
+        run: oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} --output /tmp/cli
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install ai-chat charts/ai-chat \
+            --namespace ai-chat \
+            --set image.registry=${{ secrets.REGISTRY_HOST }} \
+            --set image.tag=v${{ github.ref_name }}
+      - name: Confirm rollout
+        run: kubectl -n ai-chat rollout status deploy/ai-chat
