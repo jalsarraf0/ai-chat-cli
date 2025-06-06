@@ -38,6 +38,12 @@ security-scan: ## Run gosec static analysis
 	GOFLAGS='-trimpath' gosec ./...
 
 coverage-gate:
+
+	@pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $$3}'); \
+	th=93; if echo "$$pct < $$th" | bc -l | grep -q 1; then \
+	echo "::error::coverage < $$th% (got $$pct%)"; exit 1; fi
+	
+
        @pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $$3}'); \
        if [ $${pct%.*} -lt 90 ]; then \
        echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
