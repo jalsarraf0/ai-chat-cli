@@ -57,7 +57,7 @@ func NewModel(initialRows int) Model {
 	ti := textinput.New()
 	ti.Prompt = "› "
 	m := Model{input: ti, height: initialRows, spinner: newSpinner()}
-	m.styles = LoadStyles(false)
+	m.styles = LoadStyles("")
 	ti.PromptStyle = m.styles.Cursor
 	ti.Cursor.Style = m.styles.Cursor
 	return m
@@ -71,7 +71,14 @@ func (m Model) Init() tea.Cmd {
 // UseLightTheme enables the light palette.
 func (m *Model) UseLightTheme() {
 	m.light = true
-	m.styles = LoadStyles(true)
+	m.styles = LoadStyles("themes/light.json")
+	m.input.PromptStyle = m.styles.Cursor
+	m.input.Cursor.Style = m.styles.Cursor
+}
+
+// UseTheme loads a custom theme by name.
+func (m *Model) UseTheme(name string) {
+	m.styles = LoadStyles(name)
 	m.input.PromptStyle = m.styles.Cursor
 	m.input.Cursor.Style = m.styles.Cursor
 }
