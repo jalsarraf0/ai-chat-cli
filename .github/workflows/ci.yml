@@ -29,9 +29,12 @@ env:
 # ──────────────────────────
 jobs:
 
-  # ---------- Unit tests (Linux) ----------
-  unit-linux:
-    runs-on: [self-hosted, Linux, X64, quality]
+  # ---------- Unit tests ----------
+  unit:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Fast pre-flight
@@ -54,7 +57,7 @@ jobs:
 
   # ---------- Quality gate ----------
   quality:
-    needs: unit-linux
+    needs: unit
     runs-on: [self-hosted, Linux, X64, quality]
     steps:
       - uses: actions/checkout@v4
@@ -74,6 +77,8 @@ jobs:
           pct=$(go tool cover -func all.cov | awk '/total:/ {gsub("%","");print $3}')
           echo "coverage=$pct"
           awk -v p="$pct" 'BEGIN { exit (p < 93) }'
+      - name: golangci-lint
+        run: golangci-lint run
 
   # ---------- Security scan ----------
   security:
@@ -126,6 +131,8 @@ jobs:
         run: GOOS=linux GOARCH=amd64 make build
       - name: Govulncheck binary
         run: govulncheck -mode=binary bin/ai-chat-cli-linux-amd64
+      - name: Goreleaser snapshot
+        run: goreleaser --clean --snapshot
       - uses: actions/upload-artifact@v4
         with:
           name: bin-linux

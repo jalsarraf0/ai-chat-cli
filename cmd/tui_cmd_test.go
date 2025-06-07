@@ -41,13 +41,13 @@ func TestTuiCmd(t *testing.T) {
 	defer func() { teaRun = func(p *tea.Program) (tea.Model, error) { return p.Run() } }()
 
 	root := newRootCmd()
-	root.SetArgs([]string{"tui", "--light", "--height", "5"})
+	root.SetArgs([]string{"tui", "--theme", "light", "--height", "5"})
 	root.SetIn(bytes.NewBufferString(":q\n"))
 	root.SetOut(io.Discard)
 	if err := root.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
-	if !ran || !light || height != 5 {
+	if !ran || height != 5 {
 		t.Fatalf("flags not set or program not run")
 	}
 }

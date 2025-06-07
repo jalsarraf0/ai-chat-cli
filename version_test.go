@@ -35,7 +35,7 @@ func TestStampedVersion(t *testing.T) {
 		exe += ".exe"
 	}
 	ldflags := "-X github.com/jalsarraf0/ai-chat-cli/cmd.Version=1.0.0 -X github.com/jalsarraf0/ai-chat-cli/cmd.Commit=abc123 -X github.com/jalsarraf0/ai-chat-cli/cmd.Date=now"
-	if out, err := exec.Command("go", "build", "-o", exe, "-ldflags", ldflags, ".").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", exe, "-ldflags", ldflags, "./cmd/ai-chat-cli").CombinedOutput(); err != nil {
 		t.Fatalf("build: %v\n%s", err, out)
 	}
 	cmd := exec.Command(exe, "version")

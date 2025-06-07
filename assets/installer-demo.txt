@@ -1,0 +1,6 @@
++--------------------------------+
+| ai-chat-cli installer          |
++--------------------------------+
+> Checking prerequisites...
+> Configuring defaults...
+> Done!

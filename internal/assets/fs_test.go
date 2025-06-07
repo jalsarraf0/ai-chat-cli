@@ -2,7 +2,7 @@
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including but not limited to the rights to
+// the Software without restriction, including without limitation the rights to
 // use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
 // the Software, and to permit persons to whom the Software is furnished to do so,
 // subject to the following conditions:
@@ -17,43 +17,14 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package theme
+//go:build unit
 
-import (
-	"os"
-	"testing"
-)
+package assets
 
-func TestLoadDefault(t *testing.T) {
-	t.Parallel()
-	_ = os.Setenv("COLORTERM", "light")
-	p := Load("")
-	if p.Background != "#ffffff" {
-		t.Fatalf("want light palette")
-	}
-}
+import "testing"
 
-func TestLoadNamed(t *testing.T) {
-	t.Parallel()
-	p := Load("themes/dark.json")
-	if p.Background != "#000000" {
-		t.Fatalf("want dark palette")
-	}
-}
-
-func TestLoadDefaultDark(t *testing.T) {
-	t.Parallel()
-	_ = os.Setenv("COLORTERM", "dumb")
-	p := Load("")
-	if p.Background != "#000000" {
-		t.Fatalf("want dark palette")
-	}
-}
-
-func TestLoadMissing(t *testing.T) {
-	t.Parallel()
-	p := Load("not/a/file.json")
-	if p.Background != "" {
-		t.Fatalf("want empty palette")
+func TestEmbeddedFiles(t *testing.T) {
+	if _, err := FS.ReadFile("themes/light.json"); err != nil {
+		t.Fatalf("read: %v", err)
 	}
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/jalsarraf0/ai-chat-cli/pkg/theme"
 )
 
+// Styles defines UI colours.
 type Styles struct {
 	History lipgloss.Style
 	Input   lipgloss.Style

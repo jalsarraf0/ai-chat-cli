@@ -39,7 +39,7 @@ func TestWatchCmd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	logFile, err := os.Open("../testdata/logs/anomaly.log")
+	logFile, err := os.Open("../test/integration/logs/anomaly.log")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,5 +53,14 @@ func TestWatchCmd(t *testing.T) {
 	}
 	if out.String() == "" {
 		t.Fatalf("expected alert")
+	}
+}
+
+func TestWatchCmdError(t *testing.T) {
+	t.Parallel()
+	cmd := newWatchCmd()
+	cmd.SetArgs([]string{"--config", "nope.yaml"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected error")
 	}
 }

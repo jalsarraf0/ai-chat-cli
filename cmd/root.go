@@ -68,6 +68,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newConfigCmd())
 	cmd.AddCommand(newTuiCmd())
 	cmd.AddCommand(newAskCmd(llmClient))
+	cmd.AddCommand(newHealthcheckCmd())
 	cmd.AddCommand(newAIOpsCmd())
 	return cmd
 }
