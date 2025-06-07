@@ -80,6 +80,12 @@ cd ai-chat-cli
 make build   # requires Go 1.24.x
 ```
 
+### Interactive Installer
+Run the guided setup:
+```bash
+./scripts/install.sh
+```
+
 ---
 
 ## Quick Start
@@ -87,6 +93,7 @@ make build   # requires Go 1.24.x
 export OPENAI_API_KEY="sk-..."   # set once
 ai-chat-cli                      # start interactive chat
 ```
+![installer](assets/installer-demo.txt)
 Use `Ctrl‑K` for the command palette.
 
 ---

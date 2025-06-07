@@ -1,0 +1,4 @@
+# Example ai-chat-cli configuration
+model: gpt-4o
+format: markdown
+telemetry: false
