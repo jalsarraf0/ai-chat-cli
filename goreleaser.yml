@@ -1,3 +1,4 @@
+version: 2
 project_name: ai-chat-cli
 release:
   github:
@@ -9,14 +10,13 @@ builds:
     env:
       - CGO_ENABLED=0
     goos: [linux, windows, darwin]
-    goarch: [amd64] # x64-only to avoid golangci-lint issue
+    goarch: [amd64]
     ldflags:
       - -s -w -X github.com/jalsarraf0/ai-chat-cli/cmd.Version={{.Version}}
       - -X github.com/jalsarraf0/ai-chat-cli/cmd.Commit={{.Commit}}
       - -X github.com/jalsarraf0/ai-chat-cli/cmd.Date={{.Date}}
 archives:
   - id: default
-    format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     files:
       - LICENSE*
@@ -33,18 +33,11 @@ brews:
     homepage: "https://github.com/jalsarraf0/ai-chat-cli"
     description: "AI-powered Chat CLI"
     test: "ai-chat --help"
-dockers:
-  - image_templates:
-      - ghcr.io/jalsarraf0/ai-chat-cli:{{ .Version }}
-      - ghcr.io/jalsarraf0/ai-chat-cli:latest
-    dockerfile: Dockerfile
+snapshot:
+  skip: [docker]
 nfpms:
   - id: linux-packages
-    builds:
-      - ai-chat
-    formats:
-      - deb
-      - rpm
+    formats: [deb, rpm]
     vendor: AI Chat
     maintainer: AI Chat <support@aichat.internal>
     description: AI-powered Chat CLI

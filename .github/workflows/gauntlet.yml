@@ -1,0 +1,25 @@
+name: gauntlet
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+      - run: go vet ./...
+      - run: golangci-lint run
+      - run: staticcheck ./...
+      - run: gosec ./...
+      - run: govulncheck ./...
+      - run: go test -race -covermode=atomic -coverprofile=coverage.out -tags=unit ./...
+      - run: bash scripts/run-e2e.sh
+      - uses: codecov/codecov-action@v4
+        with:
+          files: coverage.out

@@ -1,0 +1,20 @@
+name: release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+      - run: |
+          curl -sSL https://github.com/goreleaser/goreleaser/releases/latest/download/goreleaser_Linux_x86_64.tar.gz |
+            tar -xz -C /usr/local/bin goreleaser
+      - run: goreleaser release --clean --skip=docker
+        env:
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

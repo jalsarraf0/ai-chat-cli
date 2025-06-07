@@ -1,13 +1,14 @@
 # AI‑Chat‑CLI
 
-[![Coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)](./)
+[![Gauntlet](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/gauntlet.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/gauntlet.yml)
+[![Coverage](https://codecov.io/gh/jalsarraf0/ai-chat-cli/branch/dev/graph/badge.svg)](https://codecov.io/gh/jalsarraf0/ai-chat-cli)
 [![Go](https://img.shields.io/badge/go-1.24.x-00ADD8?logo=go)](https://go.dev/doc/go1.24)
 [![Security](https://img.shields.io/badge/security-passing-brightgreen)](./)
 [![Cosign (OIDC)](https://img.shields.io/badge/cosign%20(OIDC)-verified-brightgreen)](https://github.com/sigstore/cosign)
 [![Security Scan](https://img.shields.io/badge/security%20scan-100%25%20clean-brightgreen)](./)
-[![Release](https://img.shields.io/badge/release-no%20releases%20or%20repo%20not%20found-lightgrey)](./)
+[![GoReleaser](https://img.shields.io/github/v/release/jalsarraf0/ai-chat-cli?label=release)](https://github.com/jalsarraf0/ai-chat-cli/releases)
 [![Container](https://img.shields.io/badge/container-ghcr.io%2Fjalsarraf0%2Fai--chat--cli-blue)](https://ghcr.io/jalsarraf0/ai-chat-cli)
-[![License](https://img.shields.io/badge/license-repo%20not%20found-lightgrey)](./)
+[![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 > **ai‑chat‑cli** is a lightweight, cross‑platform command‑line interface for interacting with GPT‑style large language models (LLMs).
 > Written in pure **Go**, it streams answers in real‑time, keeps your history, and supports an extensible plug‑in system — all in a single ≈ 6 MiB binary.
