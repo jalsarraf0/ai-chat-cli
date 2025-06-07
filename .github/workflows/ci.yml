@@ -31,10 +31,7 @@ jobs:
 
   # ---------- Unit tests ----------
   unit:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Fast pre-flight
@@ -49,11 +46,11 @@ jobs:
           if ! ls -1 **/*.go 2>/dev/null | grep -q .; then
             echo "package main" > dummy.go
           fi
-          go test -race -covermode=atomic -coverprofile=coverage-${{ runner.os }}.out -tags unit ./...
+          go test -race -covermode=atomic -coverprofile=coverage-linux.out -tags unit ./...
       - uses: actions/upload-artifact@v4
         with:
-          name: cov-${{ runner.os }}
-          path: coverage-${{ runner.os }}.out
+          name: cov-linux
+          path: coverage-linux.out
 
   # ---------- Quality gate ----------
   quality:
@@ -173,10 +170,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fast pre-flight
         run: ./scripts/preflight-ci.sh
-
-
-
-
       - name: Build linux/amd64
         run: |
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
@@ -220,7 +213,7 @@ jobs:
   # ---------- Build documentation ----------
   docs:
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, quality]
     steps:
       - uses: actions/checkout@v4
       - name: Fast pre-flight
@@ -254,7 +247,7 @@ jobs:
   # ---------- Deploy to staging ----------
   deploy-staging:
     needs: publish-artefacts
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, quality]
     environment:
       name: staging
       url: https://staging.ai-chat.internal
@@ -276,10 +269,10 @@ jobs:
         run: kubectl -n ai-chat-staging rollout status deploy/ai-chat && \
              ./infra/tests/smoke-staging.sh
 
-  # ---------- Deploy to production (approval gate) ----------
+  # ---------- Deploy to production ----------
   deploy-production:
     needs: deploy-staging
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, quality]
     environment:
       name: production
       url: https://ai-chat.internal
