@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: ci
 
 ###############################################################################
@@ -8,13 +7,13 @@ on:
   pull_request:
   push:
     branches: [dev, '**/phase*']
-    tags:     ['v*.*.*']
+    tags: ['v*.*.*']
   schedule:
     - cron: '0 2 * * *'          # nightly snapshot (UTC)
-  workflow_dispatch:             # manual run
+  workflow_dispatch:
     inputs:
       target:
-        description: 'Run ONE job (leave blank for the full pipeline)'
+        description: 'Run ONE job (leave blank for full pipeline)'
         required: false
         default: ""
 
@@ -33,7 +32,6 @@ concurrency:
 env:
   GO_VERSION: 1.24.x
   CACHE_DIR: ${{ github.workspace }}/go-cache
-  # Propagate the manual-dispatch selector (empty for all other events)
   RUN_TARGET: ${{ github.event.inputs.target || '' }}
 
 ###############################################################################
@@ -47,19 +45,26 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
+
       - run: ./scripts/preflight-ci.sh
+
       - uses: actions/setup-go@v5
-        with: {go-version: ${{ env.GO_VERSION }}}
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
       - run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
+
       - name: Unit tests (race + coverage)
         run: |
-          # Guard against docs-only commits
           if ! ls -1 **/*.go 2>/dev/null | grep -q .; then
             echo 'package main' > dummy.go
           fi
           go test -race -covermode=atomic -coverprofile=coverage-linux.out -tags unit ./...
+
       - uses: actions/upload-artifact@v4
-        with: {name: cov-linux, path: coverage-linux.out}
+        with:
+          name: cov-linux
+          path: coverage-linux.out
 
   # ────────────────────────── Quality gate ──────────────────────────
   quality:
@@ -68,20 +73,25 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
+
       - run: ./scripts/preflight-ci.sh
+
       - uses: actions/download-artifact@v4
-        with: {path: cov}
+        with:
+          path: cov
+
       - name: Merge & enforce ≥93 % coverage
         run: |
           go install github.com/wadey/gocovmerge@latest
           PROFILES=$(find cov -type f -name '*.out' -o -name '*.cov')
           if [[ -z "$PROFILES" ]]; then
-            echo "docs-only change — marking coverage 100 %"; exit 0
+            echo "docs-only change — coverage = 100 %"; exit 0
           fi
           gocovmerge $PROFILES > all.cov
           pct=$(go tool cover -func all.cov | awk '/total:/ {gsub("%","");print $3}')
           echo "coverage=$pct"
           awk -v p="$pct" 'BEGIN {exit(p < 93)}'
+
       - run: golangci-lint run
 
   # ────────────────────────── Security scan ──────────────────────────
@@ -91,24 +101,33 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
+
       - run: ./scripts/preflight-ci.sh
+
       - name: Ensure scripts executable
         run: find . -type f -name '*.sh' ! -executable -print -exec chmod +x {} +
+
       - run: gosec ./...
+
       - run: addlicense -check $(go list -f '{{.Dir}}' ./...)
+
       - run: GOOS=linux GOARCH=amd64 go build -o bin/ai-chat-cli-linux-amd64 .
-      - name: govulncheck (retry once on transient error)
+
+      - name: govulncheck (retry once)
         run: |
           for i in 1 2; do
             govulncheck ./... && break || { echo "retry $i"; sleep 4; }
           done
+
       - uses: actions/cache@v4
         with:
           path: ~/.cache/trivy/db
           key: ${{ runner.os }}-trivy-db-${{ hashFiles('**/go.sum') }}
+
       - id: trivy
         run: trivy fs --severity HIGH,CRITICAL --exit-code 1 .
         continue-on-error: true
+
       - if: steps.trivy.outcome == 'failure'
         run: trivy fs --skip-db-update --severity HIGH,CRITICAL --exit-code 1 .
 
@@ -119,50 +138,67 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
+
       - run: ./scripts/preflight-ci.sh
+
       - uses: actions/setup-go@v5
-        with: {go-version: ${{ env.GO_VERSION }}}
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
       - run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
+
       - run: GOOS=linux GOARCH=amd64 make build
+
       - run: govulncheck -mode=binary bin/ai-chat-cli-linux-amd64
+
       - run: goreleaser --clean --snapshot
+
       - uses: actions/upload-artifact@v4
-        with: {name: bin-linux, path: bin/ai-chat-cli-linux-amd64}
+        with:
+          name: bin-linux
+          path: bin/ai-chat-cli-linux-amd64
 
 ###############################################################################
 # Continuous Delivery
 ###############################################################################
 
-  # Nightly snapshot (cron only)
   snapshot:
     if: ${{ github.event_name == 'schedule' }}
     needs: build-linux
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
+
       - run: ./scripts/preflight-ci.sh
+
       - uses: actions/download-artifact@v4
-        with: {name: bin-linux, path: dist}
+        with:
+          name: bin-linux
+          path: dist
+
       - run: |
           zip -j snapshot-${{ github.run_id }}.zip dist/*
           syft packages dist -o spdx-json > sbom.json
+
       - uses: actions/upload-artifact@v4
         with:
           name: snapshot-${{ github.run_id }}
           path: snapshot-${{ github.run_id }}.zip
 
-  # Release (semantic tag vX.Y.Z)
   release:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     needs: [build-linux, quality, security]
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
+
       - run: ./scripts/preflight-ci.sh
+
       - name: Build static linux/amd64 binary
         run: |
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
-          go build -trimpath -ldflags="-s -w" -o dist/ai-chat-cli
+          go build -trimpath -ldflags "-s -w" -o dist/ai-chat-cli
+
       - name: Tarball installer
         run: |
           cat > dist/install.sh <<'EOS'
@@ -172,6 +208,7 @@ jobs:
           EOS
           chmod +x dist/install.sh
           tar -C dist -czf dist/ai-chat-cli-linux-amd64.tar.gz ai-chat-cli install.sh
+
       - name: Package .deb / .rpm
         run: |
           sudo gem install --no-document fpm
@@ -180,9 +217,11 @@ jobs:
               dist/ai-chat-cli=/usr/bin/ai-chat-cli
           fpm -s dir -t rpm -n ai-chat-cli -v "$VERSION" --license Apache-2.0 \
               dist/ai-chat-cli=/usr/bin/ai-chat-cli
+
       - run: syft file:dist/ai-chat-cli -o spdx-json > sbom-bin.json
       - run: sha256sum dist/ai-chat-cli > dist/ai-chat-cli.sha256
       - run: cosign sign --yes dist/ai-chat-cli*
+
       - uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -193,7 +232,6 @@ jobs:
             sbom-bin.json
             dist/ai-chat-cli*.sig
 
-  # Build docs (HTML / man-pages)
   docs:
     if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'docs' }}
     needs: release
@@ -203,7 +241,6 @@ jobs:
       - run: ./scripts/preflight-ci.sh
       - run: make docs
 
-  # Publish artefacts to OCI registry
   publish-artefacts:
     if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'publish-artefacts' }}
     needs: docs
@@ -213,7 +250,9 @@ jobs:
       - uses: actions/checkout@v4
       - run: ./scripts/preflight-ci.sh
       - uses: actions/download-artifact@v4
-        with: {name: bin-linux, path: dist}
+        with:
+          name: bin-linux
+          path: dist
       - run: echo "${{ secrets.SBOM_CONTENT }}" > dist/sbom.json || true
       - name: Push OCI artefact
         run: |
@@ -223,7 +262,6 @@ jobs:
             dist/ai-chat-cli-linux-amd64:application/x-executable \
             dist/sbom.json:application/spdx+json
 
-  # Staging deploy
   deploy-staging:
     if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'deploy-staging' }}
     needs: publish-artefacts
@@ -246,7 +284,6 @@ jobs:
           kubectl -n ai-chat-staging rollout status deploy/ai-chat
           ./infra/tests/smoke-staging.sh
 
-  # Production deploy
   deploy-production:
     if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'deploy-production' }}
     needs: deploy-staging
