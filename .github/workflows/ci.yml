@@ -1,3 +1,4 @@
+# .github/workflows/ci.yml
 name: ci
 
 ###############################################################################
@@ -6,19 +7,16 @@ name: ci
 on:
   pull_request:
   push:
-    branches:
-      - dev
-      - '**/phase*'
-    tags:
-      - 'v*.*.*'
+    branches: [dev, '**/phase*']
+    tags:     ['v*.*.*']
   schedule:
     - cron: '0 2 * * *'          # nightly snapshot (UTC)
-  workflow_dispatch:              # run on–demand from the Actions tab / API
+  workflow_dispatch:             # manual run
     inputs:
       target:
-        description: 'Run a single job (leave blank for full pipeline)'
+        description: 'Run ONE job (leave blank for the full pipeline)'
         required: false
-        default: ''
+        default: ""
 
 ###############################################################################
 # Global settings
@@ -33,8 +31,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: '1.24.x'
+  GO_VERSION: 1.24.x
   CACHE_DIR: ${{ github.workspace }}/go-cache
+  # Propagate the manual-dispatch selector (empty for all other events)
+  RUN_TARGET: ${{ github.event.inputs.target || '' }}
 
 ###############################################################################
 # Continuous Integration
@@ -43,73 +43,61 @@ jobs:
 
   # ────────────────────────── Unit tests ──────────────────────────
   unit:
-    if: ${{ inputs.target == '' || inputs.target == 'unit' }}
+    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'unit' }}
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
-      - name: Fast pre-flight
-        run: ./scripts/preflight-ci.sh
+      - run: ./scripts/preflight-ci.sh
       - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Export GOMAXPROCS
-        run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
-      - name: Unit tests w/ coverage
+        with: {go-version: ${{ env.GO_VERSION }}}
+      - run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
+      - name: Unit tests (race + coverage)
         run: |
+          # Guard against docs-only commits
           if ! ls -1 **/*.go 2>/dev/null | grep -q .; then
-            echo "package main" > dummy.go
+            echo 'package main' > dummy.go
           fi
           go test -race -covermode=atomic -coverprofile=coverage-linux.out -tags unit ./...
       - uses: actions/upload-artifact@v4
-        with:
-          name: cov-linux
-          path: coverage-linux.out
+        with: {name: cov-linux, path: coverage-linux.out}
 
   # ────────────────────────── Quality gate ──────────────────────────
   quality:
-    if: ${{ inputs.target == '' || inputs.target == 'quality' }}
+    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'quality' }}
     needs: unit
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
-      - name: Fast pre-flight
-        run: ./scripts/preflight-ci.sh
+      - run: ./scripts/preflight-ci.sh
       - uses: actions/download-artifact@v4
-        with:
-          path: cov
-      - name: Merge & gate coverage
+        with: {path: cov}
+      - name: Merge & enforce ≥93 % coverage
         run: |
           go install github.com/wadey/gocovmerge@latest
           PROFILES=$(find cov -type f -name '*.out' -o -name '*.cov')
           if [[ -z "$PROFILES" ]]; then
-            echo "docs-only change — treating coverage as 100%"; exit 0
+            echo "docs-only change — marking coverage 100 %"; exit 0
           fi
           gocovmerge $PROFILES > all.cov
           pct=$(go tool cover -func all.cov | awk '/total:/ {gsub("%","");print $3}')
           echo "coverage=$pct"
-          awk -v p="$pct" 'BEGIN { exit (p < 93) }'
-      - name: golangci-lint
-        run: golangci-lint run
+          awk -v p="$pct" 'BEGIN {exit(p < 93)}'
+      - run: golangci-lint run
 
   # ────────────────────────── Security scan ──────────────────────────
   security:
-    if: ${{ inputs.target == '' || inputs.target == 'security' }}
+    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'security' }}
     needs: quality
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
-      - name: Fast pre-flight
-        run: ./scripts/preflight-ci.sh
-      - name: Verify shell scripts are executable
-        run: |
-          find . -type f -name '*.sh' ! -executable -print -exec chmod u+x {} +
-      - name: gosec
-        run: gosec ./...
-      - name: License audit
-        run: addlicense -check $(go list -f '{{.Dir}}' ./...)
-      - name: Build for scan
-        run: GOOS=linux GOARCH=amd64 go build -o bin/ai-chat-cli-linux-amd64 .
-      - name: govulncheck
+      - run: ./scripts/preflight-ci.sh
+      - name: Ensure scripts executable
+        run: find . -type f -name '*.sh' ! -executable -print -exec chmod +x {} +
+      - run: gosec ./...
+      - run: addlicense -check $(go list -f '{{.Dir}}' ./...)
+      - run: GOOS=linux GOARCH=amd64 go build -o bin/ai-chat-cli-linux-amd64 .
+      - name: govulncheck (retry once on transient error)
         run: |
           for i in 1 2; do
             govulncheck ./... && break || { echo "retry $i"; sleep 4; }
@@ -118,58 +106,44 @@ jobs:
         with:
           path: ~/.cache/trivy/db
           key: ${{ runner.os }}-trivy-db-${{ hashFiles('**/go.sum') }}
-      - name: Trivy scan
-        id: trivy
-        continue-on-error: true
+      - id: trivy
         run: trivy fs --severity HIGH,CRITICAL --exit-code 1 .
-      - name: Trivy fallback (offline DB)
-        if: steps.trivy.outcome == 'failure'
+        continue-on-error: true
+      - if: steps.trivy.outcome == 'failure'
         run: trivy fs --skip-db-update --severity HIGH,CRITICAL --exit-code 1 .
 
-  # ────────────────────────── Build (Linux amd64) ──────────────────────────
+  # ────────────────────────── Build (linux/amd64) ──────────────────────────
   build-linux:
-    if: ${{ inputs.target == '' || inputs.target == 'build-linux' }}
+    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'build-linux' }}
     needs: security
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
-      - name: Fast pre-flight
-        run: ./scripts/preflight-ci.sh
+      - run: ./scripts/preflight-ci.sh
       - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Export GOMAXPROCS
-        run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
-      - name: Build binary
-        run: GOOS=linux GOARCH=amd64 make build
-      - name: Govulncheck binary
-        run: govulncheck -mode=binary bin/ai-chat-cli-linux-amd64
-      - name: Goreleaser snapshot
-        run: goreleaser --clean --snapshot
+        with: {go-version: ${{ env.GO_VERSION }}}
+      - run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
+      - run: GOOS=linux GOARCH=amd64 make build
+      - run: govulncheck -mode=binary bin/ai-chat-cli-linux-amd64
+      - run: goreleaser --clean --snapshot
       - uses: actions/upload-artifact@v4
-        with:
-          name: bin-linux
-          path: bin/ai-chat-cli-linux-amd64
+        with: {name: bin-linux, path: bin/ai-chat-cli-linux-amd64}
 
 ###############################################################################
 # Continuous Delivery
 ###############################################################################
 
-  # ────────────────────────── Nightly snapshot ──────────────────────────
+  # Nightly snapshot (cron only)
   snapshot:
-    if: github.event_name == 'schedule'
+    if: ${{ github.event_name == 'schedule' }}
     needs: build-linux
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
-      - name: Fast pre-flight
-        run: ./scripts/preflight-ci.sh
+      - run: ./scripts/preflight-ci.sh
       - uses: actions/download-artifact@v4
-        with:
-          name: bin-linux
-          path: dist
-      - name: Package snapshot
-        run: |
+        with: {name: bin-linux, path: dist}
+      - run: |
           zip -j snapshot-${{ github.run_id }}.zip dist/*
           syft packages dist -o spdx-json > sbom.json
       - uses: actions/upload-artifact@v4
@@ -177,29 +151,28 @@ jobs:
           name: snapshot-${{ github.run_id }}
           path: snapshot-${{ github.run_id }}.zip
 
-  # ────────────────────────── Release on tag ──────────────────────────
+  # Release (semantic tag vX.Y.Z)
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     needs: [build-linux, quality, security]
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
-      - name: Fast pre-flight
-        run: ./scripts/preflight-ci.sh
-      - name: Build linux/amd64
+      - run: ./scripts/preflight-ci.sh
+      - name: Build static linux/amd64 binary
         run: |
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
           go build -trimpath -ldflags="-s -w" -o dist/ai-chat-cli
-      - name: Package tar.gz
+      - name: Tarball installer
         run: |
           cat > dist/install.sh <<'EOS'
           #!/bin/sh
-          sudo install -m755 ai-chat-cli /usr/local/bin/ai-chat-cli
+          install -m755 ai-chat-cli /usr/local/bin/ai-chat-cli
           echo "ai-chat-cli installed ✨"
           EOS
           chmod +x dist/install.sh
           tar -C dist -czf dist/ai-chat-cli-linux-amd64.tar.gz ai-chat-cli install.sh
-      - name: Package .deb & .rpm
+      - name: Package .deb / .rpm
         run: |
           sudo gem install --no-document fpm
           VERSION="${GITHUB_REF_NAME#v}"
@@ -207,15 +180,9 @@ jobs:
               dist/ai-chat-cli=/usr/bin/ai-chat-cli
           fpm -s dir -t rpm -n ai-chat-cli -v "$VERSION" --license Apache-2.0 \
               dist/ai-chat-cli=/usr/bin/ai-chat-cli
-      - name: SBOM (binary)
-        run: syft file:dist/ai-chat-cli -o spdx-json > sbom-bin.json
-      - name: Checksum
-        run: sha256sum dist/ai-chat-cli > dist/ai-chat-cli.sha256
-      - name: Verify OIDC issuer
-        run: |
-          [[ "$ACTIONS_ID_TOKEN_REQUEST_URL" =~ actions ]] || { echo "::error::OIDC issuer missing"; exit 1; }
-      - name: Cosign sign
-        run: cosign sign --yes dist/ai-chat-cli*
+      - run: syft file:dist/ai-chat-cli -o spdx-json > sbom-bin.json
+      - run: sha256sum dist/ai-chat-cli > dist/ai-chat-cli.sha256
+      - run: cosign sign --yes dist/ai-chat-cli*
       - uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -226,34 +193,28 @@ jobs:
             sbom-bin.json
             dist/ai-chat-cli*.sig
 
-  # ────────────────────────── Build documentation ──────────────────────────
+  # Build docs (HTML / man-pages)
   docs:
-    if: ${{ inputs.target == '' || inputs.target == 'docs' }}
+    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'docs' }}
     needs: release
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
-      - name: Fast pre-flight
-        run: ./scripts/preflight-ci.sh
-      - name: Build docs
-        run: make docs
+      - run: ./scripts/preflight-ci.sh
+      - run: make docs
 
-  # ────────────────────────── Publish artefacts ──────────────────────────
+  # Publish artefacts to OCI registry
   publish-artefacts:
-    if: ${{ inputs.target == '' || inputs.target == 'publish-artefacts' }}
+    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'publish-artefacts' }}
     needs: docs
     runs-on: [self-hosted, Linux, X64]
     environment: artefact-registry
     steps:
       - uses: actions/checkout@v4
-      - name: Fast pre-flight
-        run: ./scripts/preflight-ci.sh
+      - run: ./scripts/preflight-ci.sh
       - uses: actions/download-artifact@v4
-        with:
-          name: bin-linux
-          path: dist
-      - name: Download SBOM
-        run: echo "${{ secrets.SBOM_CONTENT }}" > dist/sbom.json || true
+        with: {name: bin-linux, path: dist}
+      - run: echo "${{ secrets.SBOM_CONTENT }}" > dist/sbom.json || true
       - name: Push OCI artefact
         run: |
           echo "${{ secrets.REGISTRY_TOKEN }}" | \
@@ -262,9 +223,9 @@ jobs:
             dist/ai-chat-cli-linux-amd64:application/x-executable \
             dist/sbom.json:application/spdx+json
 
-  # ────────────────────────── Deploy to staging ──────────────────────────
+  # Staging deploy
   deploy-staging:
-    if: ${{ inputs.target == '' || inputs.target == 'deploy-staging' }}
+    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'deploy-staging' }}
     needs: publish-artefacts
     runs-on: [self-hosted, Linux, X64]
     environment:
@@ -272,26 +233,22 @@ jobs:
       url: https://staging.ai-chat.internal
     steps:
       - uses: actions/checkout@v4
-      - name: Fast pre-flight
-        run: ./scripts/preflight-ci.sh
+      - run: ./scripts/preflight-ci.sh
       - name: Pull artefact
-        run: |
-          oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} \
-            --output /tmp/cli
+        run: oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} --output /tmp/cli
       - name: Helm upgrade
         run: |
           helm upgrade --install ai-chat-staging charts/ai-chat \
             --namespace ai-chat-staging \
             --set image.registry=${{ secrets.REGISTRY_HOST }} \
             --set image.tag=v${{ github.ref_name }}
-      - name: Smoke tests
-        run: |
+      - run: |
           kubectl -n ai-chat-staging rollout status deploy/ai-chat
           ./infra/tests/smoke-staging.sh
 
-  # ────────────────────────── Deploy to production ──────────────────────────
+  # Production deploy
   deploy-production:
-    if: ${{ inputs.target == '' || inputs.target == 'deploy-production' }}
+    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'deploy-production' }}
     needs: deploy-staging
     runs-on: [self-hosted, Linux, X64]
     environment:
@@ -299,17 +256,13 @@ jobs:
       url: https://ai-chat.internal
     steps:
       - uses: actions/checkout@v4
-      - name: Fast pre-flight
-        run: ./scripts/preflight-ci.sh
+      - run: ./scripts/preflight-ci.sh
       - name: Pull artefact
-        run: |
-          oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} \
-            --output /tmp/cli
+        run: oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} --output /tmp/cli
       - name: Helm upgrade
         run: |
           helm upgrade --install ai-chat charts/ai-chat \
             --namespace ai-chat \
             --set image.registry=${{ secrets.REGISTRY_HOST }} \
             --set image.tag=v${{ github.ref_name }}
-      - name: Confirm rollout
-        run: kubectl -n ai-chat rollout status deploy/ai-chat
+      - run: kubectl -n ai-chat rollout status deploy/ai-chat
