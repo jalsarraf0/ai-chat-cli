@@ -1,5 +1,8 @@
 name: ci
 
+###############################################################################
+# Triggers
+###############################################################################
 on:
   pull_request:
   push:
@@ -9,8 +12,17 @@ on:
     tags:
       - 'v*.*.*'
   schedule:
-    - cron: '0 2 * * *'   # nightly snapshot (UTC)
+    - cron: '0 2 * * *'          # nightly snapshot (UTC)
+  workflow_dispatch:              # run on–demand from the Actions tab / API
+    inputs:
+      target:
+        description: 'Run a single job (leave blank for full pipeline)'
+        required: false
+        default: ''
 
+###############################################################################
+# Global settings
+###############################################################################
 permissions:
   contents: write
   packages: write
@@ -24,13 +36,14 @@ env:
   GO_VERSION: '1.24.x'
   CACHE_DIR: ${{ github.workspace }}/go-cache
 
-# ──────────────────────────
+###############################################################################
 # Continuous Integration
-# ──────────────────────────
+###############################################################################
 jobs:
 
-  # ---------- Unit tests ----------
+  # ────────────────────────── Unit tests ──────────────────────────
   unit:
+    if: ${{ inputs.target == '' || inputs.target == 'unit' }}
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
@@ -52,10 +65,11 @@ jobs:
           name: cov-linux
           path: coverage-linux.out
 
-  # ---------- Quality gate ----------
+  # ────────────────────────── Quality gate ──────────────────────────
   quality:
+    if: ${{ inputs.target == '' || inputs.target == 'quality' }}
     needs: unit
-    runs-on: [self-hosted, Linux, X64, quality]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Fast pre-flight
@@ -77,15 +91,16 @@ jobs:
       - name: golangci-lint
         run: golangci-lint run
 
-  # ---------- Security scan ----------
+  # ────────────────────────── Security scan ──────────────────────────
   security:
+    if: ${{ inputs.target == '' || inputs.target == 'security' }}
     needs: quality
-    runs-on: [self-hosted, Linux, X64, quality]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Fast pre-flight
         run: ./scripts/preflight-ci.sh
-      - name: Verify shell scripts
+      - name: Verify shell scripts are executable
         run: |
           find . -type f -name '*.sh' ! -executable -print -exec chmod u+x {} +
       - name: gosec
@@ -107,14 +122,15 @@ jobs:
         id: trivy
         continue-on-error: true
         run: trivy fs --severity HIGH,CRITICAL --exit-code 1 .
-      - name: Trivy fallback
+      - name: Trivy fallback (offline DB)
         if: steps.trivy.outcome == 'failure'
         run: trivy fs --skip-db-update --severity HIGH,CRITICAL --exit-code 1 .
 
-  # ---------- Build (Linux) ----------
+  # ────────────────────────── Build (Linux amd64) ──────────────────────────
   build-linux:
+    if: ${{ inputs.target == '' || inputs.target == 'build-linux' }}
     needs: security
-    runs-on: [self-hosted, Linux, X64, quality]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Fast pre-flight
@@ -135,15 +151,15 @@ jobs:
           name: bin-linux
           path: bin/ai-chat-cli-linux-amd64
 
-# ──────────────────────────
+###############################################################################
 # Continuous Delivery
-# ──────────────────────────
+###############################################################################
 
-  # ---------- Snapshot (nightly) ----------
+  # ────────────────────────── Nightly snapshot ──────────────────────────
   snapshot:
     if: github.event_name == 'schedule'
     needs: build-linux
-    runs-on: [self-hosted, Linux, X64, quality]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Fast pre-flight
@@ -161,11 +177,11 @@ jobs:
           name: snapshot-${{ github.run_id }}
           path: snapshot-${{ github.run_id }}.zip
 
-  # ---------- Release (tag) ----------
+  # ────────────────────────── Release on tag ──────────────────────────
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [build-linux, quality, security]
-    runs-on: [self-hosted, Linux, X64, quality]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Fast pre-flight
@@ -186,11 +202,11 @@ jobs:
       - name: Package .deb & .rpm
         run: |
           sudo gem install --no-document fpm
-          VERSION="${{ github.ref_name#v }}"
+          VERSION="${GITHUB_REF_NAME#v}"
           fpm -s dir -t deb -n ai-chat-cli -v "$VERSION" --license Apache-2.0 \
-            dist/ai-chat-cli=/usr/bin/ai-chat-cli
+              dist/ai-chat-cli=/usr/bin/ai-chat-cli
           fpm -s dir -t rpm -n ai-chat-cli -v "$VERSION" --license Apache-2.0 \
-            dist/ai-chat-cli=/usr/bin/ai-chat-cli
+              dist/ai-chat-cli=/usr/bin/ai-chat-cli
       - name: SBOM (binary)
         run: syft file:dist/ai-chat-cli -o spdx-json > sbom-bin.json
       - name: Checksum
@@ -210,10 +226,11 @@ jobs:
             sbom-bin.json
             dist/ai-chat-cli*.sig
 
-  # ---------- Build documentation ----------
+  # ────────────────────────── Build documentation ──────────────────────────
   docs:
+    if: ${{ inputs.target == '' || inputs.target == 'docs' }}
     needs: release
-    runs-on: [self-hosted, Linux, X64, quality]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Fast pre-flight
@@ -221,10 +238,11 @@ jobs:
       - name: Build docs
         run: make docs
 
-  # ---------- Publish artefacts to registry ----------
+  # ────────────────────────── Publish artefacts ──────────────────────────
   publish-artefacts:
+    if: ${{ inputs.target == '' || inputs.target == 'publish-artefacts' }}
     needs: docs
-    runs-on: [self-hosted, Linux, X64, quality]
+    runs-on: [self-hosted, Linux, X64]
     environment: artefact-registry
     steps:
       - uses: actions/checkout@v4
@@ -244,10 +262,11 @@ jobs:
             dist/ai-chat-cli-linux-amd64:application/x-executable \
             dist/sbom.json:application/spdx+json
 
-  # ---------- Deploy to staging ----------
+  # ────────────────────────── Deploy to staging ──────────────────────────
   deploy-staging:
+    if: ${{ inputs.target == '' || inputs.target == 'deploy-staging' }}
     needs: publish-artefacts
-    runs-on: [self-hosted, Linux, X64, quality]
+    runs-on: [self-hosted, Linux, X64]
     environment:
       name: staging
       url: https://staging.ai-chat.internal
@@ -266,13 +285,15 @@ jobs:
             --set image.registry=${{ secrets.REGISTRY_HOST }} \
             --set image.tag=v${{ github.ref_name }}
       - name: Smoke tests
-        run: kubectl -n ai-chat-staging rollout status deploy/ai-chat && \
-             ./infra/tests/smoke-staging.sh
+        run: |
+          kubectl -n ai-chat-staging rollout status deploy/ai-chat
+          ./infra/tests/smoke-staging.sh
 
-  # ---------- Deploy to production ----------
+  # ────────────────────────── Deploy to production ──────────────────────────
   deploy-production:
+    if: ${{ inputs.target == '' || inputs.target == 'deploy-production' }}
     needs: deploy-staging
-    runs-on: [self-hosted, Linux, X64, quality]
+    runs-on: [self-hosted, Linux, X64]
     environment:
       name: production
       url: https://ai-chat.internal
