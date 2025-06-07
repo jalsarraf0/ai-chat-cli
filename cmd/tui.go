@@ -27,17 +27,21 @@ import (
 
 var teaRun = func(p *tea.Program) (tea.Model, error) { return p.Run() }
 
-var light bool
-var height int
+var (
+	themeFlag string
+	height    int
+)
 
 func newTuiCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "tui", Short: "Interactive terminal UI"}
-	cmd.Flags().BoolVar(&light, "light", false, "use light theme")
+	cmd.Flags().StringVar(&themeFlag, "theme", "", "theme name (light/dark)")
 	cmd.Flags().IntVar(&height, "height", 0, "override initial rows (0 = auto)")
 	cmd.RunE = func(_ *cobra.Command, _ []string) error {
 		m := tui.NewModel(height)
-		if light {
+		if themeFlag == "light" {
 			m.UseLightTheme()
+		} else if themeFlag != "" {
+			m.UseTheme(themeFlag)
 		}
 		p := tea.NewProgram(m)
 		_, err := teaRun(p)

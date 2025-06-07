@@ -57,6 +57,7 @@ func TestModelUpdate(t *testing.T) {
 		t.Fatalf("expect quit")
 	}
 }
+
 func TestQuitSequence(t *testing.T) {
 	t.Parallel()
 	m := NewModel(5)
@@ -76,6 +77,7 @@ func TestWindowResize(t *testing.T) {
 		t.Fatalf("height calc")
 	}
 }
+
 func TestUseLightTheme(t *testing.T) {
 	t.Parallel()
 	m := NewModel(5)
@@ -84,6 +86,7 @@ func TestUseLightTheme(t *testing.T) {
 		t.Fatalf("flag not set")
 	}
 }
+
 func TestInitCmd(t *testing.T) {
 	t.Parallel()
 	m := NewModel(0)
@@ -94,9 +97,10 @@ func TestInitCmd(t *testing.T) {
 
 func TestLoadStylesDiff(t *testing.T) {
 	t.Parallel()
-	_ = LoadStyles(false)
-	_ = LoadStyles(true)
+	_ = LoadStyles("")
+	_ = LoadStyles("themes/light.json")
 }
+
 func TestHistoryHeightZero(t *testing.T) {
 	t.Parallel()
 	m := NewModel(0)
@@ -113,11 +117,13 @@ func TestQuitEsc(t *testing.T) {
 		t.Fatalf("expect quit")
 	}
 }
+
 func TestNoOpMessage(t *testing.T) {
 	t.Parallel()
 	m := NewModel(5)
 	_, _ = m.Update(struct{}{})
 }
+
 func TestScrollBounds(t *testing.T) {
 	t.Parallel()
 	m := NewModel(10)
