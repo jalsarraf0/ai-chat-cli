@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export PATH="/usr/local/bin:$HOME/go/bin:$PATH"
+
 # Fast pre-flight: install Go 1.24.3 and Trivy v0.63.0 if missing
 GO_VERSION=1.24.3
 TRIVY_VERSION=v0.63.0
@@ -34,6 +36,52 @@ install_gocovmerge() {
     GOFLAGS='-trimpath' go install github.com/wadey/gocovmerge@latest
   fi
 }
+
+missing=()
+for t in go trivy govulncheck gosec godoc mdbook make; do
+  if ! command -v "$t" >/dev/null; then
+    echo "MISSING: $t"
+    missing+=("$t")
+  fi
+done
+
+for t in "${missing[@]}"; do
+  case "$t" in
+    trivy)
+      echo "Installing trivy..."
+      GOBIN=/usr/local/bin go install github.com/aquasecurity/trivy/cmd/trivy@latest
+      ;;
+    govulncheck)
+      echo "Installing govulncheck..."
+      GOBIN=/usr/local/bin go install golang.org/x/vuln/cmd/govulncheck@latest
+      ;;
+    gosec)
+      echo "Installing gosec..."
+      GOBIN=/usr/local/bin go install github.com/securego/gosec/v2/cmd/gosec@latest
+      ;;
+    godoc)
+      echo "Installing godoc..."
+      GOBIN=/usr/local/bin go install golang.org/x/tools/cmd/godoc@latest
+      ;;
+    mdbook)
+      echo "Installing mdbook..."
+      MDBOOK_VERSION="0.4.51"
+      wget -q "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdbook-v${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" -O /tmp/mdbook.tar.gz
+      sudo tar -xf /tmp/mdbook.tar.gz -C /usr/local/bin
+      sudo chmod +x /usr/local/bin/mdbook
+      ;;
+    make)
+      echo "Installing make..."
+      sudo nala install -y make
+      ;;
+    go)
+  echo "Installing Go ${GO_VERSION}" && install_go
+      ;;
+    *)
+      echo "Don't know how to install: $t"
+      ;;
+  esac
+done
 
 install_go
 install_trivy
