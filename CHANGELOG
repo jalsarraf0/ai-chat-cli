@@ -1,2 +1,7 @@
+## [1.0.1] - 2025-06-07
+- Refactor repository layout and add installer script.
+- Improve TUI with responsive layout and theme loader.
+- Harden pipeline and runtime configuration.
+
 ## [0.9.4] - 2025-06-05
 - Quality and security sweep.
