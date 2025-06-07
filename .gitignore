@@ -1,0 +1,10 @@
+# Binaries and build artefacts
+/bin/
+/dist/
+
+# IDE/editor configs
+.vscode/
+
+# Go modules cache
+vendor/
+coverage.out

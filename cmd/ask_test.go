@@ -1,0 +1,56 @@
+// Copyright (c) 2025 AI Chat
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+package cmd
+
+import (
+	"bytes"
+	"testing"
+
+	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/mock"
+)
+
+func TestAskCmd(t *testing.T) {
+	t.Parallel()
+	buf := new(bytes.Buffer)
+	c := mock.New("h", "i")
+	cmd := newAskCmd(c)
+	cmd.SetArgs([]string{"hello"})
+	cmd.SetOut(buf)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if buf.String() != "hi\n" {
+		t.Fatalf("output %q", buf.String())
+	}
+}
+func TestAskCmdFlags(t *testing.T) {
+	t.Parallel()
+	buf := new(bytes.Buffer)
+	c := mock.New("z")
+	cmd := newAskCmd(c)
+	cmd.SetArgs([]string{"--model", "gpt-4", "--temperature", "0.5", "--max_tokens", "1", "ping"})
+	cmd.SetOut(buf)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if buf.String() != "z\n" {
+		t.Fatalf("output %q", buf.String())
+	}
+}

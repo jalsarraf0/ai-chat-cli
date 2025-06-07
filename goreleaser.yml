@@ -1,0 +1,53 @@
+project_name: ai-chat-cli
+release:
+  github:
+    owner: jalsarraf0
+    name: ai-chat-cli
+builds:
+  - id: ai-chat
+    main: .
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, windows, darwin]
+    goarch: [amd64] # x64-only to avoid golangci-lint issue
+    ldflags:
+      - -s -w -X github.com/jalsarraf0/ai-chat-cli/cmd.Version={{.Version}}
+      - -X github.com/jalsarraf0/ai-chat-cli/cmd.Commit={{.Commit}}
+      - -X github.com/jalsarraf0/ai-chat-cli/cmd.Date={{.Date}}
+archives:
+  - id: default
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE*
+      - README.md
+      - completions/**
+      - internal/assets/themes/**
+    format_overrides:
+      - goos: windows
+        format: zip
+checksum:
+  name_template: "checksums.txt"
+brews:
+  - name: ai-chat-cli
+    homepage: "https://github.com/jalsarraf0/ai-chat-cli"
+    description: "AI-powered Chat CLI"
+    test: "ai-chat --help"
+dockers:
+  - image_templates:
+      - ghcr.io/jalsarraf0/ai-chat-cli:{{ .Version }}
+      - ghcr.io/jalsarraf0/ai-chat-cli:latest
+    dockerfile: Dockerfile
+nfpms:
+  - id: linux-packages
+    builds:
+      - ai-chat
+    formats:
+      - deb
+      - rpm
+    vendor: AI Chat
+    maintainer: AI Chat <support@aichat.internal>
+    description: AI-powered Chat CLI
+    license: MIT
+    homepage: https://github.com/jalsarraf0/ai-chat-cli
+    bindir: /usr/local/bin

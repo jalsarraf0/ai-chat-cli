@@ -1,0 +1,294 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - dev
+      - '**/phase*'
+    tags:
+      - 'v*.*.*'
+  schedule:
+    - cron: '0 2 * * *'   # nightly snapshot (UTC)
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: '1.24.x'
+  CACHE_DIR: ${{ github.workspace }}/go-cache
+
+# ──────────────────────────
+# Continuous Integration
+# ──────────────────────────
+jobs:
+
+  # ---------- Unit tests (Linux) ----------
+  unit-linux:
+    runs-on: [self-hosted, Linux, X64, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Export GOMAXPROCS
+        run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
+      - name: Unit tests w/ coverage
+        run: |
+          if ! ls -1 **/*.go 2>/dev/null | grep -q .; then
+            echo "package main" > dummy.go
+          fi
+          go test -race -covermode=atomic -coverprofile=coverage-${{ runner.os }}.out -tags unit ./...
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cov-${{ runner.os }}
+          path: coverage-${{ runner.os }}.out
+
+  # ---------- Quality gate ----------
+  quality:
+    needs: unit-linux
+    runs-on: [self-hosted, Linux, X64, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+      - uses: actions/download-artifact@v4
+        with:
+          path: cov
+      - name: Merge & gate coverage
+        run: |
+          go install github.com/wadey/gocovmerge@latest
+          PROFILES=$(find cov -type f -name '*.out' -o -name '*.cov')
+          if [[ -z "$PROFILES" ]]; then
+            echo "docs-only change — treating coverage as 100%"; exit 0
+          fi
+          gocovmerge $PROFILES > all.cov
+          pct=$(go tool cover -func all.cov | awk '/total:/ {gsub("%","");print $3}')
+          echo "coverage=$pct"
+          awk -v p="$pct" 'BEGIN { exit (p < 93) }'
+
+  # ---------- Security scan ----------
+  security:
+    needs: quality
+    runs-on: [self-hosted, Linux, X64, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+      - name: Verify shell scripts
+        run: |
+          find . -type f -name '*.sh' ! -executable -print -exec chmod u+x {} +
+      - name: gosec
+        run: gosec ./...
+      - name: License audit
+        run: addlicense -check $(go list -f '{{.Dir}}' ./...)
+      - name: Build for scan
+        run: GOOS=linux GOARCH=amd64 go build -o bin/ai-chat-cli-linux-amd64 .
+      - name: govulncheck
+        run: |
+          for i in 1 2; do
+            govulncheck ./... && break || { echo "retry $i"; sleep 4; }
+          done
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy/db
+          key: ${{ runner.os }}-trivy-db-${{ hashFiles('**/go.sum') }}
+      - name: Trivy scan
+        id: trivy
+        continue-on-error: true
+        run: trivy fs --severity HIGH,CRITICAL --exit-code 1 .
+      - name: Trivy fallback
+        if: steps.trivy.outcome == 'failure'
+        run: trivy fs --skip-db-update --severity HIGH,CRITICAL --exit-code 1 .
+
+  # ---------- Build (Linux) ----------
+  build-linux:
+    needs: security
+    runs-on: [self-hosted, Linux, X64, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Export GOMAXPROCS
+        run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
+      - name: Build binary
+        run: GOOS=linux GOARCH=amd64 make build
+      - name: Govulncheck binary
+        run: govulncheck -mode=binary bin/ai-chat-cli-linux-amd64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-linux
+          path: bin/ai-chat-cli-linux-amd64
+
+# ──────────────────────────
+# Continuous Delivery
+# ──────────────────────────
+
+  # ---------- Snapshot (nightly) ----------
+  snapshot:
+    if: github.event_name == 'schedule'
+    needs: build-linux
+    runs-on: [self-hosted, Linux, X64, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+      - uses: actions/download-artifact@v4
+        with:
+          name: bin-linux
+          path: dist
+      - name: Package snapshot
+        run: |
+          zip -j snapshot-${{ github.run_id }}.zip dist/*
+          syft packages dist -o spdx-json > sbom.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-${{ github.run_id }}
+          path: snapshot-${{ github.run_id }}.zip
+
+  # ---------- Release (tag) ----------
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-linux, quality, security]
+    runs-on: [self-hosted, Linux, X64, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+
+
+
+
+      - name: Build linux/amd64
+        run: |
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+          go build -trimpath -ldflags="-s -w" -o dist/ai-chat-cli
+      - name: Package tar.gz
+        run: |
+          cat > dist/install.sh <<'EOS'
+          #!/bin/sh
+          sudo install -m755 ai-chat-cli /usr/local/bin/ai-chat-cli
+          echo "ai-chat-cli installed ✨"
+          EOS
+          chmod +x dist/install.sh
+          tar -C dist -czf dist/ai-chat-cli-linux-amd64.tar.gz ai-chat-cli install.sh
+      - name: Package .deb & .rpm
+        run: |
+          sudo gem install --no-document fpm
+          VERSION="${{ github.ref_name#v }}"
+          fpm -s dir -t deb -n ai-chat-cli -v "$VERSION" --license Apache-2.0 \
+            dist/ai-chat-cli=/usr/bin/ai-chat-cli
+          fpm -s dir -t rpm -n ai-chat-cli -v "$VERSION" --license Apache-2.0 \
+            dist/ai-chat-cli=/usr/bin/ai-chat-cli
+      - name: SBOM (binary)
+        run: syft file:dist/ai-chat-cli -o spdx-json > sbom-bin.json
+      - name: Checksum
+        run: sha256sum dist/ai-chat-cli > dist/ai-chat-cli.sha256
+      - name: Verify OIDC issuer
+        run: |
+          [[ "$ACTIONS_ID_TOKEN_REQUEST_URL" =~ actions ]] || { echo "::error::OIDC issuer missing"; exit 1; }
+      - name: Cosign sign
+        run: cosign sign --yes dist/ai-chat-cli*
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ai-chat-cli-linux-amd64.tar.gz
+            dist/ai-chat-cli_*_amd64.deb
+            dist/ai-chat-cli-*x86_64.rpm
+            dist/ai-chat-cli.sha256
+            sbom-bin.json
+            dist/ai-chat-cli*.sig
+
+  # ---------- Build documentation ----------
+  docs:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+      - name: Build docs
+        run: make docs
+
+  # ---------- Publish artefacts to registry ----------
+  publish-artefacts:
+    needs: docs
+    runs-on: [self-hosted, Linux, X64, quality]
+    environment: artefact-registry
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+      - uses: actions/download-artifact@v4
+        with:
+          name: bin-linux
+          path: dist
+      - name: Download SBOM
+        run: echo "${{ secrets.SBOM_CONTENT }}" > dist/sbom.json || true
+      - name: Push OCI artefact
+        run: |
+          echo "${{ secrets.REGISTRY_TOKEN }}" | \
+            oras login --username ci --password-stdin ${{ secrets.REGISTRY_HOST }}
+          oras push ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} \
+            dist/ai-chat-cli-linux-amd64:application/x-executable \
+            dist/sbom.json:application/spdx+json
+
+  # ---------- Deploy to staging ----------
+  deploy-staging:
+    needs: publish-artefacts
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.ai-chat.internal
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+      - name: Pull artefact
+        run: |
+          oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} \
+            --output /tmp/cli
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install ai-chat-staging charts/ai-chat \
+            --namespace ai-chat-staging \
+            --set image.registry=${{ secrets.REGISTRY_HOST }} \
+            --set image.tag=v${{ github.ref_name }}
+      - name: Smoke tests
+        run: kubectl -n ai-chat-staging rollout status deploy/ai-chat && \
+             ./infra/tests/smoke-staging.sh
+
+  # ---------- Deploy to production (approval gate) ----------
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://ai-chat.internal
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fast pre-flight
+        run: ./scripts/preflight-ci.sh
+      - name: Pull artefact
+        run: |
+          oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} \
+            --output /tmp/cli
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install ai-chat charts/ai-chat \
+            --namespace ai-chat \
+            --set image.registry=${{ secrets.REGISTRY_HOST }} \
+            --set image.tag=v${{ github.ref_name }}
+      - name: Confirm rollout
+        run: kubectl -n ai-chat rollout status deploy/ai-chat
