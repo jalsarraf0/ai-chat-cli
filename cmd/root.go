@@ -22,6 +22,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/jalsarraf0/ai-chat-cli/internal/shell"
@@ -50,6 +51,7 @@ func newRootCmd() *cobra.Command {
 			if err := config.Load(cfgFile); err != nil {
 				return err
 			}
+			log.Printf("INFO: config %s", config.Path())
 			if verbose {
 				if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "shell=%s\n", detectedShell); err != nil {
 					cmd.Println("Error:", err)

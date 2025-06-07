@@ -9,7 +9,7 @@
 [![Container](https://img.shields.io/badge/container-ghcr.io%2Fjalsarraf0%2Fai--chat--cli-blue)](https://ghcr.io/jalsarraf0/ai-chat-cli)
 [![License](https://img.shields.io/badge/license-repo%20not%20found-lightgrey)](./)
 
-> **ai‑chat‑cli** is a lightweight, cross‑platform command‑line interface for interacting with GPT‑style large language models (LLMs).  
+> **ai‑chat‑cli** is a lightweight, cross‑platform command‑line interface for interacting with GPT‑style large language models (LLMs).
 > Written in pure **Go**, it streams answers in real‑time, keeps your history, and supports an extensible plug‑in system — all in a single ≈ 6 MiB binary.
 
 ---
@@ -35,7 +35,7 @@
 ---
 
 ## Overview
-`ai-chat-cli` wraps the OpenAI, Azure OpenAI and Ollama APIs behind a consistent CLI.  
+`ai-chat-cli` wraps the OpenAI, Azure OpenAI and Ollama APIs behind a consistent CLI.
 Key features:
 
 | Feature | Description |
@@ -106,7 +106,7 @@ Use `Ctrl‑K` for the command palette.
 ---
 
 ## Configuration
-Default file `~/.config/ai-chat-cli/config.yaml`:
+Default file `~/.config/ai-chat/ai-chat.yaml`:
 
 ```yaml
 provider: openai
@@ -162,7 +162,7 @@ make release      # goreleaser release --clean --skip=docker
 ---
 
 ## Security
-Please report vulnerabilities via [GitHub Advisories](https://github.com/jalsarraf0/ai-chat-cli/security/advisories).  
+Please report vulnerabilities via [GitHub Advisories](https://github.com/jalsarraf0/ai-chat-cli/security/advisories).
 We follow a 90‑day disclosure window.
 
 ---
@@ -178,8 +178,8 @@ See [Releases](https://github.com/jalsarraf0/ai-chat-cli/releases) or [CHANGELOG
 ---
 
 ## Acknowledgements
-- OpenAI & Azure OpenAI  
-- Charm Bracelet (Bubble Tea)  
-- spf13/cobra  
-- GoReleaser  
-- Sigstore **cosign**  
+- OpenAI & Azure OpenAI
+- Charm Bracelet (Bubble Tea)
+- spf13/cobra
+- GoReleaser
+- Sigstore **cosign**

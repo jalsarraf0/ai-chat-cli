@@ -1,11 +1,10 @@
 # Configuration
 
-The CLI stores settings in a YAML file. By default the path is determined as:
+The CLI stores settings in a YAML file located at:
 
-- `$XDG_CONFIG_HOME/ai-chat/config.yaml` if set
-- `%APPDATA%\ai-chat\config.yaml` on Windows
-- `$HOME/.config/ai-chat/config.yaml` otherwise
-- Fallback to the system temp directory
+- `$AI_CHAT_CONFIG` if set
+- `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` or `$HOME/.config/ai-chat/ai-chat.yaml`
+  otherwise
 
 Environment variables with prefix `AICHAT_` override file values. Keys include:
 

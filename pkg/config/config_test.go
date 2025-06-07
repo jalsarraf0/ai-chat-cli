@@ -22,7 +22,6 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -85,7 +84,7 @@ func TestDefaultPathXDG(t *testing.T) {
 	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	p := defaultPath()
-	want := filepath.Join(dir, "ai-chat", "config.yaml")
+	want := filepath.Join(dir, "ai-chat", "ai-chat.yaml")
 	if p != want {
 		t.Fatalf("want %s got %s", want, p)
 	}
@@ -95,12 +94,7 @@ func TestDefaultPathHome(t *testing.T) {
 	Reset()
 	t.Setenv("XDG_CONFIG_HOME", "")
 	p := defaultPath()
-	if runtime.GOOS == "windows" {
-		want := filepath.Join(os.Getenv("APPDATA"), "ai-chat", "config.yaml")
-		if p != want {
-			t.Fatalf("want %s got %s", want, p)
-		}
-	} else if !strings.Contains(p, ".config/ai-chat/config.yaml") {
+	if !strings.Contains(p, ".config/ai-chat/ai-chat.yaml") {
 		t.Fatalf("unexpected %s", p)
 	}
 }
@@ -111,12 +105,7 @@ func TestDefaultPathFallback(t *testing.T) {
 	oldHome := os.Getenv("HOME")
 	t.Setenv("HOME", "")
 	p := defaultPath()
-	if runtime.GOOS == "windows" {
-		want := filepath.Join(os.Getenv("APPDATA"), "ai-chat", "config.yaml")
-		if p != want {
-			t.Fatalf("want %s got %s", want, p)
-		}
-	} else if !strings.Contains(p, "ai-chat/config.yaml") {
+	if !strings.Contains(p, "ai-chat/ai-chat.yaml") {
 		t.Fatalf("unexpected %s", p)
 	}
 	if oldHome != "" {
