@@ -96,6 +96,12 @@ jobs:
           echo "coverage=$pct"
           awk -v p="$pct" 'BEGIN {exit(p < 93)}'
 
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+            | sh -s -- -b $GITHUB_WORKSPACE/bin v1.54.2
+          echo "$GITHUB_WORKSPACE/bin" >> "$GITHUB_PATH"
+
       - run: golangci-lint run
 
   # ────────────────────────── Security scan ──────────────────────────
