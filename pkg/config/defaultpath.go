@@ -22,20 +22,19 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 )
 
 func defaultPathImpl() string {
-	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		return filepath.Join(xdg, "ai-chat", "config.yaml")
+	if p := os.Getenv("AI_CHAT_CONFIG"); p != "" {
+		return p
 	}
-	if runtime.GOOS == "windows" {
-		if app := os.Getenv("APPDATA"); app != "" {
-			return filepath.Join(app, "ai-chat", "config.yaml")
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		if h := os.Getenv("HOME"); h != "" {
+			base = filepath.Join(h, ".config")
+		} else {
+			base = os.TempDir()
 		}
 	}
-	if home := os.Getenv("HOME"); home != "" {
-		return filepath.Join(home, ".config", "ai-chat", "config.yaml")
-	}
-	return filepath.Join(os.TempDir(), "ai-chat", "config.yaml")
+	return filepath.Join(base, "ai-chat", "ai-chat.yaml")
 }
