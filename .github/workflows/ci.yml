@@ -32,7 +32,6 @@ concurrency:
 env:
   GO_VERSION: 1.24.x
   CACHE_DIR: ${{ github.workspace }}/go-cache
-  RUN_TARGET: ${{ github.event.inputs.target || '' }}
 
 ###############################################################################
 # Continuous Integration
@@ -41,7 +40,9 @@ jobs:
 
   # ────────────────────────── Unit tests ──────────────────────────
   unit:
-    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'unit' }}
+    if: ${{ github.event_name != 'workflow_dispatch' ||
+           github.event.inputs.target == '' ||
+           github.event.inputs.target == 'unit' }}
     runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
@@ -56,6 +57,7 @@ jobs:
 
       - name: Unit tests (race + coverage)
         run: |
+          # docs-only commits still need a dummy pkg for `go test`
           if ! ls -1 **/*.go 2>/dev/null | grep -q .; then
             echo 'package main' > dummy.go
           fi
@@ -68,7 +70,9 @@ jobs:
 
   # ────────────────────────── Quality gate ──────────────────────────
   quality:
-    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'quality' }}
+    if: ${{ github.event_name != 'workflow_dispatch' ||
+           github.event.inputs.target == '' ||
+           github.event.inputs.target == 'quality' }}
     needs: unit
     runs-on: [self-hosted, Linux, X64]
     steps:
@@ -96,7 +100,9 @@ jobs:
 
   # ────────────────────────── Security scan ──────────────────────────
   security:
-    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'security' }}
+    if: ${{ github.event_name != 'workflow_dispatch' ||
+           github.event.inputs.target == '' ||
+           github.event.inputs.target == 'security' }}
     needs: quality
     runs-on: [self-hosted, Linux, X64]
     steps:
@@ -133,7 +139,9 @@ jobs:
 
   # ────────────────────────── Build (linux/amd64) ──────────────────────────
   build-linux:
-    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'build-linux' }}
+    if: ${{ github.event_name != 'workflow_dispatch' ||
+           github.event.inputs.target == '' ||
+           github.event.inputs.target == 'build-linux' }}
     needs: security
     runs-on: [self-hosted, Linux, X64]
     steps:
@@ -162,6 +170,7 @@ jobs:
 # Continuous Delivery
 ###############################################################################
 
+  # ────────────────────────── Nightly snapshot ──────────────────────────
   snapshot:
     if: ${{ github.event_name == 'schedule' }}
     needs: build-linux
@@ -185,6 +194,7 @@ jobs:
           name: snapshot-${{ github.run_id }}
           path: snapshot-${{ github.run_id }}.zip
 
+  # ────────────────────────── Release on tag ──────────────────────────
   release:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     needs: [build-linux, quality, security]
@@ -232,8 +242,11 @@ jobs:
             sbom-bin.json
             dist/ai-chat-cli*.sig
 
+  # ────────────────────────── Build documentation ──────────────────────────
   docs:
-    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'docs' }}
+    if: ${{ github.event_name != 'workflow_dispatch' ||
+           github.event.inputs.target == '' ||
+           github.event.inputs.target == 'docs' }}
     needs: release
     runs-on: [self-hosted, Linux, X64]
     steps:
@@ -241,19 +254,26 @@ jobs:
       - run: ./scripts/preflight-ci.sh
       - run: make docs
 
+  # ────────────────────────── Publish artefacts ──────────────────────────
   publish-artefacts:
-    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'publish-artefacts' }}
+    if: ${{ github.event_name != 'workflow_dispatch' ||
+           github.event.inputs.target == '' ||
+           github.event.inputs.target == 'publish-artefacts' }}
     needs: docs
     runs-on: [self-hosted, Linux, X64]
     environment: artefact-registry
     steps:
       - uses: actions/checkout@v4
+
       - run: ./scripts/preflight-ci.sh
+
       - uses: actions/download-artifact@v4
         with:
           name: bin-linux
           path: dist
+
       - run: echo "${{ secrets.SBOM_CONTENT }}" > dist/sbom.json || true
+
       - name: Push OCI artefact
         run: |
           echo "${{ secrets.REGISTRY_TOKEN }}" | \
@@ -262,8 +282,11 @@ jobs:
             dist/ai-chat-cli-linux-amd64:application/x-executable \
             dist/sbom.json:application/spdx+json
 
+  # ────────────────────────── Deploy to staging ──────────────────────────
   deploy-staging:
-    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'deploy-staging' }}
+    if: ${{ github.event_name != 'workflow_dispatch' ||
+           github.event.inputs.target == '' ||
+           github.event.inputs.target == 'deploy-staging' }}
     needs: publish-artefacts
     runs-on: [self-hosted, Linux, X64]
     environment:
@@ -284,8 +307,11 @@ jobs:
           kubectl -n ai-chat-staging rollout status deploy/ai-chat
           ./infra/tests/smoke-staging.sh
 
+  # ────────────────────────── Deploy to production ──────────────────────────
   deploy-production:
-    if: ${{ env.RUN_TARGET == '' || env.RUN_TARGET == 'deploy-production' }}
+    if: ${{ github.event_name != 'workflow_dispatch' ||
+           github.event.inputs.target == '' ||
+           github.event.inputs.target == 'deploy-production' }}
     needs: deploy-staging
     runs-on: [self-hosted, Linux, X64]
     environment:
