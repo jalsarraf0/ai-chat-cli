@@ -7,12 +7,13 @@ env:
   GOLANGCI_VERSION: 2.1.6
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
+  GORELEASER_VERSION: v2.1.2          # ← pin to a v2 release
 
 on:
   push:
     branches: [dev]
     paths-ignore:
-      - '.github/workflows/ci.yml'           # skip when this file changes
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [dev]
     paths-ignore:
@@ -197,16 +198,16 @@ jobs:
           GOOS=linux go build -trimpath -ldflags "-s -w" \
             -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
 
-      - name: Install Goreleaser
+      - name: Install Goreleaser ${{ env.GORELEASER_VERSION }}
         run: |
-          curl -sSfL https://install.goreleaser.com/github.com/goreleaser/goreleaser@latest \
+          curl -sSfL https://install.goreleaser.com/github.com/goreleaser/goreleaser@${{ env.GORELEASER_VERSION }} \
           | sudo sh -s -- -b /usr/local/bin
 
       - name: Snapshot packages (.deb/.rpm only for amd64)
         run: |
           if [[ "${{ matrix.arch }}" == "amd64" ]]; then
             goreleaser release --clean --snapshot \
-              --id deb --id rpm --dist dist            # ← removed --single-target
+              --id deb --id rpm --dist dist
           fi
           tar -C dist/linux_${{ matrix.arch }} -czf \
             dist/ai-chat-cli_snapshot_linux_${{ matrix.arch }}.tar.gz ai-chat-cli
