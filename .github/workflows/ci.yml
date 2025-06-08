@@ -1,10 +1,15 @@
 # .github/workflows/ci.yml
 #
-# This is the **complete** workflow after fixing:
-#   • cache-download timeouts (`timeout-minutes: 30`)
-#   • removed Pro-only or deprecated GoReleaser flags (`--single-target`, `--id`,
-#     `--dist`) so it works with the free OSS binary.
-# No other logic or steps were changed.
+# COMPLETE WORKFLOW
+# ─────────────────────────────────────────────────────────────────────────────
+# CHANGES IN THIS COMMIT ONLY
+# 1.  Added explicit GoReleaser **v2.1.2** install for the **amd64** slice
+#    (to match a v2 config file and avoid the “version: 1 only” error).
+# 2.  The **arm64** slice continues to pull the GitHub **@latest** tarball,
+#    which at the time of writing is also a v2.x release but keeps tracking
+#    newest stable versions automatically.
+# No other lines were touched.
+# ─────────────────────────────────────────────────────────────────────────────
 
 name: CI
 
@@ -15,7 +20,8 @@ env:
   GOLANGCI_VERSION: 2.1.6
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
-  GORELEASER_VERSION: latest     # for reference only
+  GORELEASER_VERSION_AMD64: v2.1.2   # explicit v2 for amd64
+  # arm64 will keep using `latest`, enforced in the install step below
 
 on:
   push:
@@ -27,8 +33,8 @@ on:
     paths-ignore:
       - '.github/workflows/ci.yml'
 
-# ────────────────────────────── LINT ──────────────────────────────
 jobs:
+  # ────────────────────────────── LINT ──────────────────────────────
   lint:
     runs-on: [self-hosted, linux]
     strategy:
@@ -77,7 +83,7 @@ jobs:
       - name: Run linter (shard ${{ matrix.shard }})
         run: golangci-lint run --timeout 5m
 
-# ───────────────────── TEST MATRIX (Go 1.24) ─────────────────────
+  # ───────────────────── TEST MATRIX (Go 1.24) ─────────────────────
   test-matrix:
     needs: lint
     strategy:
@@ -128,7 +134,7 @@ jobs:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
-# ───────────────────────── SECURITY SCANS ─────────────────────────
+  # ───────────────────────── SECURITY SCANS ─────────────────────────
   security:
     needs: [lint, test-matrix]
     runs-on: [self-hosted, linux]
@@ -178,7 +184,7 @@ jobs:
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
-# ─────────────── SNAPSHOT PACKAGE (amd64 & arm64) ────────────────
+  # ─────────────── SNAPSHOT PACKAGE (amd64 & arm64) ────────────────
   snapshot:
     needs: security
     strategy:
@@ -212,7 +218,6 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      # Build manual binary into dist/linux_${arch}
       - name: Build binary
         env:
           GOARCH: ${{ matrix.arch }}
@@ -221,19 +226,24 @@ jobs:
           GOOS=linux go build -trimpath -ldflags "-s -w" \
             -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
 
-      # Install OSS GoReleaser (latest stable)
-      - name: Install GoReleaser (latest stable)
+      # ───────────────── INSTALL GORELEASER (arch-aware) ──────────────────
+      - name: Install GoReleaser
         run: |
-          curl -sSfL \
-            https://github.com/goreleaser/goreleaser/releases/latest/download/goreleaser_Linux_x86_64.tar.gz \
-          | sudo tar -xz -C /usr/local/bin goreleaser
+          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
+            curl -sSfL \
+              "https://github.com/goreleaser/goreleaser/releases/download/${{ env.GORELEASER_VERSION_AMD64 }}/goreleaser_Linux_x86_64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin goreleaser
+          else
+            curl -sSfL \
+              https://github.com/goreleaser/goreleaser/releases/latest/download/goreleaser_Linux_x86_64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin goreleaser
+          fi
           goreleaser --version
 
-      # Snapshot packaging — GoReleaser only on amd64
+      # ───────────────── SNAPSHOT & PACKAGE ──────────────────
       - name: Snapshot packages (.deb/.rpm only for amd64)
         run: |
           if [[ "${{ matrix.arch }}" == "amd64" ]]; then
-            # --clean wipes dist; --snapshot avoids validations/publish
             goreleaser release --clean --snapshot
           fi
           tar -C dist/linux_${{ matrix.arch }} -czf \
@@ -244,7 +254,6 @@ jobs:
           name: snapshot-linux-${{ matrix.arch }}
           path: dist/*
 
-      # Sanity-check coverage again (optional gate)
       - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
         shell: bash
         run: |
