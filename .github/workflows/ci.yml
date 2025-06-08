@@ -1,84 +1,101 @@
 name: CI
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Global settings
+# ─────────────────────────────────────────────────────────────────────────────
+env:
+  GO_BIN: $HOME/go/bin
+  COVERAGE_THRESHOLD: 93          # % minimum
+  TRIVY_VERSION: 0.63.0
+  GOLANGCI_VERSION: v1.54.2
+  GOSEC_VERSION: v2.19.0
+  OSV_VERSION: v1.7.3
+
 on:
   push:
     branches: [dev]
   pull_request: {}
 
 jobs:
-
-  # ──────────────── 1. Lint ────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+#  1. Lint  (runs in parallel with Test job)
+# ─────────────────────────────────────────────────────────────────────────────
   lint:
-    runs-on: [self-hosted, linux]      # stay on your own runner
+    name: Lint (golangci-lint ${{ env.GOLANGCI_VERSION }})
+    runs-on: [self-hosted, linux]
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with: {go-version-file: 'go.mod'}
 
-      # ------- fix #1: wipe conflicting cache before restore --------------
+      # Clear potentially corrupted cache before restore
       - name: Clear Go module cache
         run: |
-          echo "Deleting $GOPATH/pkg/mod to avoid tar overwrite errors"
           rm -rf "$GOPATH/pkg/mod"
           mkdir -p "$GOPATH/pkg/mod"
 
+      # Cache Go modules
       - name: Restore Go module cache
         uses: actions/cache@v4
         with:
           path: ${{ env.GOPATH }}/pkg/mod
           key: go-mod-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-mod-
+          restore-keys: |
+            go-mod-
 
-      # ------- fix #2: install golangci-lint correctly --------------------
+      # Install pinned golangci-lint
       - name: Install golangci-lint
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          echo "$HOME/go/bin" >> $GITHUB_PATH
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@${{ env.GOLANGCI_VERSION }}
+          echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
       - name: Run linter
         run: golangci-lint run --timeout 5m
 
-  # ──────────────── 2. Test Matrix ────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+#  2. Test Matrix  (runs in parallel with Lint)
+# ─────────────────────────────────────────────────────────────────────────────
   test-matrix:
-    needs: lint
+    name: Unit & Coverage
     runs-on: [self-hosted, linux]
 
     strategy:
-      matrix:
-        go: [ '1.24' ]
+      matrix: { go: [ '1.24' ] }
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go }}
+        with: { go-version: ${{ matrix.go }} }
 
-      # expose $GOPATH/bin to subsequent shell steps
       - name: Add Go bin to PATH
-        run: echo "$HOME/go/bin" >> "$GITHUB_PATH"
+        run: echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
-      - name: Run tests (93 % min)
+      - name: Run tests (fail < ${{ env.COVERAGE_THRESHOLD }} %)
         run: |
           go test -race -covermode=atomic -coverprofile=coverage.out ./...
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
           echo "total coverage = ${pct}%"
-          if [[ ${pct%.*} -lt 93 ]]; then
-            echo "::error ::coverage ${pct}% < 93%" && exit 1
+          if [[ ${pct%.*} -lt $COVERAGE_THRESHOLD ]]; then
+            echo "::error ::coverage ${pct}% < ${COVERAGE_THRESHOLD}%" && exit 1
           fi
 
       - name: Upload coverage profile
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-out
+          name: coverage-${{ matrix.go }}
           path: coverage.out
 
-
-  # ──────────────── 3. Security ───────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+#  3. Security  (runs only if both gates above succeed)
+# ─────────────────────────────────────────────────────────────────────────────
   security:
-    needs: test-matrix
+    name: Security Scan
     runs-on: [self-hosted, linux]
+    needs: [ lint, test-matrix ]
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -87,15 +104,27 @@ jobs:
       - name: Install scanners
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          go install github.com/google/osv-scanner/cmd/osv-scanner@latest
-          curl -fsSL https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0_Linux-64bit.tar.gz \
-            | tar -xzO trivy > /usr/local/bin/trivy
-          chmod +x /usr/local/bin/trivy
-          echo "$HOME/go/bin" >> $GITHUB_PATH
+          go install github.com/securego/gosec/v2/cmd/gosec@${{ env.GOSEC_VERSION }}
+          go install github.com/google/osv-scanner/cmd/osv-scanner@${{ env.OSV_VERSION }}
+          curl -sSfL https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz \
+            | tar -xzO trivy > /usr/local/bin/trivy && chmod +x /usr/local/bin/trivy
+          echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
-      - run: govulncheck ./...
-      - run: gosec ./...
-      - run: osv-scanner .
-      - run: trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+      - name: govulncheck
+        run: govulncheck ./...
 
+      - name: gosec
+        run: gosec ./...
+
+      - name: osv-scanner
+        run: osv-scanner .
+
+      - name: trivy fs
+        run: |
+          trivy fs --download-db-only                      # make sure DB is fresh
+          trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  4.  (Optional) Snapshot artefact build could be added here or kept in a
+#     separate `release.yml` that depends on this security job.
+# ─────────────────────────────────────────────────────────────────────────────
