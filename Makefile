@@ -34,7 +34,12 @@ test: lint unit
 .PHONY: security-scan
 
 security-scan: ## Run gosec static analysis
-	GOFLAGS='-trimpath' gosec ./...
+        GOFLAGS='-trimpath' gosec ./...
+
+coverage:
+	go test -race -covermode=atomic -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+.PHONY: coverage
 
 coverage-gate:
 

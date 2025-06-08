@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: [self-hosted, linux]
+    needs: security
+    permissions: {contents: write}
+    strategy:
+      matrix: {arch: [amd64, arm64]}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: {go-version-file: 'go.mod'}
+
+      - name: Build
+        env:
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p dist/linux_${GOARCH}
+          GOOS=linux go build -trimpath -ldflags "-s -w" \
+            -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
+
+      - name: Goreleaser snapshot
+        env:
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          goreleaser release --clean --snapshot --single-target \
+            --id deb --id rpm --dist dist \
+            --skip=publish,validate
+
+      - name: Tar.gz package
+        env:
+          TAG: ${{ github.ref_name }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          tar -C dist/linux_${ARCH} -czf dist/ai-chat-cli_${TAG}_linux_${ARCH}.tar.gz ai-chat-cli
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ai-chat-cli_${{ github.ref_name }}_linux_*.tar.gz
+            dist/*.deb
+            dist/*.rpm
