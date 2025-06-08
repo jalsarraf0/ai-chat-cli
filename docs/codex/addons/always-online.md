@@ -39,7 +39,7 @@ Every PR **must** pass **all** checks *with zero HIGH / CRITICAL findings*.
 | **License Audit** | `addlicense -check $(go list -f '{{.Dir}}' ./...)` |
 
 ---
-Immutable CI/CD Pipelines \ud83d\udd12
+## §3 · Immutable CI/CD Pipelines \ud83d\udd12
 No file under .github/workflows/**, .azure-pipelines/**, or
 .circleci/** may be added, removed, or edited in a pull-request
 without an issue labelled ci-approval and an approving review from
