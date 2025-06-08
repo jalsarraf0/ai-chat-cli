@@ -11,39 +11,64 @@ jobs:
     runs-on: [self-hosted, linux]
     permissions:
       contents: write
+      packages: read
     strategy:
       matrix:
         arch: [amd64, arm64]
+        os: [linux]
 
     steps:
+      # Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Cache Go modules for faster builds
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Set up Go environment based on go.mod
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
 
+      # Validate code with Go tests before building
+      - name: Run Go tests
+        run: go test ./...
+
+      # Set up GoReleaser for packaging and release
       - name: Set up GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
-          version: latest
+          version: v1.27.0  # Pin to a stable version
 
+      # Build the binary for each architecture
       - name: Build binary
         env:
           GOARCH: ${{ matrix.arch }}
         run: |
+          set -e
           mkdir -p dist/linux_${GOARCH}
-          GOOS=linux GOARCH=${GOARCH} go build -trimpath -ldflags "-s -w" \
+          GOOS=linux GOARCH=${GOARCH} go build -trimpath -ldflags "-s -w -X main.commit=${GITHUB_SHA} -X main.version=${GITHUB_REF_NAME}" \
             -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
 
+      # Package the binary as tar.gz with metadata in filename
       - name: Package as tar.gz
         env:
           TAG: ${{ github.ref_name }}
           ARCH: ${{ matrix.arch }}
+          SHA: ${{ github.sha }}
         run: |
-          tar -C dist/linux_${ARCH} -czf dist/ai-chat-cli_${TAG}_linux_${ARCH}.tar.gz ai-chat-cli
+          tar -C dist/linux_${ARCH} -czf dist/ai-chat-cli_${TAG}_${SHA}_linux_${ARCH}.tar.gz ai-chat-cli
 
+      # Run GoReleaser in snapshot mode for .deb and .rpm (does not publish)
       - name: Run GoReleaser (snapshot)
         env:
           GOARCH: ${{ matrix.arch }}
@@ -52,10 +77,16 @@ jobs:
             --id deb --id rpm --dist dist \
             --skip=publish,validate
 
+      # Upload built assets to the GitHub release
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/ai-chat-cli_${{ github.ref_name }}_linux_*.tar.gz
+            dist/ai-chat-cli_${{ github.ref_name }}_${{ github.sha }}_linux_*.tar.gz
             dist/*.deb
             dist/*.rpm
+
+      # Optionally, update release notes or README automatically (customize as needed)
+      # - name: Update README or Release Notes
+      #   run: |
+      #     # Add any scripts here to update README or generate release notes automatically
