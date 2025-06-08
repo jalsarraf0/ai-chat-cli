@@ -1,10 +1,11 @@
 # .github/workflows/ci.yml
 #
-# NOTE:
 # ─────────────────────────────────────────────────────────────────────────────
-# The ONLY change in this revision is that GoReleaser is now fetched from the
-# “latest” stable release URL instead of using a pinned version or the install
-# script.  All other lines are identical to the previous file.
+# CHANGES IN THIS REVISION ONLY
+# 1. Added `timeout-minutes: 30` to every actions/cache@v3 restore step
+#    to prevent cache-download timeouts.
+# 2. Removed the unsupported `--id` flags from the GoReleaser call and
+#    kept `--single-target` (snapshot job, amd64 branch).
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: CI
@@ -16,9 +17,7 @@ env:
   GOLANGCI_VERSION: 2.1.6
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
-  # GoReleaser is installed from the latest release; this variable is kept
-  # only for reference and is not used elsewhere in the workflow.
-  GORELEASER_VERSION: latest
+  GORELEASER_VERSION: latest   # retained for reference
 
 on:
   push:
@@ -47,6 +46,7 @@ jobs:
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
         continue-on-error: true
+        timeout-minutes: 30
         with:
           path: |
             ~/.cache/go-build
@@ -94,6 +94,7 @@ jobs:
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
         continue-on-error: true
+        timeout-minutes: 30
         with:
           path: |
             ~/.cache/go-build
@@ -138,6 +139,7 @@ jobs:
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
         continue-on-error: true
+        timeout-minutes: 30
         with:
           path: |
             ~/.cache/go-build
@@ -187,6 +189,7 @@ jobs:
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
         continue-on-error: true
+        timeout-minutes: 30
         with:
           path: |
             ~/.cache/go-build
@@ -209,22 +212,17 @@ jobs:
           GOOS=linux go build -trimpath -ldflags "-s -w" \
             -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
 
-      # ──────────────────────────────────────────────────────────────
-      # INSTALL GORELEASER (changed section)
-      # ──────────────────────────────────────────────────────────────
       - name: Install GoReleaser (latest stable)
         run: |
           curl -sSfL \
             https://github.com/goreleaser/goreleaser/releases/latest/download/goreleaser_Linux_x86_64.tar.gz \
           | sudo tar -xz -C /usr/local/bin goreleaser
           goreleaser --version
-      # ──────────────────────────────────────────────────────────────
 
       - name: Snapshot packages (.deb/.rpm only for amd64)
         run: |
           if [[ "${{ matrix.arch }}" == "amd64" ]]; then
-            goreleaser release --clean --snapshot \
-              --id deb --id rpm --dist dist
+            goreleaser release --clean --snapshot --single-target --dist dist
           fi
           tar -C dist/linux_${{ matrix.arch }} -czf \
             dist/ai-chat-cli_snapshot_linux_${{ matrix.arch }}.tar.gz ai-chat-cli
