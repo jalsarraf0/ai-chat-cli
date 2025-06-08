@@ -145,9 +145,11 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 | Job | Tool | Gate |
 |-----|------|------|
 | **Lint** | golangci‑lint | no warnings |
-| **Unit** | `go test -race` | 90 %+ coverage |
+| **Unit** | `go test -race` | 93 %+ coverage |
 | **Security** | gosec, govulncheck | zero criticals |
 | **Release** | GoReleaser v2 | binary, tar.gz, deb, rpm |
+
+The workflow downloads lint and security tools from upstream sources at runtime.
 
 ---
 

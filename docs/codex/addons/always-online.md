@@ -6,21 +6,21 @@ If any statement here conflicts with the base rules, obey the *stricter* instruc
 
 ---
 ## \▍0. Internet Access Policy \ud83d\udca1
-1. **Assume continuous Internet connectivity** in all scripts, helper tools and CI jobs.
-2. Missing / outdated Go deps \u2192 run:
+Our self-hosted runners ship with **pre-baked, version-locked binaries** (see \u00a72). Internet access is **allowed only to fetch artifacts that are absent or stale**. Follow this strict order:
+
+1. **Use what\u2019s already cached** in `/workspace/.cache/**` or on `$PATH`.
+2. **If a dependency or DB is missing _or_ its SHA mismatches `scripts/checksums.txt`,** download it from the canonical upstream (GitHub release, Go proxy, Trivy DB endpoint, etc.).
+3. **Never install "latest" blindly.** Pin with an explicit `@<version>` or archive URL, then update both `scripts/preflight-*.sh` *and* `checksums.txt`.
+4. **Go module upgrades** are limited to patch releases:
 
    ```bash
-   go get -u ./...
+   go get -u=patch ./...
    go mod tidy -e -v
    ```
 
-3. Missing CLI tool (e.g. `gosec`, `trivy`) \u2192 install via:
-
-   ```bash
-   go install <module>@latest
-   ```
-
-   Fallback: fetch binary from GitHub Releases.
+   Minor/major bumps require an issue flagged `needs-approval`.
+5. **Node-based package managers (npm, pnpm, yarn, bun) are NOT permitted.** Any JavaScript tooling must ship as standalone binaries or Web assets fetched by Hugo at runtime.
+6. **New CLI tool** needed?  Open an issue. After approval, bake it into `scripts/preflight-*.sh`; never inline-install inside workflow YAML.
 
 ---
 ## \▍1. Coverage Gate \u2265\u200a93\u200a% \ud83d\udcc8

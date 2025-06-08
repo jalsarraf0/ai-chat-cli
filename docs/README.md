@@ -60,9 +60,10 @@ aio-chat-cli ask "hello"
 ## Building From Source
 
 ```bash
-bash scripts/preflight-ci.sh
 make build
 ```
+
+All required tools are downloaded automatically by the CI pipeline.
 
 ## Release Process
 
