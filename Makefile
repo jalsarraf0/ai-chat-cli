@@ -54,7 +54,7 @@ coverage-gate:
 
 docs:
 	@git ls-files "*.md" | xargs -r sed -i "s/[ 	]*$$//" && git diff --exit-code || true
-	hugo --contentDir=docs --destination=public
+       hugo --minify --contentDir=docs --destination=public
 
 
 build:

@@ -1,51 +1,53 @@
 name: CI
 
 on:
+  pull_request: {}
   push:
     branches: [ dev, main ]
-  pull_request: {}
 
 jobs:
 
   lint:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with: {go-version-file: 'go.mod'}
+      - name: Install linter
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint/v2@latest
       - run: golangci-lint run --timeout 5m
 
   test-matrix:
     needs: lint
+    runs-on: ubuntu-latest
     strategy:
-      matrix: {go: ['1.23', '1.24', '1.25']}
-    runs-on: [self-hosted, linux]
+      matrix: {go: ['1.23','1.24','1.25']}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with: {go-version: ${{ matrix.go }}}
       - run: |
           go test -race -covermode=atomic -coverprofile=coverage.out ./...
-          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
-          echo "coverage=$pct%" >> $GITHUB_OUTPUT
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $3}')
+          echo "coverage=${pct}%" 
           if [[ ${pct%.*} -lt 93 ]]; then
-            echo "coverage ${pct}% < 93%"
-            exit 1
+             echo "coverage ${pct}% < 93%" && exit 1
           fi
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: cov-${{ matrix.go }}
-          path: coverage.out
 
   security:
     needs: test-matrix
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with: {go-version-file: 'go.mod'}
+      - name: Install scanners
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          go install github.com/google/osv-scanner/cmd/osv-scanner@latest
+          curl -fsSL https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0_Linux-64bit.tar.gz | tar -xzO trivy > /usr/local/bin/trivy && chmod +x /usr/local/bin/trivy
       - run: govulncheck ./...
       - run: gosec ./...
       - run: osv-scanner .
-      - run: trivy fs --severity CRITICAL,HIGH --cache-dir /workspace/.cache/trivy .
+      - run: trivy fs --exit-code 1 --severity HIGH,CRITICAL .
