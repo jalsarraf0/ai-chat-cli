@@ -20,6 +20,8 @@
 package tui
 
 import (
+	"os"
+
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/jalsarraf0/ai-chat-cli/pkg/theme"
@@ -27,6 +29,7 @@ import (
 
 // Styles defines UI colours.
 type Styles struct {
+	App     lipgloss.Style
 	History lipgloss.Style
 	Input   lipgloss.Style
 	Cursor  lipgloss.Style
@@ -35,8 +38,15 @@ type Styles struct {
 // LoadStyles builds styles from the embedded theme.
 func LoadStyles(name string) Styles {
 	p := theme.Load(name)
+	app := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(p.Background)).Padding(0, 1)
 	hist := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(p.Background)).Height(0)
 	inp := lipgloss.NewStyle().BorderTop(true).BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(p.Background))
 	cursor := lipgloss.NewStyle().Foreground(lipgloss.Color("#00ffff"))
-	return Styles{History: hist, Input: inp, Cursor: cursor}
+	if os.Getenv("NO_COLOR") != "" {
+		app = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(0, 1)
+		hist = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Height(0)
+		inp = lipgloss.NewStyle().BorderTop(true).BorderStyle(lipgloss.NormalBorder())
+		cursor = lipgloss.NewStyle()
+	}
+	return Styles{App: app, History: hist, Input: inp, Cursor: cursor}
 }
