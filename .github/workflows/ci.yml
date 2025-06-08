@@ -1,13 +1,10 @@
 name: CI
 
-# ───────────────────────────────────────────────────────────────
-#  Global settings
-# ───────────────────────────────────────────────────────────────
 env:
   GO_BIN: $HOME/go/bin
   COVERAGE_THRESHOLD: 93
   TRIVY_VERSION: 0.63.0
-  GOLANGCI_VERSION: v2.1.6          # ← pinned v2 binary
+  GOLANGCI_VERSION: 2.1.6        # bare digits
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
 
@@ -17,42 +14,29 @@ on:
   pull_request:
     branches: [dev]
 
-# ───────────────────────────────────────────────────────────────
-#  Re-usable step fragments (YAML anchors)
-# ───────────────────────────────────────────────────────────────
-permissions-fix: &permissions-fix |
-  sudo chmod -R u+w ~/go/pkg/mod/ || true
-
-clean-go-cache: &clean-go-cache |
-  rm -rf ~/.cache/go-build/* || true
-  rm -rf ~/go/pkg/mod/*      || true
-
-restore-go-cache: &restore-go-cache
-  uses: actions/cache@v3
-  continue-on-error: true
-  with:
-    path: |
-      ~/.cache/go-build
-      ~/go/pkg/mod
-    key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-    restore-keys: |
-      ${{ runner.os }}-go-
-
-# ───────────────────────────────────────────────────────────────
-#  1. Lint
-# ───────────────────────────────────────────────────────────────
 jobs:
+# ──────────────────────────── 1. Lint ────────────────────────────
   lint:
-    name: Lint
     runs-on: [self-hosted, linux]
     steps:
       - name: Fix permissions
-        run: *permissions-fix
+        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
 
       - name: Clean Go cache
-        run: *clean-go-cache
+        run: |
+          rm -rf ~/.cache/go-build/* || true
+          rm -rf ~/go/pkg/mod/*      || true
 
-      - *restore-go-cache
+      - name: Restore Go cache (ignore errors)
+        uses: actions/cache@v3
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -60,32 +44,51 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      # install pre-built golangci-lint 2.1.6
       - name: Install golangci-lint ${{ env.GOLANGCI_VERSION }}
+        shell: bash
         run: |
-          go install github.com/golangci-lint/v2/cmd/golangci-lint@${{ env.GOLANGCI_VERSION }}
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ca-certificates curl tar
+          mkdir -p "$HOME/go/bin"
+          sudo chown -R "$USER":"$USER" "$HOME/go"
+
+          curl -sSfL \
+            "https://github.com/golangci/golangci-lint/releases/download/v${{ env.GOLANGCI_VERSION }}/golangci-lint-${{ env.GOLANGCI_VERSION }}-linux-amd64.tar.gz" \
+          | tar -xz --strip-components=1 -C "$HOME/go/bin" \
+              "golangci-lint-${{ env.GOLANGCI_VERSION }}-linux-amd64/golangci-lint"
+
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
       - name: Run linter
         run: golangci-lint run --timeout 5m
 
-# ───────────────────────────────────────────────────────────────
-#  2. Unit Tests + Coverage
-# ───────────────────────────────────────────────────────────────
+# ───────────────────── 2. Unit Tests + Coverage ───────────────────
   test-matrix:
-    name: Tests & Coverage
     needs: lint
     runs-on: [self-hosted, linux]
     strategy:
-      matrix:
-        go: ['1.24']
+      matrix: { go: ['1.24'] }
     steps:
       - name: Fix permissions
-        run: *permissions-fix
+        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
 
       - name: Clean Go cache
-        run: *clean-go-cache
+        run: |
+          rm -rf ~/.cache/go-build/* || true
+          rm -rf ~/go/pkg/mod/*      || true
 
-      - *restore-go-cache
+      - name: Restore Go cache (ignore errors)
+        uses: actions/cache@v3
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -93,10 +96,9 @@ jobs:
           go-version: ${{ matrix.go }}
           cache: true
 
-      - name: Add Go bin to PATH
-        run: echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
+      - run: echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
-      - name: Run tests (fail if < ${{ env.COVERAGE_THRESHOLD }} %)
+      - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
         run: |
           go test -race -covermode=atomic -coverprofile=coverage.out ./...
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
@@ -105,27 +107,34 @@ jobs:
             echo "::error ::coverage ${pct}% < ${COVERAGE_THRESHOLD}%" ; exit 1
           fi
 
-      - name: Upload coverage artefact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
-# ───────────────────────────────────────────────────────────────
-#  3. Security Scan
-# ───────────────────────────────────────────────────────────────
+# ───────────────────────── 3. Security Scan ───────────────────────
   security:
-    name: Security Scan
     needs: [lint, test-matrix]
     runs-on: [self-hosted, linux]
     steps:
       - name: Fix permissions
-        run: *permissions-fix
+        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
 
       - name: Clean Go cache
-        run: *clean-go-cache
+        run: |
+          rm -rf ~/.cache/go-build/* || true
+          rm -rf ~/go/pkg/mod/*      || true
 
-      - *restore-go-cache
+      - name: Restore Go cache (ignore errors)
+        uses: actions/cache@v3
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -143,38 +152,38 @@ jobs:
           chmod +x /usr/local/bin/trivy
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
-      - name: govulncheck
-        run: govulncheck ./...
-
-      - name: gosec
-        run: gosec ./...
-
-      - name: osv-scanner
-        run: osv-scanner .
-
-      - name: trivy filesystem scan
-        run: |
+      - run: govulncheck ./...
+      - run: gosec ./...
+      - run: osv-scanner .
+      - run: |
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
-# ───────────────────────────────────────────────────────────────
-#  4. Snapshot Release
-# ───────────────────────────────────────────────────────────────
+# ───────────────────── 4. Goreleaser Snapshot ─────────────────────
   snapshot:
-    name: Goreleaser Snapshot
     needs: security
     runs-on: [self-hosted, linux]
     strategy:
-      matrix:
-        arch: [amd64, arm64]
+      matrix: { arch: [amd64, arm64] }
     steps:
       - name: Fix permissions
-        run: *permissions-fix
+        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
 
       - name: Clean Go cache
-        run: *clean-go-cache
+        run: |
+          rm -rf ~/.cache/go-build/* || true
+          rm -rf ~/go/pkg/mod/*      || true
 
-      - *restore-go-cache
+      - name: Restore Go cache (ignore errors)
+        uses: actions/cache@v3
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
