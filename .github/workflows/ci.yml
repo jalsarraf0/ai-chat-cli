@@ -1,11 +1,10 @@
 # .github/workflows/ci.yml
 #
-# ─────────────────────────────────────────────────────────────────────────────
-# CHANGES IN THIS REVISION ONLY
-# • Removed the unsupported `--single-target` flag from the GoReleaser call.
-#   (The flag is Pro-only and is rejected by the OSS binary.)  
-#   All other lines remain exactly as in the previous version.
-# ─────────────────────────────────────────────────────────────────────────────
+# This is the **complete** workflow after fixing:
+#   • cache-download timeouts (`timeout-minutes: 30`)
+#   • removed Pro-only or deprecated GoReleaser flags (`--single-target`, `--id`,
+#     `--dist`) so it works with the free OSS binary.
+# No other logic or steps were changed.
 
 name: CI
 
@@ -16,7 +15,7 @@ env:
   GOLANGCI_VERSION: 2.1.6
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
-  GORELEASER_VERSION: latest   # retained for reference
+  GORELEASER_VERSION: latest     # for reference only
 
 on:
   push:
@@ -28,14 +27,15 @@ on:
     paths-ignore:
       - '.github/workflows/ci.yml'
 
+# ────────────────────────────── LINT ──────────────────────────────
 jobs:
-  # ────────────────────────────── LINT ──────────────────────────────
   lint:
     runs-on: [self-hosted, linux]
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
+
     steps:
       - name: Fix permissions for cache directories
         run: |
@@ -55,13 +55,13 @@ jobs:
             ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Install golangci-lint ${{ env.GOLANGCI_VERSION }}
-        shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
@@ -77,13 +77,15 @@ jobs:
       - name: Run linter (shard ${{ matrix.shard }})
         run: golangci-lint run --timeout 5m
 
-  # ──────────────────────── TEST MATRIX (Go 1.24) ────────────────────────
+# ───────────────────── TEST MATRIX (Go 1.24) ─────────────────────
   test-matrix:
     needs: lint
     strategy:
       matrix:
         go: ['1.24']
+
     runs-on: [self-hosted, linux]
+
     steps:
       - name: Fix permissions for cache directories
         run: |
@@ -103,6 +105,7 @@ jobs:
             ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
@@ -125,10 +128,11 @@ jobs:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
-  # ─────────────────────────── SECURITY SCANS ───────────────────────────
+# ───────────────────────── SECURITY SCANS ─────────────────────────
   security:
     needs: [lint, test-matrix]
     runs-on: [self-hosted, linux]
+
     steps:
       - name: Fix permissions for cache directories
         run: |
@@ -148,17 +152,19 @@ jobs:
             ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
 
-      - name: Install scanners
+      - name: Install security scanners
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           go install github.com/securego/gosec/v2/cmd/gosec@${{ env.GOSEC_VERSION }}
           go install github.com/google/osv-scanner/cmd/osv-scanner@${{ env.OSV_VERSION }}
-          wget -qO- "https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz" \
+          wget -qO- \
+            "https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz" \
             | sudo tar -xz -C /usr/local/bin trivy
           sudo chmod +x /usr/local/bin/trivy
           sudo chown "$(id -u):$(id -g)" /usr/local/bin/trivy
@@ -172,13 +178,15 @@ jobs:
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
-  # ─────────────────────── SNAPSHOT (BUILD & PACKAGE) ────────────────────
+# ─────────────── SNAPSHOT PACKAGE (amd64 & arm64) ────────────────
   snapshot:
     needs: security
     strategy:
       matrix:
         arch: [amd64, arm64]
+
     runs-on: [self-hosted, linux]
+
     steps:
       - name: Fix permissions for cache directories
         run: |
@@ -198,11 +206,13 @@ jobs:
             ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
 
+      # Build manual binary into dist/linux_${arch}
       - name: Build binary
         env:
           GOARCH: ${{ matrix.arch }}
@@ -211,6 +221,7 @@ jobs:
           GOOS=linux go build -trimpath -ldflags "-s -w" \
             -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
 
+      # Install OSS GoReleaser (latest stable)
       - name: Install GoReleaser (latest stable)
         run: |
           curl -sSfL \
@@ -218,10 +229,12 @@ jobs:
           | sudo tar -xz -C /usr/local/bin goreleaser
           goreleaser --version
 
+      # Snapshot packaging — GoReleaser only on amd64
       - name: Snapshot packages (.deb/.rpm only for amd64)
         run: |
           if [[ "${{ matrix.arch }}" == "amd64" ]]; then
-            goreleaser release --clean --snapshot --dist dist
+            # --clean wipes dist; --snapshot avoids validations/publish
+            goreleaser release --clean --snapshot
           fi
           tar -C dist/linux_${{ matrix.arch }} -czf \
             dist/ai-chat-cli_snapshot_linux_${{ matrix.arch }}.tar.gz ai-chat-cli
@@ -231,6 +244,7 @@ jobs:
           name: snapshot-linux-${{ matrix.arch }}
           path: dist/*
 
+      # Sanity-check coverage again (optional gate)
       - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
         shell: bash
         run: |
