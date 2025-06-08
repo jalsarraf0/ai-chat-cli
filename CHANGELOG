@@ -1,4 +1,4 @@
-## [Unreleased]
+## [1.0.2] - 2025-06-08
 - Remove Node-based docs build.
 - refactor: new 4-stage CI/CD pipeline
 ## [1.0.1] - 2025-06-07

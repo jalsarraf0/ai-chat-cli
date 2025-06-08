@@ -5,7 +5,7 @@ release:
     name: ai-chat-cli
 builds:
   - id: ai-chat
-    main: .
+    main: ./cmd/ai-chat-cli
     env:
       - CGO_ENABLED=0
     goos: [linux, windows, darwin]
@@ -51,3 +51,14 @@ nfpms:
     license: MIT
     homepage: https://github.com/jalsarraf0/ai-chat-cli
     bindir: /usr/local/bin
+sboms:
+  - id: default
+    artifacts: any
+    documents:
+      - sbom.json
+    args:
+      - "."
+      - --output
+      - spdx-json=$document
+    env:
+      - SYFT_CHECK_FOR_APP_UPDATE=false
