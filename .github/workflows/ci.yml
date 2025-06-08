@@ -5,7 +5,7 @@ name: CI
 # ─────────────────────────────────────────────────────────────────────────────
 env:
   GO_BIN: $HOME/go/bin
-  COVERAGE_THRESHOLD: 93          # % minimum
+  COVERAGE_THRESHOLD: 93
   TRIVY_VERSION: 0.63.0
   GOLANGCI_VERSION: v1.54.2
   GOSEC_VERSION: v2.19.0
@@ -18,7 +18,7 @@ on:
 
 jobs:
 # ─────────────────────────────────────────────────────────────────────────────
-#  1. Lint  (runs in parallel with Test job)
+#  1. Linter
 # ─────────────────────────────────────────────────────────────────────────────
   lint:
     name: Lint (golangci-lint ${{ env.GOLANGCI_VERSION }})
@@ -30,22 +30,19 @@ jobs:
       - uses: actions/setup-go@v5
         with: {go-version-file: 'go.mod'}
 
-      # Clear potentially corrupted cache before restore
-      - name: Clear Go module cache
+      # Wipe conflicting cache entries then restore module cache
+      - name: Prepare Go module cache
         run: |
-          rm -rf "$GOPATH/pkg/mod"
-          mkdir -p "$GOPATH/pkg/mod"
+          rm -rf "$HOME/go/pkg/mod"
+          mkdir -p "$HOME/go/pkg/mod"
 
-      # Cache Go modules
       - name: Restore Go module cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.GOPATH }}/pkg/mod
+          path: ~/go/pkg/mod
           key: go-mod-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            go-mod-
+          restore-keys: go-mod-
 
-      # Install pinned golangci-lint
       - name: Install golangci-lint
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@${{ env.GOLANGCI_VERSION }}
@@ -55,46 +52,47 @@ jobs:
         run: golangci-lint run --timeout 5m
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  2. Test Matrix  (runs in parallel with Lint)
+#  2. Unit Tests + Coverage
 # ─────────────────────────────────────────────────────────────────────────────
   test-matrix:
-    name: Unit & Coverage
+    name: Tests & Coverage
+    needs: lint
     runs-on: [self-hosted, linux]
-
     strategy:
-      matrix: { go: [ '1.24' ] }
+      matrix:
+        go: [ '1.24' ]
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
-        with: { go-version: ${{ matrix.go }} }
+        with: {go-version: ${{ matrix.go }}}
 
       - name: Add Go bin to PATH
         run: echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
-      - name: Run tests (fail < ${{ env.COVERAGE_THRESHOLD }} %)
+      - name: Run tests (fail if < ${{ env.COVERAGE_THRESHOLD }} %)
         run: |
           go test -race -covermode=atomic -coverprofile=coverage.out ./...
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
           echo "total coverage = ${pct}%"
           if [[ ${pct%.*} -lt $COVERAGE_THRESHOLD ]]; then
-            echo "::error ::coverage ${pct}% < ${COVERAGE_THRESHOLD}%" && exit 1
+            echo "::error ::coverage ${pct}% < ${COVERAGE_THRESHOLD}%" ; exit 1
           fi
 
-      - name: Upload coverage profile
+      - name: Upload coverage artefact
         uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  3. Security  (runs only if both gates above succeed)
+#  3. Security Gate
 # ─────────────────────────────────────────────────────────────────────────────
   security:
     name: Security Scan
+    needs: [lint, test-matrix]
     runs-on: [self-hosted, linux]
-    needs: [ lint, test-matrix ]
 
     steps:
       - uses: actions/checkout@v4
@@ -107,7 +105,8 @@ jobs:
           go install github.com/securego/gosec/v2/cmd/gosec@${{ env.GOSEC_VERSION }}
           go install github.com/google/osv-scanner/cmd/osv-scanner@${{ env.OSV_VERSION }}
           curl -sSfL https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz \
-            | tar -xzO trivy > /usr/local/bin/trivy && chmod +x /usr/local/bin/trivy
+            | tar -xzO trivy > /usr/local/bin/trivy
+          chmod +x /usr/local/bin/trivy
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
       - name: govulncheck
@@ -119,12 +118,51 @@ jobs:
       - name: osv-scanner
         run: osv-scanner .
 
-      - name: trivy fs
+      - name: trivy filesystem scan
         run: |
-          trivy fs --download-db-only                      # make sure DB is fresh
+          trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  4.  (Optional) Snapshot artefact build could be added here or kept in a
-#     separate `release.yml` that depends on this security job.
+#  4. Snapshot Release
 # ─────────────────────────────────────────────────────────────────────────────
+  snapshot:
+    name: Goreleaser Snapshot
+    needs: security
+    runs-on: [self-hosted, linux]
+
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: {go-version-file: 'go.mod'}
+
+      - name: Build binary
+        env:
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p dist/linux_${GOARCH}
+          GOOS=linux go build -trimpath -ldflags "-s -w" \
+            -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
+
+      - name: Install goreleaser
+        run: |
+          curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser@latest \
+            | sh -s -- -b /usr/local/bin
+
+      - name: Snapshot packages (.deb/.rpm only for amd64)
+        run: |
+          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
+            goreleaser release --clean --snapshot --single-target \
+              --id deb --id rpm --dist dist
+          fi
+          tar -C dist/linux_${{ matrix.arch }} -czf \
+            dist/ai-chat-cli_snapshot_linux_${{ matrix.arch }}.tar.gz ai-chat-cli
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-linux-${{ matrix.arch }}
+          path: dist/*
