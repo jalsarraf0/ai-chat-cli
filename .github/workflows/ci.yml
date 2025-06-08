@@ -1,8 +1,5 @@
 name: CI
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Global settings (re-usable in every shell step)
-# ─────────────────────────────────────────────────────────────────────────────
 env:
   GO_BIN: $HOME/go/bin
   COVERAGE_THRESHOLD: 93
@@ -18,21 +15,18 @@ on:
     branches: [dev]
 
 jobs:
-# ─────────────────────────────────────────────────────────────────────────────
-#  1. Linter
-# ─────────────────────────────────────────────────────────────────────────────
   lint:
     name: Lint
     runs-on: [self-hosted, linux]
-
     steps:
-      # ——— Guard against stale cache paths ————————————————
+      - name: Fix Permissions for Go Module Cache
+        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
+
       - name: Clean Go build & module cache (self-hosted)
         run: |
           rm -rf ~/.cache/go-build/* || true
           rm -rf ~/go/pkg/mod/*      || true
 
-      # ——— Restore cache, ignore extraction errors ———————————
       - name: Restore Go cache (ignore errors on self-hosted)
         uses: actions/cache@v3
         continue-on-error: true
@@ -44,7 +38,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      # ——— Normal workflow ————————————————————————————————
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
@@ -59,9 +52,6 @@ jobs:
       - name: Run linter
         run: golangci-lint run --timeout 5m
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  2. Unit Tests + Coverage
-# ─────────────────────────────────────────────────────────────────────────────
   test-matrix:
     name: Tests & Coverage
     needs: lint
@@ -69,8 +59,10 @@ jobs:
     strategy:
       matrix:
         go: ['1.24']
-
     steps:
+      - name: Fix Permissions for Go Module Cache
+        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
+
       - name: Clean Go build & module cache (self-hosted)
         run: |
           rm -rf ~/.cache/go-build/* || true
@@ -111,15 +103,14 @@ jobs:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  3. Security Gate
-# ─────────────────────────────────────────────────────────────────────────────
   security:
     name: Security Scan
     needs: [lint, test-matrix]
     runs-on: [self-hosted, linux]
-
     steps:
+      - name: Fix Permissions for Go Module Cache
+        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
+
       - name: Clean Go build & module cache (self-hosted)
         run: |
           rm -rf ~/.cache/go-build/* || true
@@ -166,19 +157,17 @@ jobs:
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  4. Snapshot Release
-# ─────────────────────────────────────────────────────────────────────────────
   snapshot:
     name: Goreleaser Snapshot
     needs: security
     runs-on: [self-hosted, linux]
-
     strategy:
       matrix:
         arch: [amd64, arm64]
-
     steps:
+      - name: Fix Permissions for Go Module Cache
+        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
+
       - name: Clean Go build & module cache (self-hosted)
         run: |
           rm -rf ~/.cache/go-build/* || true
