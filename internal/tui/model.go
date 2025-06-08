@@ -171,5 +171,6 @@ func (m Model) View() string {
 	if m.streaming {
 		inputView += " " + m.spinner.View()
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, historyView, inputView)
+	content := lipgloss.JoinVertical(lipgloss.Left, historyView, inputView)
+	return m.styles.App.Render(content)
 }

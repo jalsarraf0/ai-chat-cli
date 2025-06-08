@@ -20,27 +20,16 @@
 package cmd
 
 import (
-	"bytes"
-	"io"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/mock"
 )
 
-func TestTuiCmd(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
-	ran := false
-	teaRun = func(_ *tea.Program) (tea.Model, error) { ran = true; return nil, nil }
-	defer func() { teaRun = func(p *tea.Program) (tea.Model, error) { return p.Run() } }()
-
-	root := newRootCmd()
-	root.SetArgs([]string{"tui", "--theme", "light", "--height", "5"})
-	root.SetIn(bytes.NewBufferString(":q\n"))
-	root.SetOut(io.Discard)
-	if err := root.Execute(); err != nil {
-		t.Fatalf("execute: %v", err)
-	}
-	if !ran || height != 5 {
-		t.Fatalf("flags not set or program not run")
+func TestAskCmdWriteError(t *testing.T) {
+	cmd := newAskCmd(mock.New("x"))
+	cmd.SetArgs([]string{"hi"})
+	cmd.SetOut(failWriter{})
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected error")
 	}
 }
