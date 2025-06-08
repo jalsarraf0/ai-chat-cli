@@ -1,108 +1,58 @@
-# .github/workflows/build.yml
-name: build
+name: ci
 
 on:
   push:
-    branches: [dev, '**/phase*']
-    tags: ['v*.*.*']
+    branches: [dev, '**']
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
-###############################################################################
-# Global settings
-###############################################################################
-concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: write   # needed by goreleaser on tags
-  packages: write
-  id-token: write
-
-env:
-  GO_DEFAULT: 1.24.x     # default Go version for packaging job
-
-###############################################################################
-# 1) Matrix test job – all self-hosted Linux runners
-###############################################################################
 jobs:
-  test-matrix:
-    runs-on: [self-hosted, Linux, X64]
-
-    strategy:
-      fail-fast: false
-      matrix:
-        go: [1.24.3, 1.24.4, 1.24.x]
-
+  lint:
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - run: gofmt -w $(git ls-files '*.go')
+      - run: go vet ./...
+      - run: golangci-lint run ./...
 
-      - name: Provision local tools (offline-first)
-        run: ./scripts/offline_first.sh
-
+  test-matrix:
+    needs: lint
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        go: ['1.23','1.24','1.25']
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
+      - run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+      - run: |
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","", $3); print $3}')
+          [[ ${pct%.*} -ge 93 ]] || { echo "::error :: coverage ${pct}% (< 93%)"; exit 1; }
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/.cache/golangci-lint
-          key: test-${{ runner.os }}-${{ matrix.go }}-${{ hashFiles('**/go.sum') }}
-
-      - name: Lint & vet
-        run: |
-          golangci-lint run ./...
-          go vet ./...
-
-      - name: Unit tests (race)
-        run: go test -race ./...
-
-###############################################################################
-# 2) Build & package – runs after all matrix legs succeed
-###############################################################################
-  build-linux:
+  security:
     needs: test-matrix
-    runs-on: [self-hosted, Linux, X64]
-
-    env:
-      GO_VERSION: ${{ env.GO_DEFAULT }}
-
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Provision local tools (offline-first)
-        run: ./scripts/offline_first.sh
-
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - uses: actions/cache@v4
+          go-version-file: 'go.mod'
+      - name: gosec
+        uses: securego/gosec-action@v1
         with:
-          path: |
-            ~/.cache/go-build
-            ~/.cache/golangci-lint
-          key: build-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
-
-      - name: Build & package with Goreleaser
-        env:
-          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
-        run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            goreleaser release --clean
-          else
-            goreleaser release --snapshot --clean --skip-publish
-          fi
-
-      - name: Upload artifacts (branch / PR only)
-        if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v4
+          version: latest
+          args: ./...
+      - name: License audit
+        run: addlicense -check $(go list -f '{{.Dir}}' ./...)
+      - uses: aquasecurity/trivy-action@v0
         with:
-          name: dist
-          path: |
-            dist/*.tar.gz
-            dist/*.rpm
-            dist/*.deb
+          scan-type: fs
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          exit-code: 1

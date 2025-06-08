@@ -48,13 +48,8 @@ coverage-gate:
        echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
 
 docs:
-	@git ls-files "*.md" | xargs -r sed -i "s/[ 	]*$$//" && git diff --exit-code || true
-	npm install
-	npm audit fix --force || true
-	npm audit --audit-level=high
-	@echo '#!/usr/bin/env bash\nexec mdbook "$@"' > node_modules/.bin/mdbook
-	@chmod +x node_modules/.bin/mdbook
-	npx mdbook build docs
+	@./scripts/preflight-v9-hugo.sh   # async warm-up
+	hugo --source docs --destination docs-public --minify
 	
 
 

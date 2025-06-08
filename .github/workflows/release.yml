@@ -1,0 +1,52 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  release:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: security
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build linux-${{ matrix.arch }}
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p dist/linux_${GOARCH}
+          go build -trimpath -ldflags "-s -w" \
+            -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
+
+      - name: Package artefacts
+        env:
+          ARCH: ${{ matrix.arch }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          cd dist/linux_${ARCH}
+          tar -czf ../ai-chat-cli_${TAG}_linux_${ARCH}.tar.gz ai-chat-cli
+          if [[ "$ARCH" == "amd64" ]]; then
+            goreleaser init --single-target --skip=validate
+            goreleaser release --clean \
+              --id deb --id rpm --snapshot --single-target \
+              --dist ../
+          fi
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ai-chat-cli_${{ github.ref_name }}_linux_*.tar.gz
+            dist/*.deb
+            dist/*.rpm

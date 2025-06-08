@@ -86,3 +86,4 @@ Every PR **must** pass **all** checks *with zero HIGH / CRITICAL findings*.
 - [ ] Commit message \u2264\u200a72 chars, imperative; PR labelled **codex-generated**.
 
 > **Always stay online, hit \u2265\u200a93\u200a% coverage, pass every security gate, and ship cleanly.**
+

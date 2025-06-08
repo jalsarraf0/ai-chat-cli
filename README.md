@@ -146,8 +146,8 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 |-----|------|------|
 | **Lint** | golangci‑lint | no warnings |
 | **Unit** | `go test -race` | 90 %+ coverage |
-| **Security** | gosec, govulncheck | zero criticals |
-| **Release** | GoReleaser v2 | binary, tar.gz, deb, rpm |
+| **Security** | gosec, Trivy | zero criticals |
+| **Release** | Linux tar.gz, deb, rpm | amd64 & arm64 |
 
 ---
 
@@ -156,6 +156,7 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 make              # format, vet, lint, test
 make coverage     # HTML coverage report
 make release      # goreleaser release --clean --skip=docker
+make docs         # generate documentation via Hugo
 ```
 
 ---
