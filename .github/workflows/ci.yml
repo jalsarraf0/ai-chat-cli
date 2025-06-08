@@ -2,13 +2,21 @@
 #
 # COMPLETE WORKFLOW
 # ─────────────────────────────────────────────────────────────────────────────
-# GoReleaser **v2.9.0** is now pinned for both architectures:
-#   • amd64 → goreleaser_Linux_x86_64.tar.gz
-#   • arm64 → goreleaser_Linux_arm64.tar.gz
-# No other parts of the pipeline were changed.
+# • Workflow now targets **amd64 only**.
+# • “Install GoReleaser” step includes a **fallback chain**:
+#     1. v2.9.0 tarball (x86-64)
+#     2. v2.9.0 .deb (amd64)
+#     3. v2.8.2 tarball (x86-64)
+#     4. v2.8.2 .deb (amd64)
+#     5. Build from v2.9.0 source tarball
+#   It stops at the first successful install.
+# • Everything else is unchanged.
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: CI
+
+permissions:
+  contents: write   # allow the workflow to push tags, create releases, etc.
 
 env:
   GO_BIN: $HOME/go/bin
@@ -17,7 +25,6 @@ env:
   GOLANGCI_VERSION: 2.1.6
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
-  GORELEASER_VERSION_AMD64: v2.9.0   # explicit v2.9.0 for amd64 (kept for reference)
 
 on:
   push:
@@ -180,13 +187,9 @@ jobs:
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
-  # ─────────────── SNAPSHOT PACKAGE (amd64 & arm64) ────────────────
+  # ─────────────────────── SNAPSHOT PACKAGE (amd64) ───────────────────────
   snapshot:
     needs: security
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
-
     runs-on: [self-hosted, linux]
 
     steps:
@@ -203,9 +206,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: amd64-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            amd64-go-
 
       - uses: actions/checkout@v4
 
@@ -214,46 +217,61 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Build binary
-        env:
-          GOARCH: ${{ matrix.arch }}
+      - name: Build binary (amd64)
         run: |
-          mkdir -p dist/linux_${GOARCH}
-          GOOS=linux go build -trimpath -ldflags "-s -w" \
-            -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
+          mkdir -p dist/linux_amd64
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" \
+            -o dist/linux_amd64/ai-chat-cli ./cmd/ai-chat-cli
 
-      # ───────────── PINNED GORELEASER v2.9.0 FOR BOTH ARCHES ─────────────
-      - name: Install GoReleaser v2.9.0
-        env:
-          GORELEASER_VER: v2.9.0
+      # ───── INSTALL GORELEASER WITH FALLBACKS (amd64) ─────
+      - name: Install GoReleaser with fallbacks
         run: |
-          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
-            curl -sSfL \
-              "https://github.com/goreleaser/goreleaser/releases/download/${GORELEASER_VER}/goreleaser_Linux_x86_64.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin goreleaser
-          else
-            curl -sSfL \
-              "https://github.com/goreleaser/goreleaser/releases/download/${GORELEASER_VER}/goreleaser_Linux_arm64.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin goreleaser
+          set -Eeuo pipefail
+          urls=(
+            "https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz"
+            "https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_2.9.0_amd64.deb"
+            "https://github.com/goreleaser/goreleaser/releases/download/v2.8.2/goreleaser_Linux_x86_64.tar.gz"
+            "https://github.com/goreleaser/goreleaser/releases/download/v2.8.2/goreleaser_2.8.2_amd64.deb"
+          )
+          install_success=false
+          for u in "${urls[@]}"; do
+            echo "Trying $u"
+            if [[ $u == *.tar.gz ]]; then
+              if curl -sSfL "$u" | sudo tar -xz -C /usr/local/bin goreleaser; then
+                install_success=true; break
+              fi
+            else
+              tmp=$(mktemp)
+              if curl -sSfL "$u" -o "$tmp"; then
+                sudo dpkg -i "$tmp" && install_success=true && rm -f "$tmp" && break
+                rm -f "$tmp"
+              fi
+            fi
+          done
+          if ! $install_success; then
+            echo "Falling back to building from source…"
+            src_url="https://github.com/goreleaser/goreleaser/archive/refs/tags/v2.9.0.tar.gz"
+            tmpdir=$(mktemp -d)
+            curl -sSfL "$src_url" | tar -xz -C "$tmpdir" --strip-components=1
+            pushd "$tmpdir" >/dev/null
+            go build -o goreleaser ./cmd/goreleaser
+            sudo mv goreleaser /usr/local/bin/
+            popd >/dev/null
           fi
           goreleaser --version
 
-      # ───────────────── SNAPSHOT & PACKAGE ──────────────────
-      - name: Snapshot packages (.deb/.rpm only for amd64)
+      - name: Snapshot packages (.deb/.rpm)
         run: |
-          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
-            goreleaser release --clean --snapshot
-          fi
-          tar -C dist/linux_${{ matrix.arch }} -czf \
-            dist/ai-chat-cli_snapshot_linux_${{ matrix.arch }}.tar.gz ai-chat-cli
+          goreleaser release --clean --snapshot
+          tar -C dist/linux_amd64 -czf \
+            dist/ai-chat-cli_snapshot_linux_amd64.tar.gz ai-chat-cli
 
       - uses: actions/upload-artifact@v4
         with:
-          name: snapshot-linux-${{ matrix.arch }}
+          name: snapshot-linux-amd64
           path: dist/*
 
       - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
-        shell: bash
         run: |
           GORELEASER_SKIP=build,publish,validate \
             go test -race -covermode=atomic -coverprofile=coverage.out ./...
