@@ -1,5 +1,6 @@
 name: CI
 
+# ───────────────────────── Global settings ─────────────────────────
 env:
   GO_BIN: $HOME/go/bin
   COVERAGE_THRESHOLD: 70
@@ -14,7 +15,9 @@ on:
   pull_request:
     branches: [dev]
 
+# ───────────────────────────── Jobs ────────────────────────────────
 jobs:
+  # ───────────────────────────── Lint ────────────────────────────────
   lint:
     runs-on: [self-hosted, linux]
     steps:
@@ -43,6 +46,7 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      # ─── Install golangci-lint v2.1.6 (robust) ──────────────────
       - name: Install golangci-lint ${{ env.GOLANGCI_VERSION }}
         shell: bash
         run: |
@@ -51,15 +55,18 @@ jobs:
           sudo apt-get install -y --no-install-recommends ca-certificates curl tar
           mkdir -p "$HOME/go/bin"
           sudo chown -R "$(id -u -n)":"$(id -g -n)" "$HOME/go"
+
           curl -sSfL \
             "https://github.com/golangci/golangci-lint/releases/download/v${{ env.GOLANGCI_VERSION }}/golangci-lint-${{ env.GOLANGCI_VERSION }}-linux-amd64.tar.gz" \
           | tar -xz --strip-components=1 -C "$HOME/go/bin" \
               "golangci-lint-${{ env.GOLANGCI_VERSION }}-linux-amd64/golangci-lint"
+
           echo "$HOME/go/bin" >> "$GITHUB_PATH"
 
       - name: Run linter
         run: golangci-lint run --timeout 5m
 
+  # ─────────────────── Tests & Coverage (matrix) ────────────────────
   test-matrix:
     needs: lint
     runs-on: [self-hosted, linux]
@@ -108,6 +115,7 @@ jobs:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
+  # ───────────────────────── Security Scan ──────────────────────────
   security:
     needs: [lint, test-matrix]
     runs-on: [self-hosted, linux]
@@ -148,20 +156,14 @@ jobs:
           sudo chown "$(id -u -n):$(id -g -n)" /usr/local/bin/trivy
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
-      - name: Run govulncheck
-        run: govulncheck ./...
-
-      - name: Run gosec
-        run: gosec ./...
-
-      - name: Run osv-scanner
-        run: osv-scanner .
-
-      - name: Run Trivy filesystem scan
-        run: |
+      - run: govulncheck ./...
+      - run: gosec ./...
+      - run: osv-scanner .
+      - run: |
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
+  # ────────────────────── Goreleaser Snapshot ───────────────────────
   snapshot:
     needs: security
     runs-on: [self-hosted, linux]
@@ -218,12 +220,12 @@ jobs:
         with:
           name: snapshot-linux-${{ matrix.arch }}
           path: dist/*
-
       - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
         shell: bash
         run: |
           GORELEASER_SKIP=build,publish,validate \
             go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
           echo "total coverage = ${pct}%"
           if [[ ${pct%.*} -lt $COVERAGE_THRESHOLD ]]; then
