@@ -1,3 +1,6 @@
+## [0.2.0] - 2025-06-08
+- Add CI/CD release pipeline for tar.gz, .deb, and .rpm artefacts.
+
 ## [1.0.1] - 2025-06-07
 - Refactor repository layout and add installer script.
 - Improve TUI with responsive layout and theme loader.

@@ -1,108 +1,40 @@
-# .github/workflows/build.yml
-name: build
-
-on:
-  push:
-    branches: [dev, '**/phase*']
-    tags: ['v*.*.*']
-  pull_request:
-  workflow_dispatch:
-
-###############################################################################
-# Global settings
-###############################################################################
-concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: write   # needed by goreleaser on tags
-  packages: write
-  id-token: write
-
-env:
-  GO_DEFAULT: 1.24.x     # default Go version for packaging job
-
-###############################################################################
-# 1) Matrix test job – all self-hosted Linux runners
-###############################################################################
+name: CI
+on: [push, pull_request]
 jobs:
-  test-matrix:
-    runs-on: [self-hosted, Linux, X64]
-
-    strategy:
-      fail-fast: false
-      matrix:
-        go: [1.24.3, 1.24.4, 1.24.x]
-
+  lint:
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - run: go vet ./...
+      - uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          args: --timeout 5m
 
-      - name: Provision local tools (offline-first)
-        run: ./scripts/offline_first.sh
-
+  test-matrix:
+    needs: lint
+    strategy:
+      matrix:
+        go: ['1.23', '1.24', '1.25']
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
+      - run: go test -race -covermode=atomic ./...
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/.cache/golangci-lint
-          key: test-${{ runner.os }}-${{ matrix.go }}-${{ hashFiles('**/go.sum') }}
-
-      - name: Lint & vet
-        run: |
-          golangci-lint run ./...
-          go vet ./...
-
-      - name: Unit tests (race)
-        run: go test -race ./...
-
-###############################################################################
-# 2) Build & package – runs after all matrix legs succeed
-###############################################################################
-  build-linux:
+  security:
     needs: test-matrix
-    runs-on: [self-hosted, Linux, X64]
-
-    env:
-      GO_VERSION: ${{ env.GO_DEFAULT }}
-
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Provision local tools (offline-first)
-        run: ./scripts/offline_first.sh
-
-      - uses: actions/setup-go@v5
+      - uses: aquasecurity/trivy-action@v0
         with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/.cache/golangci-lint
-          key: build-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
-
-      - name: Build & package with Goreleaser
-        env:
-          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
-        run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            goreleaser release --clean
-          else
-            goreleaser release --snapshot --clean --skip-publish
-          fi
-
-      - name: Upload artifacts (branch / PR only)
-        if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: |
-            dist/*.tar.gz
-            dist/*.rpm
-            dist/*.deb
+          scan-type: fs
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          exit-code: 1

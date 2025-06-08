@@ -19,14 +19,10 @@
 
 package theme
 
-import (
-	"os"
-	"testing"
-)
+import "testing"
 
 func TestLoadDefault(t *testing.T) {
-	t.Parallel()
-	_ = os.Setenv("COLORTERM", "light")
+	t.Setenv("COLORTERM", "light")
 	p := Load("")
 	if p.Background != "#ffffff" {
 		t.Fatalf("want light palette")
@@ -34,7 +30,6 @@ func TestLoadDefault(t *testing.T) {
 }
 
 func TestLoadNamed(t *testing.T) {
-	t.Parallel()
 	p := Load("themes/dark.json")
 	if p.Background != "#000000" {
 		t.Fatalf("want dark palette")
@@ -42,8 +37,7 @@ func TestLoadNamed(t *testing.T) {
 }
 
 func TestLoadDefaultDark(t *testing.T) {
-	t.Parallel()
-	_ = os.Setenv("COLORTERM", "dumb")
+	t.Setenv("COLORTERM", "dumb")
 	p := Load("")
 	if p.Background != "#000000" {
 		t.Fatalf("want dark palette")
@@ -51,7 +45,6 @@ func TestLoadDefaultDark(t *testing.T) {
 }
 
 func TestLoadMissing(t *testing.T) {
-	t.Parallel()
 	p := Load("not/a/file.json")
 	if p.Background != "" {
 		t.Fatalf("want empty palette")

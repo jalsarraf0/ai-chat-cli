@@ -1,0 +1,36 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: security
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Build binaries
+        run: |
+          mkdir dist
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o dist/ai-chat-cli
+      - name: Package .tar.gz
+        run: tar -C dist -czf dist/ai-chat-cli_${{ github.ref_name }}_linux_amd64.tar.gz ai-chat-cli
+      - name: Package .deb and .rpm
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --clean --single-target --skip-validate
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ai-chat-cli_${{ github.ref_name }}_linux_amd64.tar.gz
+            dist/*.deb
+            dist/*.rpm
