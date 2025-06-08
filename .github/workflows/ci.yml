@@ -1,22 +1,21 @@
 # .github/workflows/ci.yml
 #
-# COMPLETE WORKFLOW
+# COMPLETE CI WORKFLOW (amd64-only)
 # ─────────────────────────────────────────────────────────────────────────────
-# • Workflow now targets **amd64 only**.
-# • “Install GoReleaser” step includes a **fallback chain**:
-#     1. v2.9.0 tarball (x86-64)
-#     2. v2.9.0 .deb (amd64)
-#     3. v2.8.2 tarball (x86-64)
-#     4. v2.8.2 .deb (amd64)
-#     5. Build from v2.9.0 source tarball
-#   It stops at the first successful install.
-# • Everything else is unchanged.
+# • Default `GITHUB_TOKEN` has write access (`permissions: contents: write`).
+# • Test-matrix (Go 1.24) now guarantees ownership + write perms on Go caches.
+# • Snapshot job installs GoReleaser via a fallback chain:
+#     1. v2.9.0 tar.gz  (x86-64)
+#     2. v2.9.0 .deb    (amd64)
+#     3. v2.8.2 tar.gz  (x86-64)
+#     4. v2.8.2 .deb    (amd64)
+#     5. build from v2.9.0 source
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: CI
 
 permissions:
-  contents: write   # allow the workflow to push tags, create releases, etc.
+  contents: write        # allow pushes/tags/releases if needed
 
 env:
   GO_BIN: $HOME/go/bin
@@ -29,12 +28,10 @@ env:
 on:
   push:
     branches: [dev]
-    paths-ignore:
-      - '.github/workflows/ci.yml'
+    paths-ignore: [".github/workflows/ci.yml"]
   pull_request:
     branches: [dev]
-    paths-ignore:
-      - '.github/workflows/ci.yml'
+    paths-ignore: [".github/workflows/ci.yml"]
 
 jobs:
   # ────────────────────────────── LINT ──────────────────────────────
@@ -46,10 +43,11 @@ jobs:
         shard: [1, 2, 3]
 
     steps:
-      - name: Fix permissions for cache directories
+      - name: Fix permissions for Go caches
         run: |
-          sudo chmod -R u+w ~/.cache/go-build || true
-          sudo chmod -R u+w ~/go/pkg/mod      || true
+          sudo mkdir -p ~/.cache ~/.cache/go-build ~/go/pkg/mod
+          sudo chmod -R u+w ~/.cache ~/go/pkg/mod || true
+          sudo chown -R "$(id -u -n)":"$(id -g -n)" ~/.cache ~/go/pkg/mod || true
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -59,9 +57,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: amd64-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            amd64-go-
 
       - uses: actions/checkout@v4
 
@@ -76,7 +74,6 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends ca-certificates curl tar
           mkdir -p "$HOME/go/bin"
-          sudo chown -R "$(id -u -n)":"$(id -g -n)" "$HOME/go"
           curl -sSfL \
             "https://github.com/golangci/golangci-lint/releases/download/v${{ env.GOLANGCI_VERSION }}/golangci-lint-${{ env.GOLANGCI_VERSION }}-linux-amd64.tar.gz" \
           | tar -xz --strip-components=1 -C "$HOME/go/bin" \
@@ -89,17 +86,17 @@ jobs:
   # ───────────────────── TEST MATRIX (Go 1.24) ─────────────────────
   test-matrix:
     needs: lint
+    runs-on: [self-hosted, linux]
     strategy:
       matrix:
         go: ['1.24']
 
-    runs-on: [self-hosted, linux]
-
     steps:
-      - name: Fix permissions for cache directories
+      - name: Fix permissions & ownership for Go caches
         run: |
-          sudo chmod -R u+w ~/.cache/go-build || true
-          sudo chmod -R u+w ~/go/pkg/mod      || true
+          sudo mkdir -p ~/.cache ~/.cache/go-build ~/go/pkg/mod
+          sudo chmod -R u+w ~/.cache ~/go/pkg/mod || true
+          sudo chown -R "$(id -u -n)":"$(id -g -n)" ~/.cache ~/go/pkg/mod || true
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -109,9 +106,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: amd64-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            amd64-go-
 
       - uses: actions/checkout@v4
 
@@ -143,10 +140,11 @@ jobs:
     runs-on: [self-hosted, linux]
 
     steps:
-      - name: Fix permissions for cache directories
+      - name: Fix permissions for Go caches
         run: |
           sudo chmod -R u+w ~/.cache/go-build || true
           sudo chmod -R u+w ~/go/pkg/mod      || true
+          sudo chown -R "$(id -u -n)":"$(id -g -n)" ~/.cache ~/go/pkg/mod || true
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -156,9 +154,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: amd64-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            amd64-go-
 
       - uses: actions/checkout@v4
 
@@ -174,9 +172,8 @@ jobs:
           go install github.com/google/osv-scanner/cmd/osv-scanner@${{ env.OSV_VERSION }}
           wget -qO- \
             "https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin trivy
+          | sudo tar -xz -C /usr/local/bin trivy
           sudo chmod +x /usr/local/bin/trivy
-          sudo chown "$(id -u):$(id -g)" /usr/local/bin/trivy
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
       - run: govulncheck ./...
@@ -187,16 +184,17 @@ jobs:
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
-  # ─────────────────────── SNAPSHOT PACKAGE (amd64) ───────────────────────
+  # ───────────────────── SNAPSHOT PACKAGE (amd64) ─────────────────────
   snapshot:
     needs: security
     runs-on: [self-hosted, linux]
 
     steps:
-      - name: Fix permissions for cache directories
+      - name: Fix permissions for Go caches
         run: |
           sudo chmod -R u+w ~/.cache/go-build || true
           sudo chmod -R u+w ~/go/pkg/mod      || true
+          sudo chown -R "$(id -u -n)":"$(id -g -n)" ~/.cache ~/go/pkg/mod || true
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -279,4 +277,3 @@ jobs:
           echo "total coverage = ${pct}%"
           if [[ ${pct%.*} -lt $COVERAGE_THRESHOLD ]]; then
             echo "::error ::coverage ${pct}% < ${COVERAGE_THRESHOLD}%" ; exit 1
-          fi
