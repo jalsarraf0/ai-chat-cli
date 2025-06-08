@@ -1,5 +1,8 @@
 name: CI
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Global settings (re-usable in every shell step)
+# ─────────────────────────────────────────────────────────────────────────────
 env:
   GO_BIN: $HOME/go/bin
   COVERAGE_THRESHOLD: 93
@@ -12,20 +15,24 @@ on:
   push:
     branches: [dev]
   pull_request:
+    branches: [dev]
 
 jobs:
+# ─────────────────────────────────────────────────────────────────────────────
+#  1. Linter
+# ─────────────────────────────────────────────────────────────────────────────
   lint:
-    name: Lint (golangci-lint ${{ env.GOLANGCI_VERSION }})
-    runs-on: ubuntu-latest
+    name: Lint
+    runs-on: [self-hosted, linux]
 
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: go.mod
           cache: true
 
-      - name: Install golangci-lint
+      - name: Install golangci-lint ${{ env.GOLANGCI_VERSION }}
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@${{ env.GOLANGCI_VERSION }}
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
@@ -33,10 +40,13 @@ jobs:
       - name: Run linter
         run: golangci-lint run --timeout 5m
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  2. Unit Tests + Coverage
+# ─────────────────────────────────────────────────────────────────────────────
   test-matrix:
     name: Tests & Coverage
     needs: lint
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     strategy:
       matrix:
         go: ['1.24']
@@ -66,16 +76,19 @@ jobs:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  3. Security Gate
+# ─────────────────────────────────────────────────────────────────────────────
   security:
     name: Security Scan
     needs: [lint, test-matrix]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
 
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: go.mod
           cache: true
 
       - name: Install scanners
@@ -83,9 +96,8 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
           go install github.com/securego/gosec/v2/cmd/gosec@${{ env.GOSEC_VERSION }}
           go install github.com/google/osv-scanner/cmd/osv-scanner@${{ env.OSV_VERSION }}
-          wget -O trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz
-          tar -xzvf trivy.tar.gz trivy
-          sudo mv trivy /usr/local/bin/trivy
+          wget -qO- https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz \
+            | tar -xzO trivy > /usr/local/bin/trivy
           chmod +x /usr/local/bin/trivy
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
@@ -103,10 +115,13 @@ jobs:
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  4. Snapshot Release
+# ─────────────────────────────────────────────────────────────────────────────
   snapshot:
     name: Goreleaser Snapshot
     needs: security
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
 
     strategy:
       matrix:
@@ -116,7 +131,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: go.mod
           cache: true
 
       - name: Build binary
@@ -127,9 +142,9 @@ jobs:
           GOOS=linux go build -trimpath -ldflags "-s -w" \
             -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
 
-      - name: Install goreleaser
+      - name: Install Goreleaser
         run: |
-          curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser@latest | sh -s -- -b /usr/local/bin
+          curl -sSfL https://install.goreleaser.com/github.com/goreleaser/goreleaser@latest | sh -s -- -b /usr/local/bin
 
       - name: Snapshot packages (.deb/.rpm only for amd64)
         run: |
