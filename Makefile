@@ -49,13 +49,7 @@ coverage-gate:
 
 docs:
 	@git ls-files "*.md" | xargs -r sed -i "s/[ 	]*$$//" && git diff --exit-code || true
-	npm install
-	npm audit fix --force || true
-	npm audit --audit-level=high
-	@echo '#!/usr/bin/env bash\nexec mdbook "$@"' > node_modules/.bin/mdbook
-	@chmod +x node_modules/.bin/mdbook
-	npx mdbook build docs
-	
+	hugo --contentDir=docs --destination=public
 
 
 build:
