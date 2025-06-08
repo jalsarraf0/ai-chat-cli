@@ -26,6 +26,25 @@ jobs:
     runs-on: [self-hosted, linux]
 
     steps:
+      # ——— Guard against stale cache paths ————————————————
+      - name: Clean Go build & module cache (self-hosted)
+        run: |
+          rm -rf ~/.cache/go-build/* || true
+          rm -rf ~/go/pkg/mod/*      || true
+
+      # ——— Restore cache, ignore extraction errors ———————————
+      - name: Restore Go cache (ignore errors on self-hosted)
+        uses: actions/cache@v3
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # ——— Normal workflow ————————————————————————————————
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
@@ -52,6 +71,22 @@ jobs:
         go: ['1.24']
 
     steps:
+      - name: Clean Go build & module cache (self-hosted)
+        run: |
+          rm -rf ~/.cache/go-build/* || true
+          rm -rf ~/go/pkg/mod/*      || true
+
+      - name: Restore Go cache (ignore errors on self-hosted)
+        uses: actions/cache@v3
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
@@ -85,6 +120,22 @@ jobs:
     runs-on: [self-hosted, linux]
 
     steps:
+      - name: Clean Go build & module cache (self-hosted)
+        run: |
+          rm -rf ~/.cache/go-build/* || true
+          rm -rf ~/go/pkg/mod/*      || true
+
+      - name: Restore Go cache (ignore errors on self-hosted)
+        uses: actions/cache@v3
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
@@ -128,6 +179,22 @@ jobs:
         arch: [amd64, arm64]
 
     steps:
+      - name: Clean Go build & module cache (self-hosted)
+        run: |
+          rm -rf ~/.cache/go-build/* || true
+          rm -rf ~/go/pkg/mod/*      || true
+
+      - name: Restore Go cache (ignore errors on self-hosted)
+        uses: actions/cache@v3
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
