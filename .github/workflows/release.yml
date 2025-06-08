@@ -2,14 +2,13 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: [ 'v*' ]
   workflow_dispatch:
 
 jobs:
   release:
-    runs-on: [self-hosted, linux]
     needs: security
+    runs-on: [self-hosted, linux]
     permissions: {contents: write}
     strategy:
       matrix: {arch: [amd64, arm64]}
@@ -18,32 +17,25 @@ jobs:
       - uses: actions/setup-go@v5
         with: {go-version-file: 'go.mod'}
 
-      - name: Build
+      - name: Build binary
         env:
           GOARCH: ${{ matrix.arch }}
         run: |
           mkdir -p dist/linux_${GOARCH}
-          GOOS=linux go build -trimpath -ldflags "-s -w" \
-            -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
+          GOOS=linux go build -trimpath -ldflags "-s -w" -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
 
-      - name: Goreleaser snapshot
-        env:
-          GOARCH: ${{ matrix.arch }}
-        run: |
-          goreleaser release --clean --snapshot --single-target \
-            --id deb --id rpm --dist dist \
-            --skip=publish,validate
-
-      - name: Tar.gz package
+      - name: Package tar.gz
         env:
           TAG: ${{ github.ref_name }}
           ARCH: ${{ matrix.arch }}
+        run: tar -C dist/linux_${ARCH} -czf dist/ai-chat-cli_${TAG}_linux_${ARCH}.tar.gz ai-chat-cli
+
+      - name: Goreleaser snapshot
+        if: ${{ matrix.arch == 'amd64' }}
         run: |
-          tar -C dist/linux_${ARCH} -czf dist/ai-chat-cli_${TAG}_linux_${ARCH}.tar.gz ai-chat-cli
+          curl -sSfL https://install.goreleaser.com/github.com/goreleaser/goreleaser@latest | sh -s -- -b /usr/local/bin
+          goreleaser release --clean --snapshot --single-target --id deb --id rpm --dist dist
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/ai-chat-cli_${{ github.ref_name }}_linux_*.tar.gz
-            dist/*.deb
-            dist/*.rpm
+          files: dist/*
