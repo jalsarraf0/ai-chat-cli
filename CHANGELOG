@@ -1,6 +1,7 @@
 ## [Unreleased]
 - Remove Node-based docs build.
 - refactor: new 4-stage CI/CD pipeline
+- CI pipeline now fetches tools from upstream sources on demand.
 ## [1.0.1] - 2025-06-07
 - Refactor repository layout and add installer script.
 - Improve TUI with responsive layout and theme loader.
