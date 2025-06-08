@@ -18,8 +18,8 @@ jobs:
   lint:
     strategy:
       matrix:
-        runner: [self-hosted-1, self-hosted-2, self-hosted-3] # adjust to your actual runner labels
-    runs-on: [self-hosted, linux, ${{ matrix.runner }}]
+        runner: [self-hosted]
+        runs-on: [self-hosted, linux, ${{ matrix.runner }}]
     steps:
       - name: Fix permissions
         run: sudo chmod -R u+w ~/go/pkg/mod/ || true
