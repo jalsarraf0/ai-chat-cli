@@ -15,11 +15,12 @@ on:
     branches: [dev]
 
 jobs:
+  # ────────────────────────────── LINT ──────────────────────────────
   lint:
+    runs-on: [self-hosted, linux]          # ← same label set for every runner
     strategy:
       matrix:
-        runner: [self-hosted]
-        runs-on: [self-hosted, linux, ${{ matrix.runner }}]
+        shard: [1]                        # single shard; add more for parallel lint shards
     steps:
       - name: Fix permissions
         run: sudo chmod -R u+w ~/go/pkg/mod/ || true
@@ -63,13 +64,13 @@ jobs:
       - name: Run linter
         run: golangci-lint run --timeout 5m
 
+  # ──────────────────────── TEST MATRIX (Go 1.24) ────────────────────────
   test-matrix:
     needs: lint
     strategy:
       matrix:
-        runner: [self-hosted-1, self-hosted-2, self-hosted-3] # adjust as above
-        go: ['1.24']
-    runs-on: [self-hosted, linux, ${{ matrix.runner }}]
+        go: ['1.24']                      # add versions as needed
+    runs-on: [self-hosted, linux]
     steps:
       - name: Fix permissions
         run: sudo chmod -R u+w ~/go/pkg/mod/ || true
@@ -113,12 +114,10 @@ jobs:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
+  # ─────────────────────────── SECURITY SCANS ───────────────────────────
   security:
     needs: [lint, test-matrix]
-    strategy:
-      matrix:
-        runner: [self-hosted-1, self-hosted-2, self-hosted-3]
-    runs-on: [self-hosted, linux, ${{ matrix.runner }}]
+    runs-on: [self-hosted, linux]
     steps:
       - name: Fix permissions
         run: sudo chmod -R u+w ~/go/pkg/mod/ || true
@@ -164,13 +163,13 @@ jobs:
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
+  # ─────────────────────── SNAPSHOT (BUILD & PACKAGE) ────────────────────
   snapshot:
     needs: security
     strategy:
       matrix:
-        runner: [self-hosted-1, self-hosted-2, self-hosted-3]
         arch: [amd64, arm64]
-    runs-on: [self-hosted, linux, ${{ matrix.runner }}]
+    runs-on: [self-hosted, linux]
     steps:
       - name: Fix permissions
         run: sudo chmod -R u+w ~/go/pkg/mod/ || true
@@ -222,6 +221,7 @@ jobs:
         with:
           name: snapshot-linux-${{ matrix.arch }}
           path: dist/*
+
       - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
         shell: bash
         run: |
