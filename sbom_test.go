@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -35,7 +36,11 @@ func TestSnapshotSBOM(t *testing.T) {
 	if _, err := exec.LookPath("goreleaser"); err != nil {
 		t.Skip("goreleaser not installed")
 	}
-	if out, err := exec.Command("goreleaser", "build", "--snapshot", "--clean").CombinedOutput(); err != nil {
+	out, err := exec.Command("goreleaser", "build", "--snapshot", "--clean").CombinedOutput()
+	if err != nil {
+		if strings.Contains(err.Error(), "exec format error") {
+			t.Skipf("goreleaser wrong arch: %v\n%s", err, out)
+		}
 		if bytes.Contains(out, []byte("field sbom")) || bytes.Contains(out, []byte("field brew")) {
 			t.Skipf("old goreleaser: %v\n%s", err, out)
 		}
