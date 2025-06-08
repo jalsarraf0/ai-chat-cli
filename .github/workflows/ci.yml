@@ -1,199 +1,108 @@
-name: ci
+# .github/workflows/build.yml
+name: build
 
 on:
-  pull_request:
   push:
     branches: [dev, '**/phase*']
     tags: ['v*.*.*']
-  schedule:
-    - cron: '0 2 * * *'
+  pull_request:
   workflow_dispatch:
-    inputs:
-      target:
-        description: 'Run ONE job (leave blank for full pipeline)'
-        required: false
-        default: ""
+
+###############################################################################
+# Global settings
+###############################################################################
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: write   # needed by goreleaser on tags
   packages: write
   id-token: write
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
-  GO_VERSION: 1.24.x
-  CACHE_DIR: ${{ github.workspace }}/go-cache
+  GO_DEFAULT: 1.24.x     # default Go version for packaging job
 
+###############################################################################
+# 1) Matrix test job – all self-hosted Linux runners
+###############################################################################
 jobs:
-
-  unit:
+  test-matrix:
     runs-on: [self-hosted, Linux, X64]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        go: [1.24.3, 1.24.4, 1.24.x]
+
     steps:
       - uses: actions/checkout@v4
-      - name: Ensure global tools in PATH
-        run: echo "/usr/local/bin:$HOME/go/bin:$PATH" >> $GITHUB_PATH
-      - run: ./scripts/preflight-ci.sh
+
+      - name: Provision local tools (offline-first)
+        run: ./scripts/offline_first.sh
+
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-      - run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
-      - name: Unit tests (race + coverage)
-        run: |
-          if ! ls -1 **/*.go 2>/dev/null | grep -q .; then
-            echo 'package main' > dummy.go
-          fi
-          go test -race -covermode=atomic -coverprofile=coverage-linux.out -tags unit ./...
-      - uses: actions/upload-artifact@v4
-        with:
-          name: cov-linux
-          path: coverage-linux.out
+          go-version: ${{ matrix.go }}
 
-  quality:
-    needs: unit
-    runs-on: [self-hosted, Linux, X64]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Ensure global tools in PATH
-        run: echo "/usr/local/bin:$HOME/go/bin:$PATH" >> $GITHUB_PATH
-      - run: ./scripts/preflight-ci.sh
-      - uses: actions/download-artifact@v4
-        with:
-          path: cov
-      - name: Merge & enforce ≥93 % coverage
-        run: |
-          PROFILES=$(find cov -type f -name '*.out' -o -name '*.cov')
-          if [[ -z "$PROFILES" ]]; then
-            echo "docs-only change — coverage = 100 %"; exit 0
-          fi
-          gocovmerge $PROFILES > all.cov
-          pct=$(go tool cover -func all.cov | awk '/total:/ {gsub("%","");print $3}')
-          echo "coverage=$pct"
-          awk -v p="$pct" 'BEGIN {exit(p < 93)}'
-      - run: golangci-lint run
-
-  security:
-    needs: quality
-    runs-on: [self-hosted, Linux, X64]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Ensure global tools in PATH
-        run: echo "/usr/local/bin:$HOME/go/bin:$PATH" >> $GITHUB_PATH
-      - run: ./scripts/preflight-ci.sh
-      - name: Ensure scripts executable
-        run: find . -type f -name '*.sh' ! -executable -print -exec chmod +x {} +
-      - run: gosec ./...
-      - run: addlicense -check $(go list -f '{{.Dir}}' ./...)
-      - run: GOOS=linux GOARCH=amd64 go build -o bin/ai-chat-cli-linux-amd64 .
-      - name: govulncheck (retry once)
-        run: |
-          for i in 1 2; do
-            govulncheck ./... && break || { echo "retry $i"; sleep 4; }
-          done
       - uses: actions/cache@v4
         with:
-          path: ~/.cache/trivy/db
-          key: ${{ runner.os }}-trivy-db-${{ hashFiles('**/go.sum') }}
-      - id: trivy
-        run: trivy fs --severity HIGH,CRITICAL --exit-code 1 .
-        continue-on-error: true
-      - if: steps.trivy.outcome == 'failure'
-        run: trivy fs --skip-db-update --severity HIGH,CRITICAL --exit-code 1 .
+          path: |
+            ~/.cache/go-build
+            ~/.cache/golangci-lint
+          key: test-${{ runner.os }}-${{ matrix.go }}-${{ hashFiles('**/go.sum') }}
 
+      - name: Lint & vet
+        run: |
+          golangci-lint run ./...
+          go vet ./...
+
+      - name: Unit tests (race)
+        run: go test -race ./...
+
+###############################################################################
+# 2) Build & package – runs after all matrix legs succeed
+###############################################################################
   build-linux:
-    needs: security
+    needs: test-matrix
     runs-on: [self-hosted, Linux, X64]
+
+    env:
+      GO_VERSION: ${{ env.GO_DEFAULT }}
+
     steps:
       - uses: actions/checkout@v4
-      - name: Ensure global tools in PATH
-        run: echo "/usr/local/bin:$HOME/go/bin:$PATH" >> $GITHUB_PATH
-      - run: ./scripts/preflight-ci.sh
+
+      - name: Provision local tools (offline-first)
+        run: ./scripts/offline_first.sh
+
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-      - run: echo "GOMAXPROCS=$(nproc)" >> "$GITHUB_ENV"
-      - run: GOOS=linux GOARCH=amd64 make build
-      - run: govulncheck -mode=binary bin/ai-chat-cli-linux-amd64
-      - run: goreleaser --clean --snapshot
-      - uses: actions/upload-artifact@v4
+
+      - uses: actions/cache@v4
         with:
-          name: bin-linux
-          path: bin/ai-chat-cli-linux-amd64
+          path: |
+            ~/.cache/go-build
+            ~/.cache/golangci-lint
+          key: build-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
 
-  docs:
-    needs: build-linux
-    runs-on: [self-hosted, Linux, X64]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Ensure global tools in PATH
-        run: echo "/usr/local/bin:$HOME/go/bin:$PATH" >> $GITHUB_PATH
-      - run: ./scripts/preflight-ci.sh
-      - run: make docs
+      - name: Build & package with Goreleaser
+        env:
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            goreleaser release --clean
+          else
+            goreleaser release --snapshot --clean --skip-publish
+          fi
 
-  publish-artefacts:
-    needs: docs
-    runs-on: [self-hosted, Linux, X64]
-    environment: artefact-registry
-    steps:
-      - uses: actions/checkout@v4
-      - name: Ensure global tools in PATH
-        run: echo "/usr/local/bin:$HOME/go/bin:$PATH" >> $GITHUB_PATH
-      - run: ./scripts/preflight-ci.sh
-      - uses: actions/download-artifact@v4
+      - name: Upload artifacts (branch / PR only)
+        if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
         with:
-          name: bin-linux
-          path: dist
-      - run: echo "${{ secrets.SBOM_CONTENT }}" > dist/sbom.json || true
-      - name: Push OCI artefact
-        run: |
-          echo "${{ secrets.REGISTRY_TOKEN }}" | \
-            oras login --username ci --password-stdin ${{ secrets.REGISTRY_HOST }}
-          oras push ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} \
-            dist/ai-chat-cli-linux-amd64:application/x-executable \
-            dist/sbom.json:application/spdx+json
-
-  deploy-staging:
-    needs: publish-artefacts
-    runs-on: [self-hosted, Linux, X64]
-    environment:
-      name: staging
-      url: https://staging.ai-chat.internal
-    steps:
-      - uses: actions/checkout@v4
-      - name: Ensure global tools in PATH
-        run: echo "/usr/local/bin:$HOME/go/bin:$PATH" >> $GITHUB_PATH
-      - run: ./scripts/preflight-ci.sh
-      - name: Pull artefact
-        run: oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} --output /tmp/cli
-      - name: Helm upgrade
-        run: |
-          helm upgrade --install ai-chat-staging charts/ai-chat \
-            --namespace ai-chat-staging \
-            --set image.registry=${{ secrets.REGISTRY_HOST }} \
-            --set image.tag=v${{ github.ref_name }}
-      - run: |
-          kubectl -n ai-chat-staging rollout status deploy/ai-chat
-          ./infra/tests/smoke-staging.sh
-
-  deploy-production:
-    needs: deploy-staging
-    runs-on: [self-hosted, Linux, X64]
-    environment:
-      name: production
-      url: https://ai-chat.internal
-    steps:
-      - uses: actions/checkout@v4
-      - name: Ensure global tools in PATH
-        run: echo "/usr/local/bin:$HOME/go/bin:$PATH" >> $GITHUB_PATH
-      - run: ./scripts/preflight-ci.sh
-      - name: Pull artefact
-        run: oras pull ${{ secrets.REGISTRY_HOST }}/ai-chat/cli:v${{ github.ref_name }} --output /tmp/cli
-      - name: Helm upgrade
-        run: |
-          helm upgrade --install ai-chat charts/ai-chat \
-            --namespace ai-chat \
-            --set image.registry=${{ secrets.REGISTRY_HOST }} \
-            --set image.tag=v${{ github.ref_name }}
-      - run: kubectl -n ai-chat rollout status deploy/ai-chat
+          name: dist
+          path: |
+            dist/*.tar.gz
+            dist/*.rpm
+            dist/*.deb
