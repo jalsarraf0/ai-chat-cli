@@ -1,5 +1,6 @@
 .PHONY: format lint lint-all static security test docs build man shell-test cross
 GOFILES := $(shell git ls-files '*.go')
+COVERAGE_THRESHOLD ?= 93
 
 format:
 	gofumpt -l -w $(GOFILES)
@@ -42,15 +43,9 @@ coverage:
 .PHONY: coverage
 
 coverage-gate:
-
 	@pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $$3}'); \
-	th=93; if echo "$$pct < $$th" | bc -l | grep -q 1; then \
+	th=$(COVERAGE_THRESHOLD); if echo "$$pct < $$th" | bc -l | grep -q 1; then \
 	echo "::error::coverage < $$th% (got $$pct%)"; exit 1; fi
-	
-
-       @pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $$3}'); \
-       if [ $${pct%.*} -lt 90 ]; then \
-       echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
 
 docs:
 	@git ls-files "*.md" | xargs -r sed -i "s/[ 	]*$$//" && git diff --exit-code || true
@@ -62,6 +57,9 @@ build:
 
 man:
 	cobra-cli man --dir docs/man
+
+ci-local:
+	./run_ci_local.sh
 
 shell-test:
 	go test -run TestShell ./internal/shell/...

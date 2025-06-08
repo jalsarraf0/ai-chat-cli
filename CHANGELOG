@@ -1,6 +1,10 @@
-## [Unreleased]
-- Remove Node-based docs build.
-- refactor: new 4-stage CI/CD pipeline
+## [1.0.2] - 2025-06-08
+### Added
+ - CycloneDX SBOM generation and Linux packages via GoReleaser.
+### Changed
+ - Update dependencies and pin Go toolchain.
+ - Remove Node-based docs build.
+ - Refactor pipeline into 4 stages.
 ## [1.0.1] - 2025-06-07
 - Refactor repository layout and add installer script.
 - Improve TUI with responsive layout and theme loader.

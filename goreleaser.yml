@@ -1,3 +1,4 @@
+version: 2
 project_name: ai-chat-cli
 release:
   github:
@@ -5,7 +6,7 @@ release:
     name: ai-chat-cli
 builds:
   - id: ai-chat
-    main: .
+    main: ./cmd/ai-chat-cli
     env:
       - CGO_ENABLED=0
     goos: [linux, windows, darwin]
@@ -15,7 +16,7 @@ builds:
       - -X github.com/jalsarraf0/ai-chat-cli/cmd.Commit={{.Commit}}
       - -X github.com/jalsarraf0/ai-chat-cli/cmd.Date={{.Date}}
 archives:
-  - id: default
+  - id: tar
     format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     files:
@@ -39,15 +40,17 @@ dockers:
       - ghcr.io/jalsarraf0/ai-chat-cli:latest
     dockerfile: Dockerfile
 nfpms:
-  - id: linux-packages
-    builds:
-      - ai-chat
-    formats:
-      - deb
-      - rpm
+  - id: deb
+    formats: [deb]
     vendor: AI Chat
     maintainer: AI Chat <support@aichat.internal>
-    description: AI-powered Chat CLI
-    license: MIT
     homepage: https://github.com/jalsarraf0/ai-chat-cli
-    bindir: /usr/local/bin
+    builds:
+      - ai-chat
+  - id: rpm
+    formats: [rpm]
+    vendor: AI Chat
+    maintainer: AI Chat <support@aichat.internal>
+    homepage: https://github.com/jalsarraf0/ai-chat-cli
+    builds:
+      - ai-chat
