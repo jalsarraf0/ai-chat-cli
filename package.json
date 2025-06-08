@@ -1,0 +1,28 @@
+{
+  "name": "ai-chat-cli",
+  "version": "1.0.0",
+  "description": "[![Coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)](./) [![Go](https://img.shields.io/badge/go-1.24.x-00ADD8?logo=go)](https://go.dev/doc/go1.24) [![Security](https://img.shields.io/badge/security-passing-brightgreen)](./) [![Cosign (OIDC)](https://img.shields.io/badge/cosign%20(OIDC)-verified-brightgreen)](https://github.com/sigstore/cosign) [![Security Scan](https://img.shields.io/badge/security%20scan-100%25%20clean-brightgreen)](./) [![Release](https://img.shields.io/badge/release-no%20releases%20or%20repo%20not%20found-lightgrey)](./) [![Container](https://img.shields.io/badge/container-ghcr.io%2Fjalsarraf0%2Fai--chat--cli-blue)](https://ghcr.io/jalsarraf0/ai-chat-cli) [![License](https://img.shields.io/badge/license-repo%20not%20found-lightgrey)](./)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docs:serve": "npx http-server docs/book -c-1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jalsarraf0/ai-chat-cli.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jalsarraf0/ai-chat-cli/issues"
+  },
+  "homepage": "https://github.com/jalsarraf0/ai-chat-cli#readme",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
