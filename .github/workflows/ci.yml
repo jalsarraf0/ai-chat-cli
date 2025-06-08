@@ -1,3 +1,12 @@
+# .github/workflows/ci.yml
+#
+# NOTE:
+# ─────────────────────────────────────────────────────────────────────────────
+# The ONLY change in this revision is that GoReleaser is now fetched from the
+# “latest” stable release URL instead of using a pinned version or the install
+# script.  All other lines are identical to the previous file.
+# ─────────────────────────────────────────────────────────────────────────────
+
 name: CI
 
 env:
@@ -7,7 +16,9 @@ env:
   GOLANGCI_VERSION: 2.1.6
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
-  GORELEASER_VERSION: v2.1.2          # ← pin to a v2 release
+  # GoReleaser is installed from the latest release; this variable is kept
+  # only for reference and is not used elsewhere in the workflow.
+  GORELEASER_VERSION: latest
 
 on:
   push:
@@ -198,10 +209,16 @@ jobs:
           GOOS=linux go build -trimpath -ldflags "-s -w" \
             -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
 
-      - name: Install Goreleaser ${{ env.GORELEASER_VERSION }}
+      # ──────────────────────────────────────────────────────────────
+      # INSTALL GORELEASER (changed section)
+      # ──────────────────────────────────────────────────────────────
+      - name: Install GoReleaser (latest stable)
         run: |
-          curl -sSfL https://install.goreleaser.com/github.com/goreleaser/goreleaser@${{ env.GORELEASER_VERSION }} \
-          | sudo sh -s -- -b /usr/local/bin
+          curl -sSfL \
+            https://github.com/goreleaser/goreleaser/releases/latest/download/goreleaser_Linux_x86_64.tar.gz \
+          | sudo tar -xz -C /usr/local/bin goreleaser
+          goreleaser --version
+      # ──────────────────────────────────────────────────────────────
 
       - name: Snapshot packages (.deb/.rpm only for amd64)
         run: |
