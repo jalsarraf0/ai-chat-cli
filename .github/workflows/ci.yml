@@ -17,18 +17,16 @@ on:
 jobs:
   # ────────────────────────────── LINT ──────────────────────────────
   lint:
-    runs-on: [self-hosted, linux]          # ← same label set for every runner
+    runs-on: [self-hosted, linux]
     strategy:
+      fail-fast: false
       matrix:
-        shard: [1]                        # single shard; add more for parallel lint shards
+        shard: [1, 2, 3]            # ← three parallel copies of the lint job
     steps:
-      - name: Fix permissions
-        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
-
-      - name: Clean Go cache
+      - name: Fix permissions for cache directories
         run: |
-          rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+          sudo chmod -R u+w ~/.cache/go-build || true
+          sudo chmod -R u+w ~/go/pkg/mod      || true
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -61,7 +59,7 @@ jobs:
               "golangci-lint-${{ env.GOLANGCI_VERSION }}-linux-amd64/golangci-lint"
           echo "$HOME/go/bin" >> "$GITHUB_PATH"
 
-      - name: Run linter
+      - name: Run linter (shard ${{ matrix.shard }})
         run: golangci-lint run --timeout 5m
 
   # ──────────────────────── TEST MATRIX (Go 1.24) ────────────────────────
@@ -69,16 +67,13 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        go: ['1.24']                      # add versions as needed
+        go: ['1.24']
     runs-on: [self-hosted, linux]
     steps:
-      - name: Fix permissions
-        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
-
-      - name: Clean Go cache
+      - name: Fix permissions for cache directories
         run: |
-          rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+          sudo chmod -R u+w ~/.cache/go-build || true
+          sudo chmod -R u+w ~/go/pkg/mod      || true
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -119,13 +114,10 @@ jobs:
     needs: [lint, test-matrix]
     runs-on: [self-hosted, linux]
     steps:
-      - name: Fix permissions
-        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
-
-      - name: Clean Go cache
+      - name: Fix permissions for cache directories
         run: |
-          rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+          sudo chmod -R u+w ~/.cache/go-build || true
+          sudo chmod -R u+w ~/go/pkg/mod      || true
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -149,10 +141,10 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
           go install github.com/securego/gosec/v2/cmd/gosec@${{ env.GOSEC_VERSION }}
           go install github.com/google/osv-scanner/cmd/osv-scanner@${{ env.OSV_VERSION }}
-          wget -qO- https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz \
-            | tar -xzO trivy > /usr/local/bin/trivy
+          wget -qO- "https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin trivy
           sudo chmod +x /usr/local/bin/trivy
-          sudo chown "$(id -u -n):$(id -g -n)" /usr/local/bin/trivy
+          sudo chown "$(id -u):$(id -g)" /usr/local/bin/trivy
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
       - run: govulncheck ./...
@@ -171,13 +163,10 @@ jobs:
         arch: [amd64, arm64]
     runs-on: [self-hosted, linux]
     steps:
-      - name: Fix permissions
-        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
-
-      - name: Clean Go cache
+      - name: Fix permissions for cache directories
         run: |
-          rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+          sudo chmod -R u+w ~/.cache/go-build || true
+          sudo chmod -R u+w ~/go/pkg/mod      || true
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
