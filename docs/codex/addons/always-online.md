@@ -5,22 +5,11 @@ This document **augments** the baseline Codex Rules.
 If any statement here conflicts with the base rules, obey the *stricter* instruction or raise a question.
 
 ---
-## \▍0. Internet Access Policy \ud83d\udca1
-1. **Assume continuous Internet connectivity** in all scripts, helper tools and CI jobs.
-2. Missing / outdated Go deps \u2192 run:
-
-   ```bash
-   go get -u ./...
-   go mod tidy -e -v
-   ```
-
-3. Missing CLI tool (e.g. `gosec`, `trivy`) \u2192 install via:
-
-   ```bash
-   go install <module>@latest
-   ```
-
-   Fallback: fetch binary from GitHub Releases.
+## 0 · Internet Access Policy \ud83c\udf10
+Our self-hosted runners ship with **pre-baked, version-locked binaries**
+\u2026patched text\u2026
+6. **New CLI tool** needed?  Open an issue. After approval, bake it into
+   `scripts/preflight-*.sh`; never inline-install inside workflow YAML.
 
 ---
 ## \▍1. Coverage Gate \u2265\u200a93\u200a% \ud83d\udcc8
@@ -50,7 +39,21 @@ Every PR **must** pass **all** checks *with zero HIGH / CRITICAL findings*.
 | **License Audit** | `addlicense -check $(go list -f '{{.Dir}}' ./...)` |
 
 ---
-## \▍3. CI / CD Flexibility \u2699\ufe0f
+Immutable CI/CD Pipelines \ud83d\udd12
+No file under .github/workflows/**, .azure-pipelines/**, or
+.circleci/** may be added, removed, or edited in a pull-request
+without an issue labelled ci-approval and an approving review from
+the Maintain CI GitHub team.
+
+Any PR that touches those paths without approval must be closed or
+reverted immediately.
+
+If a pipeline change is essential (e.g., security patch), open an
+issue, tag the CI maintainers, and wait for sign-off before pushing
+code.
+
+---
+## \▍4. CI / CD Flexibility \u2699\ufe0f
 *You **may** create or modify workflow files*, provided:
 
 1. **Gate order** stays **unit \u2192 quality \u2192 security \u2192 build \u2192 snapshot \u2192 release \u2192 docs**.
