@@ -9,24 +9,42 @@ on:
 jobs:
   release:
     runs-on: [self-hosted, linux]
-    needs: security
-    permissions: {contents: write}
+    permissions:
+      contents: write
     strategy:
-      matrix: {arch: [amd64, arm64]}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with: {go-version-file: 'go.mod'}
+      matrix:
+        arch: [amd64, arm64]
 
-      - name: Build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Set up GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          version: latest
+
+      - name: Build binary
         env:
           GOARCH: ${{ matrix.arch }}
         run: |
           mkdir -p dist/linux_${GOARCH}
-          GOOS=linux go build -trimpath -ldflags "-s -w" \
+          GOOS=linux GOARCH=${GOARCH} go build -trimpath -ldflags "-s -w" \
             -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
 
-      - name: Goreleaser snapshot
+      - name: Package as tar.gz
+        env:
+          TAG: ${{ github.ref_name }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          tar -C dist/linux_${ARCH} -czf dist/ai-chat-cli_${TAG}_linux_${ARCH}.tar.gz ai-chat-cli
+
+      - name: Run GoReleaser (snapshot)
         env:
           GOARCH: ${{ matrix.arch }}
         run: |
@@ -34,14 +52,8 @@ jobs:
             --id deb --id rpm --dist dist \
             --skip=publish,validate
 
-      - name: Tar.gz package
-        env:
-          TAG: ${{ github.ref_name }}
-          ARCH: ${{ matrix.arch }}
-        run: |
-          tar -C dist/linux_${ARCH} -czf dist/ai-chat-cli_${TAG}_linux_${ARCH}.tar.gz ai-chat-cli
-
-      - uses: softprops/action-gh-release@v2
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/ai-chat-cli_${{ github.ref_name }}_linux_*.tar.gz
