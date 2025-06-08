@@ -1,10 +1,13 @@
 name: CI
 
+# ───────────────────────────────────────────────────────────────
+#  Global settings
+# ───────────────────────────────────────────────────────────────
 env:
   GO_BIN: $HOME/go/bin
   COVERAGE_THRESHOLD: 93
   TRIVY_VERSION: 0.63.0
-  GOLANGCI_VERSION: v1.54.2
+  GOLANGCI_VERSION: v2.1.6          # ← pinned v2 binary
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
 
@@ -14,29 +17,42 @@ on:
   pull_request:
     branches: [dev]
 
+# ───────────────────────────────────────────────────────────────
+#  Re-usable step fragments (YAML anchors)
+# ───────────────────────────────────────────────────────────────
+permissions-fix: &permissions-fix |
+  sudo chmod -R u+w ~/go/pkg/mod/ || true
+
+clean-go-cache: &clean-go-cache |
+  rm -rf ~/.cache/go-build/* || true
+  rm -rf ~/go/pkg/mod/*      || true
+
+restore-go-cache: &restore-go-cache
+  uses: actions/cache@v3
+  continue-on-error: true
+  with:
+    path: |
+      ~/.cache/go-build
+      ~/go/pkg/mod
+    key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+    restore-keys: |
+      ${{ runner.os }}-go-
+
+# ───────────────────────────────────────────────────────────────
+#  1. Lint
+# ───────────────────────────────────────────────────────────────
 jobs:
   lint:
     name: Lint
     runs-on: [self-hosted, linux]
     steps:
-      - name: Fix Permissions for Go Module Cache
-        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
+      - name: Fix permissions
+        run: *permissions-fix
 
-      - name: Clean Go build & module cache (self-hosted)
-        run: |
-          rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+      - name: Clean Go cache
+        run: *clean-go-cache
 
-      - name: Restore Go cache (ignore errors on self-hosted)
-        uses: actions/cache@v3
-        continue-on-error: true
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+      - *restore-go-cache
 
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -46,12 +62,15 @@ jobs:
 
       - name: Install golangci-lint ${{ env.GOLANGCI_VERSION }}
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@${{ env.GOLANGCI_VERSION }}
+          go install github.com/golangci-lint/v2/cmd/golangci-lint@${{ env.GOLANGCI_VERSION }}
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
       - name: Run linter
         run: golangci-lint run --timeout 5m
 
+# ───────────────────────────────────────────────────────────────
+#  2. Unit Tests + Coverage
+# ───────────────────────────────────────────────────────────────
   test-matrix:
     name: Tests & Coverage
     needs: lint
@@ -60,24 +79,13 @@ jobs:
       matrix:
         go: ['1.24']
     steps:
-      - name: Fix Permissions for Go Module Cache
-        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
+      - name: Fix permissions
+        run: *permissions-fix
 
-      - name: Clean Go build & module cache (self-hosted)
-        run: |
-          rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+      - name: Clean Go cache
+        run: *clean-go-cache
 
-      - name: Restore Go cache (ignore errors on self-hosted)
-        uses: actions/cache@v3
-        continue-on-error: true
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+      - *restore-go-cache
 
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -103,29 +111,21 @@ jobs:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
+# ───────────────────────────────────────────────────────────────
+#  3. Security Scan
+# ───────────────────────────────────────────────────────────────
   security:
     name: Security Scan
     needs: [lint, test-matrix]
     runs-on: [self-hosted, linux]
     steps:
-      - name: Fix Permissions for Go Module Cache
-        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
+      - name: Fix permissions
+        run: *permissions-fix
 
-      - name: Clean Go build & module cache (self-hosted)
-        run: |
-          rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+      - name: Clean Go cache
+        run: *clean-go-cache
 
-      - name: Restore Go cache (ignore errors on self-hosted)
-        uses: actions/cache@v3
-        continue-on-error: true
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+      - *restore-go-cache
 
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -157,6 +157,9 @@ jobs:
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
+# ───────────────────────────────────────────────────────────────
+#  4. Snapshot Release
+# ───────────────────────────────────────────────────────────────
   snapshot:
     name: Goreleaser Snapshot
     needs: security
@@ -165,24 +168,13 @@ jobs:
       matrix:
         arch: [amd64, arm64]
     steps:
-      - name: Fix Permissions for Go Module Cache
-        run: sudo chmod -R u+w ~/go/pkg/mod/ || true
+      - name: Fix permissions
+        run: *permissions-fix
 
-      - name: Clean Go build & module cache (self-hosted)
-        run: |
-          rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+      - name: Clean Go cache
+        run: *clean-go-cache
 
-      - name: Restore Go cache (ignore errors on self-hosted)
-        uses: actions/cache@v3
-        continue-on-error: true
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+      - *restore-go-cache
 
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
