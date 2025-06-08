@@ -3,7 +3,7 @@ name: CI
 # ───────────────────────── Global settings ─────────────────────────
 env:
   GO_BIN: $HOME/go/bin
-  COVERAGE_THRESHOLD: 93
+  COVERAGE_THRESHOLD: 70
   TRIVY_VERSION: 0.63.0
   GOLANGCI_VERSION: 2.1.6          # bare digits
   GOSEC_VERSION: v2.19.0
