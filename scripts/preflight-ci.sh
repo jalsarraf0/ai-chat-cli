@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+"$(dirname "$0")/offline_first.sh"
+
 # Fast pre-flight: install Go 1.24.3 and Trivy v0.63.0 if missing
 GO_VERSION=1.24.3
 TRIVY_VERSION=v0.63.0
