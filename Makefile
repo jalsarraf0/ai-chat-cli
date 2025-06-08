@@ -82,12 +82,16 @@ prompt:
 	chmod +x dist/prompt/stub.sh
 
 snapshot:
-	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
-	goreleaser release --snapshot --clean --skip=publish --skip=docker --skip=sign
+       @command -v goreleaser >/dev/null || (\
+               curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz \
+               | tar -xz goreleaser && sudo mv goreleaser /usr/local/bin/)
+       goreleaser release --snapshot --clean --skip=publish --skip=docker --skip=sign
 
 release:
-	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
-	goreleaser release --clean --skip=publish --skip=docker
+       @command -v goreleaser >/dev/null || (\
+               curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz \
+               | tar -xz goreleaser && sudo mv goreleaser /usr/local/bin/)
+       goreleaser release --clean --skip=publish --skip=docker
 
 
 live-openai-test:

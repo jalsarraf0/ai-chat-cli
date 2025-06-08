@@ -5,7 +5,7 @@ release:
     name: ai-chat-cli
 builds:
   - id: ai-chat
-    main: .
+    main: ./cmd/ai-chat-cli
     env:
       - CGO_ENABLED=0
     goos: [linux, windows, darwin]
