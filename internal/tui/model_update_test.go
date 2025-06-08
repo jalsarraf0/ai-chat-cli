@@ -20,6 +20,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -141,5 +142,24 @@ func TestScrollBounds(t *testing.T) {
 	m = tm.(Model)
 	if m.cursor != 0 {
 		t.Fatalf("scroll reset")
+	}
+}
+
+func TestUseTheme(t *testing.T) {
+	m := NewModel(5)
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("panic: %v", r)
+		}
+	}()
+	m.UseTheme("themes/light.json")
+}
+
+func TestNoColorEnv(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+	s := LoadStyles("")
+	out := s.History.Render("x")
+	if strings.Contains(out, "\x1b[") {
+		t.Fatalf("unexpected ansi: %q", out)
 	}
 }

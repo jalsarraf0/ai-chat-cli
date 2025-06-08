@@ -17,8 +17,6 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-//go:build unit
-
 package testhttp
 
 import (
@@ -27,7 +25,7 @@ import (
 )
 
 func TestRoundTripFunc(t *testing.T) {
-	rt := RoundTripFunc(func(r *http.Request) (*http.Response, error) {
+	rt := RoundTripFunc(func(_ *http.Request) (*http.Response, error) {
 		return nil, http.ErrUseLastResponse
 	})
 	_, err := rt.RoundTrip(&http.Request{})
