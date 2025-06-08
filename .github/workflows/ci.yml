@@ -2,10 +2,9 @@
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # CHANGES IN THIS REVISION ONLY
-# 1. Added `timeout-minutes: 30` to every actions/cache@v3 restore step
-#    to prevent cache-download timeouts.
-# 2. Removed the unsupported `--id` flags from the GoReleaser call and
-#    kept `--single-target` (snapshot job, amd64 branch).
+# • Removed the unsupported `--single-target` flag from the GoReleaser call.
+#   (The flag is Pro-only and is rejected by the OSS binary.)  
+#   All other lines remain exactly as in the previous version.
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: CI
@@ -222,7 +221,7 @@ jobs:
       - name: Snapshot packages (.deb/.rpm only for amd64)
         run: |
           if [[ "${{ matrix.arch }}" == "amd64" ]]; then
-            goreleaser release --clean --snapshot --single-target --dist dist
+            goreleaser release --clean --snapshot --dist dist
           fi
           tar -C dist/linux_${{ matrix.arch }} -czf \
             dist/ai-chat-cli_snapshot_linux_${{ matrix.arch }}.tar.gz ai-chat-cli
