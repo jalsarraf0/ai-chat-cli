@@ -1,5 +1,6 @@
 name: CI
 
+# ───────────────────────── Global settings ─────────────────────────
 env:
   GO_BIN: $HOME/go/bin
   COVERAGE_THRESHOLD: 70
@@ -14,17 +15,24 @@ on:
   pull_request:
     branches: [dev]
 
+# ───────────────────────────── Jobs ────────────────────────────────
 jobs:
+  # ───────────────────────────── Lint ────────────────────────────────
   lint:
     runs-on: [self-hosted, linux]
     steps:
       - name: Fix permissions
         run: sudo chmod -R u+w ~/go/pkg/mod/ || true
 
-      - name: Clean Go cache
+      - name: Clean Go cache (self-heal)
         run: |
           rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+          rm -rf ~/go/pkg/mod/* || true
+          # Self-heal: If directories still exist, remove again
+          [ -d ~/.cache/go-build ] && find ~/.cache/go-build -type f -delete || echo "Go build cache gone"
+          [ -d ~/go/pkg/mod ] && find ~/go/pkg/mod -type f -delete || echo "Go mod cache gone"
+          ls -al ~/.cache/go-build || echo "Go build cache is empty"
+          ls -al ~/go/pkg/mod || echo "Go mod cache is empty"
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -38,10 +46,17 @@ jobs:
             ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
+
+      # ─── Self-heal: Reinstall Go dependencies ───
+      - name: Reinstall Go dependencies (self-heal)
+        run: |
+          go mod tidy
+          go mod vendor
 
       - name: Install golangci-lint ${{ env.GOLANGCI_VERSION }}
         shell: bash
@@ -60,6 +75,7 @@ jobs:
       - name: Run linter
         run: golangci-lint run --timeout 5m
 
+  # ─────────────────── Tests & Coverage (matrix) ────────────────────
   test-matrix:
     needs: lint
     runs-on: [self-hosted, linux]
@@ -69,10 +85,14 @@ jobs:
       - name: Fix permissions
         run: sudo chmod -R u+w ~/go/pkg/mod/ || true
 
-      - name: Clean Go cache
+      - name: Clean Go cache (self-heal)
         run: |
           rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+          rm -rf ~/go/pkg/mod/* || true
+          [ -d ~/.cache/go-build ] && find ~/.cache/go-build -type f -delete || echo "Go build cache gone"
+          [ -d ~/go/pkg/mod ] && find ~/go/pkg/mod -type f -delete || echo "Go mod cache gone"
+          ls -al ~/.cache/go-build || echo "Go build cache is empty"
+          ls -al ~/go/pkg/mod || echo "Go mod cache is empty"
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -86,12 +106,19 @@ jobs:
             ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
           cache: true
 
       - run: echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
+
+      # ─── Self-heal: Reinstall Go dependencies ───
+      - name: Reinstall Go dependencies (self-heal)
+        run: |
+          go mod tidy
+          go mod vendor
 
       - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
         run: |
@@ -108,6 +135,7 @@ jobs:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
+  # ───────────────────────── Security Scan ──────────────────────────
   security:
     needs: [lint, test-matrix]
     runs-on: [self-hosted, linux]
@@ -115,10 +143,14 @@ jobs:
       - name: Fix permissions
         run: sudo chmod -R u+w ~/go/pkg/mod/ || true
 
-      - name: Clean Go cache
+      - name: Clean Go cache (self-heal)
         run: |
           rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+          rm -rf ~/go/pkg/mod/* || true
+          [ -d ~/.cache/go-build ] && find ~/.cache/go-build -type f -delete || echo "Go build cache gone"
+          [ -d ~/go/pkg/mod ] && find ~/go/pkg/mod -type f -delete || echo "Go mod cache gone"
+          ls -al ~/.cache/go-build || echo "Go build cache is empty"
+          ls -al ~/go/pkg/mod || echo "Go mod cache is empty"
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -132,15 +164,22 @@ jobs:
             ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
 
+      # ─── Self-heal: Reinstall Go dependencies ───
+      - name: Reinstall Go dependencies (self-heal)
+        run: |
+          go mod tidy
+          go mod vendor
+
       - name: Install scanners
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          go install github.com/securego/gosec/v2/cmd/gosec@${{ env.GOSEC_VERSION }}
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
           go install github.com/google/osv-scanner/cmd/osv-scanner@${{ env.OSV_VERSION }}
           wget -qO- https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz \
             | tar -xzO trivy > /usr/local/bin/trivy
@@ -148,13 +187,22 @@ jobs:
           sudo chown "$(id -u -n):$(id -g -n)" /usr/local/bin/trivy
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
-      - run: govulncheck ./...
-      - run: gosec ./...
-      - run: osv-scanner .
-      - run: |
+      # ─── Self-heal: Verify Go environment ───
+      - name: Verify Go environment (self-heal)
+        run: go env
+
+      # ─── Self-heal: GoSec with debug ───
+      - name: Run GoSec with Debug
+        run: gosec -debug ./...
+
+      - name: Run other scanners
+        run: |
+          govulncheck ./...
+          osv-scanner .
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
+  # ────────────────────── Goreleaser Snapshot ───────────────────────
   snapshot:
     needs: security
     runs-on: [self-hosted, linux]
@@ -164,10 +212,14 @@ jobs:
       - name: Fix permissions
         run: sudo chmod -R u+w ~/go/pkg/mod/ || true
 
-      - name: Clean Go cache
+      - name: Clean Go cache (self-heal)
         run: |
           rm -rf ~/.cache/go-build/* || true
-          rm -rf ~/go/pkg/mod/*      || true
+          rm -rf ~/go/pkg/mod/* || true
+          [ -d ~/.cache/go-build ] && find ~/.cache/go-build -type f -delete || echo "Go build cache gone"
+          [ -d ~/go/pkg/mod ] && find ~/go/pkg/mod -type f -delete || echo "Go mod cache gone"
+          ls -al ~/.cache/go-build || echo "Go build cache is empty"
+          ls -al ~/go/pkg/mod || echo "Go mod cache is empty"
 
       - name: Restore Go cache (ignore errors)
         uses: actions/cache@v3
@@ -181,10 +233,17 @@ jobs:
             ${{ runner.os }}-go-
 
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
+
+      # ─── Self-heal: Reinstall Go dependencies ───
+      - name: Reinstall Go dependencies (self-heal)
+        run: |
+          go mod tidy
+          go mod vendor
 
       - name: Build binary
         env:
@@ -211,6 +270,7 @@ jobs:
         with:
           name: snapshot-linux-${{ matrix.arch }}
           path: dist/*
+
       - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
         shell: bash
         run: |
