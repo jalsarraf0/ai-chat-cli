@@ -17,7 +17,7 @@ on:
 
 # ───────────────────────────── Jobs ────────────────────────────────
 jobs:
-# ───────────────────────────── Lint ────────────────────────────────
+  # ───────────────────────────── Lint ────────────────────────────────
   lint:
     runs-on: [self-hosted, linux]
     steps:
@@ -67,7 +67,7 @@ jobs:
       - name: Run linter
         run: golangci-lint run --timeout 5m
 
-# ─────────────────── Tests & Coverage (matrix) ────────────────────
+  # ─────────────────── Tests & Coverage (matrix) ────────────────────
   test-matrix:
     needs: lint
     runs-on: [self-hosted, linux]
@@ -116,7 +116,7 @@ jobs:
           name: coverage-${{ matrix.go }}
           path: coverage.out
 
-# ───────────────────────── Security Scan ──────────────────────────
+  # ───────────────────────── Security Scan ──────────────────────────
   security:
     needs: [lint, test-matrix]
     runs-on: [self-hosted, linux]
@@ -153,7 +153,8 @@ jobs:
           go install github.com/google/osv-scanner/cmd/osv-scanner@${{ env.OSV_VERSION }}
           wget -qO- https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz \
             | tar -xzO trivy > /usr/local/bin/trivy
-          chmod +x /usr/local/bin/trivy
+          sudo chmod +x /usr/local/bin/trivy
+          sudo chown "$(id -u -n):$(id -g -n)" /usr/local/bin/trivy
           echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
 
       - run: govulncheck ./...
@@ -163,7 +164,7 @@ jobs:
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
 
-# ────────────────────── Goreleaser Snapshot ───────────────────────
+  # ────────────────────── Goreleaser Snapshot ───────────────────────
   snapshot:
     needs: security
     runs-on: [self-hosted, linux]
@@ -220,14 +221,14 @@ jobs:
         with:
           name: snapshot-linux-${{ matrix.arch }}
           path: dist/*
-      - name: Run tests (fail if coverage < \${{ env.COVERAGE_THRESHOLD }}%)
+      - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
         shell: bash
         run: |
           GORELEASER_SKIP=build,publish,validate \
             go test -race -covermode=atomic -coverprofile=coverage.out ./...
 
-          pct=\$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print \$3}')
-          echo "total coverage = \${pct}%"
-          if [[ \${pct%.*} -lt \$COVERAGE_THRESHOLD ]]; then
-            echo "::error ::coverage \${pct}% < \${COVERAGE_THRESHOLD}%" ; exit 1
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
+          echo "total coverage = ${pct}%"
+          if [[ ${pct%.*} -lt $COVERAGE_THRESHOLD ]]; then
+            echo "::error ::coverage ${pct}% < ${COVERAGE_THRESHOLD}%" ; exit 1
           fi
