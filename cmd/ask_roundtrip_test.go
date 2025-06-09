@@ -21,8 +21,9 @@ package cmd
 
 import (
 	"bytes"
-	"github.com/spf13/cobra"
 	"testing"
+
+	"github.com/spf13/cobra"
 
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/mock"
 )

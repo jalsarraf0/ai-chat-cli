@@ -21,12 +21,13 @@ package cmd
 
 import (
 	"bytes"
-	"github.com/jalsarraf0/ai-chat-cli/pkg/config"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/jalsarraf0/ai-chat-cli/pkg/config"
 )
 
 func TestConfigCommands(t *testing.T) {
@@ -98,6 +99,7 @@ func TestConfigEditRun(t *testing.T) {
 		t.Fatalf("edit: %v", err)
 	}
 }
+
 func TestConfigEditDefaultEditor(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skip on windows")
