@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [dev]
 
+env:
+  GO_BIN: $HOME/go/bin
+  COVERAGE_THRESHOLD: 90
+  TRIVY_VERSION: 0.63.0
+  GOLANGCI_VERSION: 2.1.6
+  GOSEC_VERSION: v2.19.0
+  OSV_VERSION: v1.7.3
+
 jobs:
   lint:
     runs-on: [self-hosted, linux]
@@ -75,6 +83,9 @@ jobs:
           go test -race -covermode=atomic -coverprofile=coverage.out ./...
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%", ""); print $3}')
           echo "total coverage = ${pct}%"
+          if [[ ${pct%.*} -lt $COVERAGE_THRESHOLD ]]; then
+            echo "::error ::coverage ${pct}% < ${COVERAGE_THRESHOLD}%" && exit 1
+          fi
 
   verify-go-sum:
     needs: test
