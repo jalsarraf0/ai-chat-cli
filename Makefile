@@ -3,6 +3,7 @@ GOFILES := $(shell git ls-files '*.go')
 
 format:
 	gofumpt -l -w $(GOFILES)
+	
 
 lint: ## static analysis
 	golangci-lint run ./...
@@ -53,8 +54,15 @@ coverage-gate:
        echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
 
 docs:
-	@git ls-files "*.md" | xargs -r sed -i "s/[ 	]*$$//" && git diff --exit-code || true
-	hugo --contentDir=docs --destination=public
+	@echo "📖 Building Hugo site"
+	hugo --minify
+
+readme:
+	@echo "📝 Re-rendering README.md"
+	hugo --quiet -D --renderToREADME -d .
+
+docs-all: docs readme
+
 
 
 build:
