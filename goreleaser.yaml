@@ -1,4 +1,4 @@
-# goreleaser.yaml — GoReleaser ≥ v2.10.x
+# goreleaser.yaml — v2 (ARM builds intentionally skipped)
 version: 2
 
 project_name: ai-chat-cli
@@ -7,11 +7,13 @@ before:
   hooks:
     - go mod tidy -e -v
 
+# ─── Builds ──────────────────────────────────────────────────────────
+# Only x86-64 for now.  Add a second item with goarch: [arm64] when ready.
 builds:
   - id: linux_amd64
     main: ./cmd/ai-chat
     goos:  [linux]
-    goarch: [amd64]
+    goarch: [amd64]          # ← skip arm64 for the moment
     env:   [CGO_ENABLED=0]
     ldflags: >-
       -s -w
@@ -19,19 +21,22 @@ builds:
       -X main.commit={{ .Commit }}
       -X main.date={{ .Date }}
 
+# ─── Archives ────────────────────────────────────────────────────────
 archives:
   - id: default
-    ids:     [linux_amd64]           # replaces deprecated `builds`
-    formats: [tar.gz]                # replaces deprecated single `format`
+    ids:     [linux_amd64]   # archive only the x86-64 build
+    formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - LICENSE*
       - README.md
 
+# ─── Checksums ───────────────────────────────────────────────────────
 checksum:
   name_template: checksums.txt
   algorithm: sha256
 
+# ─── GitHub Release ─────────────────────────────────────────────────
 release:
   draft: false
   prerelease: false
@@ -39,5 +44,6 @@ release:
     owner: jalsarraf0
     name: ai-chat-cli
 
+# ─── Snapshot naming (nightlies) ─────────────────────────────────────
 snapshot:
-  version_template: "{{ .Tag }}-next-{{ .Commit }}"   # replaces deprecated `name_template`
+  version_template: "{{ .Tag }}-next-{{ .Commit }}"
