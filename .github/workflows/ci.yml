@@ -221,7 +221,7 @@ jobs:
       - name: Install GoReleaser ${{ env.GORELEASER_VERSION }}
         run: |
           curl -sSfL \
-            "https://install.goreleaser.com/github.com/goreleaser/goreleaser@${{ env.GORELEASER_VERSION }}" \
+            "https://install.goreleaser.com/github.com/goreleaser/goreleaser@$latest \
           | sudo sh -s -- -b /usr/local/bin
 
       - name: Snapshot packages (.deb/.rpm only for amd64)
