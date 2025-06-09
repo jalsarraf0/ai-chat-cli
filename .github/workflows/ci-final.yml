@@ -1,0 +1,56 @@
+name: Final CI
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+
+jobs:
+  build:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install NPM packages
+        run: npm install
+      - name: Audit NPM packages
+        run: npm audit
+      - name: Build docs
+        run: make docs
+      - name: Lint
+        run: bash lint_cli.sh
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@v2.19.0
+      - name: Run gosec
+        run: gosec ./... || true
+      - name: Install osv-scanner
+        run: go install github.com/google/osv-scanner/cmd/osv-scanner@v1.7.3
+      - name: Run osv-scanner
+        run: osv-scanner .
+      - name: Install trivy
+        run: wget -qO- https://github.com/aquasecurity/trivy/releases/download/v0.63.0/trivy_0.63.0_Linux-64bit.tar.gz | sudo tar -xz -C /usr/local/bin trivy
+      - name: Run trivy
+        run: |
+          trivy fs --download-db-only
+          trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+      - name: Install addlicense
+        run: go install github.com/google/addlicense@latest
+      - name: Check licenses
+        run: addlicense -check $(git ls-files '*.go')
+      - name: Run tests
+        run: |
+          go test -race -covermode=atomic -coverprofile=coverage.out ./...
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%", ""); print $3}')
+          echo "total coverage = ${pct}%"
+      - name: Verify go.sum
+        run: test -f go.sum
+      - name: Install GoReleaser
+        run: |
+          curl -sSfL https://github.com/goreleaser/goreleaser/releases/download/v2.10.2/goreleaser_Linux_x86_64.tar.gz | sudo tar -xz -C /usr/local/bin goreleaser
+          goreleaser --version
