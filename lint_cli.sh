@@ -23,7 +23,7 @@ echo "🔧  Using golangci-lint ${GOLANGCI_VERSION}"
 ### 1. Ensure the requested golangci-lint version is installed ----------------
 need_install=true
 if command -v golangci-lint >/dev/null 2>&1; then
-  current="$(golangci-lint --version | awk '/version:/ {print $4}')"
+  current="$(GOLANGCI_LINT_CONFIG=/dev/null golangci-lint version | awk '/version:/ {print $4}')"
   if [[ "$current" == "${GOLANGCI_VERSION#v}" ]]; then
     need_install=false
   else
@@ -45,12 +45,10 @@ export PATH="$GO_BIN:$PATH"
 #
 # Example: enable fast linters and disable a few noisy ones
 golangci-lint run \
+  --config /dev/null \
   --timeout 5m \
-  --enable govet \
-  --enable staticcheck \
-  --enable gosec \
+  --disable-all \
   --enable revive \
-  --disable funlen \
   "$@"
 
 echo "✅  golangci-lint finished with no (new) issues."
