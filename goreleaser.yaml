@@ -1,16 +1,52 @@
+# goreleaser.yaml — ready for GoReleaser v2.10.x+
+version: 2
+
+# ─────────────────────────── PROJECT ───────────────────────────
 project_name: ai-chat-cli
+
+# Optional pre-build sanity checks (fail fast if they error)
+before:
+  hooks:
+    - go mod tidy -e -v
+    # - make lint           # uncomment if you have a lint target
+
+# ─────────────────────────── BUILDS ────────────────────────────
 builds:
   - id: linux_amd64
-    main: ./cmd/ai-chat
-    goos: [linux]
+    main: ./cmd/ai-chat            # adjust if main() lives elsewhere
+    goos:  [linux]
     goarch: [amd64]
-    ldflags: -s -w -X main.version={{ .Version }}
+    env:
+      - CGO_ENABLED=0              # static binary; drop if CGO needed
+    ldflags: >-
+      -s -w
+      -X main.version={{ .Version }}
+      -X main.commit={{ .Commit }}
+      -X main.date={{ .Date }}
+
+# ────────────────────────── ARCHIVES ───────────────────────────
 archives:
   - id: default
-    builds: [linux_amd64]
+    ids:     [linux_amd64]         # ‹was: builds› — list of build IDs
+    formats: [tar.gz]              # ‹was: format› — list for extensibility
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE*
+      - README.md
+
+# ───────────────────────── CHECKSUMS ───────────────────────────
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+# ────────────────────────── RELEASE ────────────────────────────
 release:
+  draft: false                     # true keeps the GitHub release in draft
+  prerelease: false                # true (or auto) marks it as prerelease
   github:
     owner: jalsarraf0
     name: ai-chat-cli
-checksum:
-  name_template: 'checksums.txt'
+
+# ────────────────────────── SNAPSHOT ───────────────────────────
+snapshot:
+  name_template: "{{ .Tag }}-next-{{ .Commit }}"
