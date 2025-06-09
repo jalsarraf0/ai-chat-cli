@@ -1,33 +1,33 @@
 # .github/workflows/release.yml
 # ────────────────────────────────────────────────────────────────
-# Publish Linux-amd64 tarball, .deb and .rpm whenever a version
-# tag (v*) is pushed, or when triggered manually.
+# Build & publish Linux-amd64 tarball, .deb and .rpm whenever a
+# version tag v* is pushed, or when triggered manually.
 
 name: Release
 
 on:
   push:
-    tags: ['v*']            # e.g. v1.2.3
-  workflow_dispatch:        # manual run button
+    tags: ['v*']               # e.g. v1.0.1
+  workflow_dispatch:           # manual run button
 
 jobs:
   release:
     runs-on: [self-hosted, linux]
     permissions:
-      contents: write        # GoReleaser uploads assets via GitHub API
-      packages: read
+      contents: write          # GoReleaser publishes via GitHub API
+      packages:  read
 
     strategy:
       matrix:
         os:   [linux]
-        arch: [amd64]        # ARM intentionally skipped
+        arch: [amd64]          # ARM intentionally omitted
 
     steps:
-    # 1 ── Checkout ──────────────────────────────────────────────
+    # 1 ── Checkout ───────────────────────────────────────────────
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2 ── Cache Go modules & build cache ───────────────────────
+    # 2 ── Cache Go modules & build cache ────────────────────────
     - name: Cache Go modules
       uses: actions/cache@v3
       with:
@@ -37,27 +37,27 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-go-
 
-    # 3 ── Set up Go (version from go.mod) ──────────────────────
+    # 3 ── Set up Go (version from go.mod) ───────────────────────
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
 
-    # 3½ ── Install GoReleaser v2 for tests ─────────────────────
+    # 3½ ── Install GoReleaser CLI for tests ─────────────────────
     - name: Install GoReleaser v2 for tests
       uses: goreleaser/goreleaser-action@v5
       with:
         version: v2.10.2
-        install-only: true         # puts CLI in PATH, doesn’t run it
+        install-only: true       # just puts the CLI in PATH
 
-    # 4 ── Run unit tests (incl. TestSnapshotSBOM) ──────────────
+    # 4 ── Run unit tests ────────────────────────────────────────
     - name: Run Go tests
       run: go test ./...
 
-# 5 ── GoReleaser: build & publish artefacts ────────────────
+    # 5 ── Build & publish artefacts with GoReleaser ─────────────
     - name: GoReleaser release
       uses: goreleaser/goreleaser-action@v5
       with:
         version: v2.10.2
         args: release --clean --skip=docker
-
+        token: ${{ secrets.GITHUB_TOKEN }}   # ← supplies publish token
