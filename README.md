@@ -13,10 +13,16 @@
 > Written in pure **Go**, it streams answers in real‑time, keeps your history, and supports an extensible plug‑in system — all in a single ≈ 6 MiB binary.
 
 ## Quick Setup
+
 1. Download a release or clone the repo and run `./setup.sh` to install.
 2. `export OPENAI_API_KEY="sk-..."`
 3. Run `ai-chat-cli` and start typing.
 4. Changed your mind? run `./uninstall.sh` to remove everything.
+
+1. Download a release or clone the repo and run `./setup.sh`.
+2. `export OPENAI_API_KEY="sk-..."`
+3. Run `ai-chat-cli` and start typing.
+
 
 
 ---

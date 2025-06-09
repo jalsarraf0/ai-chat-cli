@@ -2,7 +2,14 @@
 - Remove Node-based docs build.
 - refactor: new 4-stage CI/CD pipeline
 - Enhance TUI with universal, theme-aware layout
+
 - Fix GoReleaser snapshot packaging path and ensure go.sum is present
+
+
+- Fix GoReleaser snapshot packaging path and ensure go.sum is present
+
+
+
 ## [1.0.1] - 2025-06-07
 - Refactor repository layout and add installer script.
 - Improve TUI with responsive layout and theme loader.
