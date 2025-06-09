@@ -26,7 +26,7 @@ import (
 
 	"github.com/jalsarraf0/ai-chat-cli/internal/aiops"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 type watchConfig struct {
