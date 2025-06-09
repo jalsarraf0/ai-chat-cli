@@ -1,4 +1,4 @@
-# goreleaser.yaml — v2 (ARM builds intentionally skipped)
+# goreleaser.yaml ─ GoReleaser ≥ v2
 version: 2
 
 project_name: ai-chat-cli
@@ -8,12 +8,11 @@ before:
     - go mod tidy -e -v
 
 # ─── Builds ──────────────────────────────────────────────────────────
-# Only x86-64 for now.  Add a second item with goarch: [arm64] when ready.
 builds:
   - id: linux_amd64
     main: ./cmd/ai-chat
     goos:  [linux]
-    goarch: [amd64]          # ← skip arm64 for the moment
+    goarch: [amd64]
     env:   [CGO_ENABLED=0]
     ldflags: >-
       -s -w
@@ -24,12 +23,39 @@ builds:
 # ─── Archives ────────────────────────────────────────────────────────
 archives:
   - id: default
-    ids:     [linux_amd64]   # archive only the x86-64 build
+    ids:     [linux_amd64]
     formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - LICENSE*
       - README.md
+
+# ─── NFPM packages (.deb / .rpm) ─────────────────────────────────────
+nfpms:
+  # Debian package
+  - id: deb
+    builds:   [linux_amd64]
+    formats:  [deb]
+    section:  utils
+    maintainer: Jamal Al-Sarraf <you@example.com>
+    vendor:      AI-Chat-CLI
+    homepage:    https://github.com/jalsarraf0/ai-chat-cli
+    description: |
+      ai-chat-cli — command-line interface for AI-assisted chat.
+    license: Apache-2.0
+    bindir: /usr/bin
+
+  # RPM package
+  - id: rpm
+    builds:   [linux_amd64]
+    formats:  [rpm]
+    maintainer: Jamal Al-Sarraf <you@example.com>
+    vendor:      AI-Chat-CLI
+    homepage:    https://github.com/jalsarraf0/ai-chat-cli
+    description: |
+      ai-chat-cli — command-line interface for AI-assisted chat.
+    license: Apache-2.0
+    bindir: /usr/bin
 
 # ─── Checksums ───────────────────────────────────────────────────────
 checksum:
