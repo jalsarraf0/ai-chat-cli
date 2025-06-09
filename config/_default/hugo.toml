@@ -1,0 +1,11 @@
+baseURL = "https://github.com/jalsarraf0/ai-chat-cli"
+title   = "ai-chat-cli"
+theme   = "hugo-book"
+enableGitInfo = true
+[outputs]
+home = ["HTML", "README"]
+[outputFormats]
+[outputFormats.README]
+  mediaType = "text/markdown"
+  baseName  = "README"
+  isPlainText = true

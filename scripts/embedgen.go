@@ -1,5 +1,3 @@
-//go:build ignore
-
 package main
 
 import (
@@ -26,7 +24,7 @@ func main() {
 			panic(err)
 		}
 		for _, m := range matches {
-			b, err := os.ReadFile(m)
+            b, err := os.ReadFile(m) // #nosec G304
 			if err != nil {
 				panic(err)
 			}
@@ -50,11 +48,12 @@ var assetSHA256 = map[string]string{
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
-	if err := tmpl.Execute(f, assets); err != nil {
-		panic(err)
-	}
-	if err := f.Close(); err != nil {
-		panic(err)
-	}
+       defer func() {
+               if cerr := f.Close(); cerr != nil {
+                       panic(cerr)
+               }
+       }()
+       if err := tmpl.Execute(f, assets); err != nil {
+               panic(err)
+       }
 }

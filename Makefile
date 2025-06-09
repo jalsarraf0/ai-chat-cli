@@ -53,9 +53,15 @@ coverage-gate:
        echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
 
 docs:
-	@git ls-files "*.md" | xargs -r sed -i "s/[ 	]*$$//" && git diff --exit-code || true
-	hugo --contentDir=docs --destination=public
+	@echo "📖 Building Hugo site"
+	hugo --minify
 
+readme:
+	@echo "📝 Re-rendering README.md"
+	hugo --minify
+	cp public/readme.md README.md
+
+docs-all: docs readme
 
 build:
 	go build -o bin/ai-chat-linux-amd64 .

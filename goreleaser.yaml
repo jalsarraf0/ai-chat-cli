@@ -1,0 +1,17 @@
+version: 2
+project_name: ai-chat-cli
+builds:
+  - id: linux_amd64
+    goos: [linux]
+    goarch: [amd64]
+    main: ./cmd/ai-chat
+    ldflags: -s -w -X main.version={{ .Version }}
+archives:
+  - id: default
+    builds: [linux_amd64]
+release:
+  github:
+    owner: jalsarraf0
+    name: ai-chat-cli
+checksum:
+  name_template: 'checksums.txt'
