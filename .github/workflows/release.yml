@@ -1,28 +1,34 @@
+# .github/workflows/release.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# Builds and uploads Linux-amd64 artefacts when a semver tag (v*) is pushed
+# or when the workflow is run manually.
+
 name: Release
 
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch:
+      - 'v*'                # trigger only on version tags like v1.2.3
+  workflow_dispatch:        # manual trigger button in the Actions tab
 
 jobs:
   release:
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, linux]    # single runner label
     permissions:
-      contents: write
-      packages: read
+      contents: write               # create & upload release assets
+      packages: read                # pull private base images if needed
+
     strategy:
       matrix:
-        arch: [amd64, arm64]
-        os: [linux]
+        os:   [linux]               # leave in case you add windows|darwin later
+        arch: [amd64]               # ← ARM removed; only x86-64 remains
 
     steps:
-      # Checkout the repository
+      # ─── 1. Checkout ──────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Cache Go modules for faster builds
+      # ─── 2. Cache Go build cache & modules ────────────────────────────────
       - name: Cache Go modules
         uses: actions/cache@v3
         with:
@@ -30,63 +36,64 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          restore-keys: ${{ runner.os }}-go-
 
-      # Set up Go environment based on go.mod
+      # ─── 3. Setup Go (version from go.mod) ────────────────────────────────
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: go.mod
 
-      # Validate code with Go tests before building
+      # ─── 4. Run tests before packaging ────────────────────────────────────
       - name: Run Go tests
         run: go test ./...
 
-      # Set up GoReleaser for packaging and release
+      # ─── 5. Install GoReleaser (pinned) ───────────────────────────────────
       - name: Set up GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
-          version: v1.27.0  # Pin to a stable version
+          version: v1.27.0           # update when you upgrade your local CLI
 
-      # Build the binary for each architecture
+      # ─── 6. Build binary for this matrix item ─────────────────────────────
       - name: Build binary
         env:
           GOARCH: ${{ matrix.arch }}
         run: |
           set -e
           mkdir -p dist/linux_${GOARCH}
-          GOOS=linux GOARCH=${GOARCH} go build -trimpath -ldflags "-s -w -X main.commit=${GITHUB_SHA} -X main.version=${GITHUB_REF_NAME}" \
-            -o dist/linux_${GOARCH}/ai-chat ./cmd/ai-chat
+          GOOS=linux GOARCH=${GOARCH} CGO_ENABLED=0 \
+            go build -trimpath \
+              -ldflags "-s -w -X main.commit=${GITHUB_SHA} -X main.version=${GITHUB_REF_NAME}" \
+              -o dist/linux_${GOARCH}/ai-chat \
+              ./cmd/ai-chat
 
-      # Package the binary as tar.gz with metadata in filename
+      # ─── 7. Package the binary as tar.gz ──────────────────────────────────
       - name: Package as tar.gz
         env:
-          TAG: ${{ github.ref_name }}
+          TAG:  ${{ github.ref_name }}
           ARCH: ${{ matrix.arch }}
-          SHA: ${{ github.sha }}
+          SHA:  ${{ github.sha }}
         run: |
-          tar -C dist/linux_${ARCH} -czf dist/ai-chat_${TAG}_${SHA}_linux_${ARCH}.tar.gz ai-chat
+          tar -C dist/linux_${ARCH} \
+              -czf dist/ai-chat_${TAG}_${SHA}_linux_${ARCH}.tar.gz ai-chat
 
-      # Run GoReleaser in snapshot mode for .deb and .rpm (does not publish)
+      # ─── 8. Run GoReleaser in snapshot mode for .deb/.rpm ────────────────
+      #      Produces packages in ./dist without publishing.
       - name: Run GoReleaser (snapshot)
         env:
           GOARCH: ${{ matrix.arch }}
         run: |
-          goreleaser release --clean --snapshot --single-target \
+          goreleaser release --clean --snapshot \
             --id deb --id rpm --dist dist \
             --skip=publish,validate
 
-      # Upload built assets to the GitHub release
+      # ─── 9. Upload assets to the GitHub release ───────────────────────────
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/ai-chat_${{ github.ref_name }}_${{ github.sha }}_linux_*.tar.gz
+            dist/ai-chat_${{ github.ref_name }}_${{ github.sha }}_linux_${{ matrix.arch }}.tar.gz
             dist/*.deb
             dist/*.rpm
 
-      # Optionally, update release notes or README automatically (customize as needed)
-      # - name: Update README or Release Notes
-      #   run: |
-      #     # Add any scripts here to update README or generate release notes automatically
+      # ── (Optional) post-processing such as README generation goes here ────
