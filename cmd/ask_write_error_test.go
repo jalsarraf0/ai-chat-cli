@@ -22,7 +22,9 @@ import (
 )
 
 func TestAskCmdWriteError(t *testing.T) {
-	cmd := newAskCmd(mock.New("x"))
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	llmClient = mock.New("x")
+	cmd := newRootCmd()
 	cmd.SetArgs([]string{"hi"})
 	cmd.SetOut(failWriter{})
 	if err := cmd.Execute(); err == nil {

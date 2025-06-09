@@ -18,6 +18,6 @@ package main
 import "testing"
 
 func TestMainFunc(t *testing.T) {
-	t.Parallel()
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
 	main()
 }
