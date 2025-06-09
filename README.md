@@ -110,6 +110,10 @@ Use `Ctrl‑K` for the command palette.
 The interface adapts to any terminal size and chooses a light or dark theme
 based on `$COLORTERM`. Set `NO_COLOR=1` to disable ANSI colours entirely.
 
+## Getting Help
+Run `ai-chat --help` to list all commands and global options.
+Use `ai-chat <command> --help` for command-specific flags or `man ai-chat` for a full manual page.
+
 ---
 
 ## Commands

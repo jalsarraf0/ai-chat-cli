@@ -6,6 +6,15 @@ on:
   pull_request:
     branches: [dev]
 
+env:
+  GO_BIN: $HOME/go/bin
+  COVERAGE_THRESHOLD: 90
+  TRIVY_VERSION: 0.63.0
+  GOLANGCI_VERSION: 2.1.6
+  GOSEC_VERSION: v2.19.0
+  OSV_VERSION: v1.7.3
+  GORELEASER_VERSION: v2.10.2
+
 jobs:
   lint:
     runs-on: [self-hosted, linux]
@@ -44,15 +53,15 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Install gosec
-        run: go install github.com/securego/gosec/v2/cmd/gosec@v2.19.0
+        run: go install github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION}
       - name: Run gosec
         run: gosec ./... || true
       - name: Install osv-scanner
-        run: go install github.com/google/osv-scanner/cmd/osv-scanner@v1.7.3
+        run: go install github.com/google/osv-scanner/cmd/osv-scanner@${OSV_VERSION}
       - name: Run osv-scanner
         run: osv-scanner .
       - name: Install trivy
-        run: wget -qO- https://github.com/aquasecurity/trivy/releases/download/v0.63.0/trivy_0.63.0_Linux-64bit.tar.gz | sudo tar -xz -C /usr/local/bin trivy
+        run: wget -qO- https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz | sudo tar -xz -C /usr/local/bin trivy
       - name: Run trivy
         run: |
           trivy fs --download-db-only
@@ -75,6 +84,9 @@ jobs:
           go test -race -covermode=atomic -coverprofile=coverage.out ./...
           pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%", ""); print $3}')
           echo "total coverage = ${pct}%"
+          if [[ ${pct%.*} -lt $COVERAGE_THRESHOLD ]]; then
+            echo "::error ::coverage ${pct}% < ${COVERAGE_THRESHOLD}%" && exit 1
+          fi
 
   verify-go-sum:
     needs: test
@@ -91,5 +103,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install GoReleaser
         run: |
-          curl -sSfL https://github.com/goreleaser/goreleaser/releases/download/v2.10.2/goreleaser_Linux_x86_64.tar.gz | sudo tar -xz -C /usr/local/bin goreleaser
+          curl -sSfL https://github.com/goreleaser/goreleaser/releases/download/${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin goreleaser
           goreleaser --version

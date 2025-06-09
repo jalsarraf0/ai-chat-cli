@@ -24,5 +24,8 @@
   "homepage": "https://github.com/jalsarraf0/ai-chat-cli#readme",
   "devDependencies": {
     "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "mdbook": "^1.4.1"
   }
 }
