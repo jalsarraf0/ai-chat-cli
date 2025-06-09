@@ -61,6 +61,7 @@ func TestClientImplementations(t *testing.T) {
 		})
 	}
 }
+
 func TestNewMockClient(t *testing.T) {
 	t.Parallel()
 	c := NewMockClient()

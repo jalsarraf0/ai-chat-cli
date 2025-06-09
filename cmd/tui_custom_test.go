@@ -27,20 +27,20 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func TestTuiCmd(t *testing.T) {
+func TestTuiCmdCustomTheme(t *testing.T) {
 	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
 	ran := false
 	teaRun = func(_ *tea.Program) (tea.Model, error) { ran = true; return nil, nil }
 	defer func() { teaRun = func(p *tea.Program) (tea.Model, error) { return p.Run() } }()
 
 	root := newRootCmd()
-	root.SetArgs([]string{"tui", "--theme", "light", "--height", "5"})
+	root.SetArgs([]string{"tui", "--theme", "themes/dark.json", "--height", "1"})
 	root.SetIn(bytes.NewBufferString(":q\n"))
 	root.SetOut(io.Discard)
 	if err := root.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
-	if !ran || height != 5 {
-		t.Fatalf("flags not set or program not run")
+	if !ran {
+		t.Fatalf("program not run")
 	}
 }

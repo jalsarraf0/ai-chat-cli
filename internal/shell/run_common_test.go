@@ -26,7 +26,6 @@ import (
 )
 
 func TestRunCmd_LookPathStub(t *testing.T) {
-
 	lookPathMu.Lock()
 	orig := lookPath
 	lookPath = func(file string) (string, error) {

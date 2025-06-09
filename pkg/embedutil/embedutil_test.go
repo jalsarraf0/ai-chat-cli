@@ -60,6 +60,7 @@ func TestMustTextPanic(t *testing.T) {
 	}()
 	MustText("missing.txt")
 }
+
 func TestReadError(t *testing.T) {
 	t.Parallel()
 	if _, err := Read("does-not-exist"); err == nil {

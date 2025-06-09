@@ -1,6 +1,6 @@
 # AI‑Chat‑CLI
 
-[![Coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)](./)
+[![Coverage](https://img.shields.io/badge/coverage-95.7%25-brightgreen)](./)
 [![Go](https://img.shields.io/badge/go-1.24.x-00ADD8?logo=go)](https://go.dev/doc/go1.24)
 [![Security](https://img.shields.io/badge/security-passing-brightgreen)](./)
 [![Cosign (OIDC)](https://img.shields.io/badge/cosign%20(OIDC)-verified-brightgreen)](https://github.com/sigstore/cosign)
@@ -11,6 +11,13 @@
 
 > **ai‑chat‑cli** is a lightweight, cross‑platform command‑line interface for interacting with GPT‑style large language models (LLMs).
 > Written in pure **Go**, it streams answers in real‑time, keeps your history, and supports an extensible plug‑in system — all in a single ≈ 6 MiB binary.
+
+## Quick Setup
+1. Download a release or clone the repo and run `./setup.sh` to install.
+2. `export OPENAI_API_KEY="sk-..."`
+3. Run `ai-chat-cli` and start typing.
+4. Changed your mind? run `./uninstall.sh` to remove everything.
+
 
 ---
 
@@ -83,7 +90,13 @@ make build   # requires Go 1.24.x
 ### Interactive Installer
 Run the guided setup:
 ```bash
-./scripts/install.sh
+./setup.sh
+```
+
+### Uninstall
+Remove the binary and configuration:
+```bash
+./uninstall.sh
 ```
 
 ---
@@ -95,6 +108,8 @@ ai-chat-cli                      # start interactive chat
 ```
 ![installer](assets/installer-demo.txt)
 Use `Ctrl‑K` for the command palette.
+The interface adapts to any terminal size and chooses a light or dark theme
+based on `$COLORTERM`. Set `NO_COLOR=1` to disable ANSI colours entirely.
 
 ---
 

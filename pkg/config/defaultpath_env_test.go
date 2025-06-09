@@ -17,30 +17,14 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package cmd
+package config
 
-import (
-	"bytes"
-	"io"
-	"testing"
+import "testing"
 
-	tea "github.com/charmbracelet/bubbletea"
-)
-
-func TestTuiCmd(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
-	ran := false
-	teaRun = func(_ *tea.Program) (tea.Model, error) { ran = true; return nil, nil }
-	defer func() { teaRun = func(p *tea.Program) (tea.Model, error) { return p.Run() } }()
-
-	root := newRootCmd()
-	root.SetArgs([]string{"tui", "--theme", "light", "--height", "5"})
-	root.SetIn(bytes.NewBufferString(":q\n"))
-	root.SetOut(io.Discard)
-	if err := root.Execute(); err != nil {
-		t.Fatalf("execute: %v", err)
-	}
-	if !ran || height != 5 {
-		t.Fatalf("flags not set or program not run")
+func TestDefaultPathEnvOverride(t *testing.T) {
+	t.Setenv("AI_CHAT_CONFIG", "/tmp/custom.yaml")
+	p := defaultPath()
+	if p != "/tmp/custom.yaml" {
+		t.Fatalf("want /tmp/custom.yaml got %s", p)
 	}
 }
