@@ -1,0 +1,263 @@
+# .github/workflows/ci.yml
+#
+# COMPLETE WORKFLOW
+# ─────────────────────────────────────────────────────────────────────────────
+# GoReleaser v2.1.2 is installed only for the **amd64** slice; the **arm64**
+# slice continues to fetch the latest stable release automatically.
+# No other parts of the pipeline are changed from the earlier “old” version.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+env:
+  GO_BIN: $HOME/go/bin
+  COVERAGE_THRESHOLD: 70
+  TRIVY_VERSION: 0.63.0
+  GOLANGCI_VERSION: 2.1.6
+  GOSEC_VERSION: v2.19.0
+  OSV_VERSION: v1.7.3
+  GORELEASER_VERSION_AMD64: v2.1.2   # explicit v2 for amd64
+
+on:
+  push:
+    branches: [dev]
+    paths-ignore:
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [dev]
+    paths-ignore:
+      - '.github/workflows/ci.yml'
+
+jobs:
+  # ────────────────────────────── LINT ──────────────────────────────
+  lint:
+    runs-on: [self-hosted, linux]
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+
+    steps:
+      - name: Fix permissions for cache directories
+        run: |
+          sudo chmod -R u+w ~/.cache/go-build || true
+          sudo chmod -R u+w ~/go/pkg/mod      || true
+
+      - name: Restore Go cache (ignore errors)
+        uses: actions/cache@v3
+        continue-on-error: true
+        timeout-minutes: 30
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install golangci-lint ${{ env.GOLANGCI_VERSION }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ca-certificates curl tar
+          mkdir -p "$HOME/go/bin"
+          sudo chown -R "$(id -u -n)":"$(id -g -n)" "$HOME/go"
+          curl -sSfL \
+            "https://github.com/golangci/golangci-lint/releases/download/v${{ env.GOLANGCI_VERSION }}/golangci-lint-${{ env.GOLANGCI_VERSION }}-linux-amd64.tar.gz" \
+          | tar -xz --strip-components=1 -C "$HOME/go/bin" \
+              "golangci-lint-${{ env.GOLANGCI_VERSION }}-linux-amd64/golangci-lint"
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+
+      - name: Run linter (shard ${{ matrix.shard }})
+        run: golangci-lint run --timeout 5m
+
+  # ───────────────────── TEST MATRIX (Go 1.24) ─────────────────────
+  test-matrix:
+    needs: lint
+    strategy:
+      matrix:
+        go: ['1.24']
+
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Fix permissions for cache directories
+        run: |
+          sudo chmod -R u+w ~/.cache/go-build || true
+          sudo chmod -R u+w ~/go/pkg/mod      || true
+
+      - name: Restore Go cache (ignore errors)
+        uses: actions/cache@v3
+        continue-on-error: true
+        timeout-minutes: 30
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
+
+      - run: echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
+
+      - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
+        run: |
+          GORELEASER_SKIP=build,publish,validate \
+            go test -race -covermode=atomic -coverprofile=coverage.out ./...
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
+          echo "total coverage = ${pct}%"
+          if [[ ${pct%.*} -lt $COVERAGE_THRESHOLD ]]; then
+            echo "::error ::coverage ${pct}% < ${COVERAGE_THRESHOLD}%" ; exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.go }}
+          path: coverage.out
+
+  # ───────────────────────── SECURITY SCANS ─────────────────────────
+  security:
+    needs: [lint, test-matrix]
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Fix permissions for cache directories
+        run: |
+          sudo chmod -R u+w ~/.cache/go-build || true
+          sudo chmod -R u+w ~/go/pkg/mod      || true
+
+      - name: Restore Go cache (ignore errors)
+        uses: actions/cache@v3
+        continue-on-error: true
+        timeout-minutes: 30
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install security scanners
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install github.com/securego/gosec/v2/cmd/gosec@${{ env.GOSEC_VERSION }}
+          go install github.com/google/osv-scanner/cmd/osv-scanner@${{ env.OSV_VERSION }}
+          wget -qO- \
+            "https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin trivy
+          sudo chmod +x /usr/local/bin/trivy
+          sudo chown "$(id -u):$(id -g)" /usr/local/bin/trivy
+          echo "${{ env.GO_BIN }}" >> "$GITHUB_PATH"
+
+      - run: govulncheck ./...
+      - name: Run gosec (skip embed issues)
+        run: gosec ./... || true
+      - run: osv-scanner .
+      - run: |
+          trivy fs --download-db-only
+          trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+
+  # ─────────────── SNAPSHOT PACKAGE (amd64 & arm64) ────────────────
+  snapshot:
+    needs: security
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Fix permissions for cache directories
+        run: |
+          sudo chmod -R u+w ~/.cache/go-build || true
+          sudo chmod -R u+w ~/go/pkg/mod      || true
+
+      - name: Restore Go cache (ignore errors)
+        uses: actions/cache@v3
+        continue-on-error: true
+        timeout-minutes: 30
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build binary
+        env:
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p dist/linux_${GOARCH}
+          GOOS=linux go build -trimpath -ldflags "-s -w" \
+            -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
+
+      # ───────────── INSTALL GORELEASER (arch-aware) ─────────────
+      - name: Install GoReleaser
+        env:
+          GORELEASER_VER: v2.1.2   # pinned version for amd64; arm64 uses latest
+        run: |
+          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
+            curl -sSfL \
+              "https://github.com/goreleaser/goreleaser/releases/download/${GORELEASER_VER}/goreleaser_Linux_x86_64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin goreleaser
+          else
+            curl -sSfL \
+              https://github.com/goreleaser/goreleaser/releases/latest/download/goreleaser_Linux_x86_64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin goreleaser
+          fi
+          goreleaser --version
+
+      # ───────────────── SNAPSHOT & PACKAGE ──────────────────
+      - name: Snapshot packages (.deb/.rpm only for amd64)
+        run: |
+          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
+            goreleaser release --clean --snapshot
+          fi
+          tar -C dist/linux_${{ matrix.arch }} -czf \
+            dist/ai-chat-cli_snapshot_linux_${{ matrix.arch }}.tar.gz ai-chat-cli
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-linux-${{ matrix.arch }}
+          path: dist/*
+
+      - name: Run tests (fail if coverage < ${{ env.COVERAGE_THRESHOLD }}%)
+        shell: bash
+        run: |
+          GORELEASER_SKIP=build,publish,validate \
+            go test -race -covermode=atomic -coverprofile=coverage.out ./...
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","");print $3}')
+          echo "total coverage = ${pct}%"
+          if [[ ${pct%.*} -lt $COVERAGE_THRESHOLD ]]; then
+            echo "::error ::coverage ${pct}% < ${COVERAGE_THRESHOLD}%" ; exit 1
+          fi
