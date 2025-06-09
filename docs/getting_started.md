@@ -9,7 +9,7 @@ Follow these steps to get up and running quickly:
    ```
 3. **Start chatting** interactively:
    ```bash
-   ai-chat-cli
+   ai-chat
    ```
 4. Use `/help` inside the chat for available commands.
 

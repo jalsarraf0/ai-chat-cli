@@ -57,7 +57,7 @@ jobs:
           set -e
           mkdir -p dist/linux_${GOARCH}
           GOOS=linux GOARCH=${GOARCH} go build -trimpath -ldflags "-s -w -X main.commit=${GITHUB_SHA} -X main.version=${GITHUB_REF_NAME}" \
-            -o dist/linux_${GOARCH}/ai-chat-cli ./cmd/ai-chat-cli
+            -o dist/linux_${GOARCH}/ai-chat ./cmd/ai-chat
 
       # Package the binary as tar.gz with metadata in filename
       - name: Package as tar.gz
@@ -66,7 +66,7 @@ jobs:
           ARCH: ${{ matrix.arch }}
           SHA: ${{ github.sha }}
         run: |
-          tar -C dist/linux_${ARCH} -czf dist/ai-chat-cli_${TAG}_${SHA}_linux_${ARCH}.tar.gz ai-chat-cli
+          tar -C dist/linux_${ARCH} -czf dist/ai-chat_${TAG}_${SHA}_linux_${ARCH}.tar.gz ai-chat
 
       # Run GoReleaser in snapshot mode for .deb and .rpm (does not publish)
       - name: Run GoReleaser (snapshot)
@@ -82,7 +82,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/ai-chat-cli_${{ github.ref_name }}_${{ github.sha }}_linux_*.tar.gz
+            dist/ai-chat_${{ github.ref_name }}_${{ github.sha }}_linux_*.tar.gz
             dist/*.deb
             dist/*.rpm
 

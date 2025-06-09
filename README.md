@@ -15,7 +15,7 @@
 ## Quick Setup
 1. Download a release or clone the repo and run `./setup.sh`.
 2. `export OPENAI_API_KEY="sk-..."`
-3. Run `ai-chat-cli` and start typing.
+3. Run `ai-chat` and start typing.
 
 
 ---
@@ -41,14 +41,14 @@
 ---
 
 ## Overview
-`ai-chat-cli` wraps the OpenAI, Azure OpenAI and Ollama APIs behind a consistent CLI.
+`ai-chat` wraps the OpenAI, Azure OpenAI and Ollama APIs behind a consistent CLI.
 Key features:
 
 | Feature | Description |
 |---------|-------------|
 | 📨 **Streaming chat** | Low‑latency updates with ANSI markdown rendering |
 | 🗂 **Persistent history** | All chats stored in SQLite and searchable |
-| 🔌 **Plug‑in framework** | Drop shell scripts in `~/.config/ai-chat-cli/plugins` |
+| 🔌 **Plug‑in framework** | Drop shell scripts in `~/.config/ai-chat/plugins` |
 | 🔒 **Keychain integration** | Secrets stored via `pass`, macOS Keychain or Windows DPAPI |
 | 🖇 **Exporters** | Save replies to clipboard, Markdown, HTML, JSON, PDF |
 | ⚙️ **Embeddable** | Public Go API (`pkg/chat`) for your own apps |
@@ -73,11 +73,11 @@ plugins (shell) ────┘
 
 | Package | Command |
 |---------|---------|
-| **tar.gz** | `tar -xzf ai-chat-cli_linux_amd64.tar.gz && sudo mv ai-chat-cli /usr/local/bin` |
-| **DEB** | `sudo dpkg -i ai-chat-cli_<ver>_amd64.deb` |
-| **RPM** | `sudo rpm -Uvh ai-chat-cli_<ver>_amd64.rpm` |
-| **Homebrew** | `brew install jalsarraf0/tap/ai-chat-cli` |
-| **Scoop** | `scoop bucket add jalsarraf0 https://github.com/jalsarraf0/scoop-bucket && scoop install ai-chat-cli` |
+| **tar.gz** | `tar -xzf ai-chat_linux_amd64.tar.gz && sudo mv ai-chat /usr/local/bin` |
+| **DEB** | `sudo dpkg -i ai-chat_<ver>_amd64.deb` |
+| **RPM** | `sudo rpm -Uvh ai-chat_<ver>_amd64.rpm` |
+| **Homebrew** | `brew install jalsarraf0/tap/ai-chat` |
+| **Scoop** | `scoop bucket add jalsarraf0 https://github.com/jalsarraf0/scoop-bucket && scoop install ai-chat` |
 
 ### Build from Source
 ```bash
@@ -103,7 +103,7 @@ Remove the binary and configuration:
 ## Quick Start
 ```bash
 export OPENAI_API_KEY="sk-..."   # set once
-ai-chat-cli                      # start interactive chat
+ai-chat                          # start interactive chat
 ```
 ![installer](assets/installer-demo.txt)
 Use `Ctrl‑K` for the command palette.
@@ -134,7 +134,7 @@ provider: openai
 model: gpt-4o
 temperature: 0.6
 context_window: 16
-plugins_dir: ~/.config/ai-chat-cli/plugins
+plugins_dir: ~/.config/ai-chat/plugins
 ```
 
 Environment variables (`AI_CHAT_MODEL`, etc.) override file values.
@@ -147,7 +147,7 @@ Example hello‑world plug‑in:
 
 ```bash
 #!/usr/bin/env bash
-# ~/.config/ai-chat-cli/plugins/hello
+# ~/.config/ai-chat/plugins/hello
 echo "Hello, $* 👋"
 ```
 

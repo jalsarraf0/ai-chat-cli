@@ -1,4 +1,4 @@
-# ai-chat-cli
+# ai-chat
 
 [![Go](https://img.shields.io/badge/go-1.24.x-blue)](https://go.dev/doc/go1.24)
 [![Coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)](#ci--cd-pipeline-walk-through)

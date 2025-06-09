@@ -58,7 +58,7 @@ docs:
 
 
 build:
-	go build -o bin/ai-chat-cli-linux-amd64 .
+	go build -o bin/ai-chat-linux-amd64 .
 
 man:
 	cobra-cli man --dir docs/man
