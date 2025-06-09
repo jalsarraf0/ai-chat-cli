@@ -1,16 +1,19 @@
 # .github/workflows/ci.yml
 #
-# COMPLETE CI WORKFLOW
+# COMPLETE CI WORKFLOW — amd64-only
 # ─────────────────────────────────────────────────────────────────────────────
-# Snapshot job replaced with the exact snippet the user supplied (matrix now
-# builds **amd64 and arm64**, classic GoReleaser install script, uses
-# `--id deb --id rpm --dist dist`).  All other sections are unchanged.
+# Snapshot job replaced with the exact logic requested:
+#   • No matrix (amd64 only)
+#   • Uses classic install script for GoReleaser
+#   • Builds deb/rpm via `--id deb --id rpm --dist dist`
+#   • Tarballs the snapshot artefact
+# Everything else (lint, tests, security scans) is unchanged.
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: CI
 
 permissions:
-  contents: write
+  contents: write     # allow the workflow to push tags, create releases, etc.
 
 env:
   GO_BIN: $HOME/go/bin
@@ -19,7 +22,7 @@ env:
   GOLANGCI_VERSION: 2.1.6
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
-  GORELEASER_VERSION: v2.9.0        # used by snapshot job below
+  GORELEASER_VERSION: v2.9.0    # used by snapshot job
 
 on:
   push:
@@ -83,7 +86,8 @@ jobs:
     needs: lint
     runs-on: [self-hosted, linux]
     strategy:
-      matrix: { go: ["1.24"] }
+      matrix:
+        go: ["1.24"]
 
     steps:
       - name: Fix permissions & ownership for Go caches
@@ -133,12 +137,9 @@ jobs:
     runs-on: [self-hosted, linux]
     # (unchanged steps omitted for brevity) …
 
-  # ─────────────────────── SNAPSHOT PACKAGE ───────────────────────
+  # ───────────────────── SNAPSHOT PACKAGE (amd64) ─────────────────────
   snapshot:
     needs: security
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
     runs-on: [self-hosted, linux]
 
     steps:
@@ -154,9 +155,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: amd64-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            amd64-go-
 
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -166,7 +167,7 @@ jobs:
 
       - name: Build binary
         env:
-          GOARCH: ${{ matrix.arch }}
+          GOARCH: amd64
         run: |
           mkdir -p dist/linux_${GOARCH}
           GOOS=linux go build -trimpath -ldflags "-s -w" \
@@ -180,14 +181,12 @@ jobs:
 
       - name: Snapshot packages (.deb/.rpm only for amd64)
         run: |
-          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
-            goreleaser release --clean --snapshot \
-              --id deb --id rpm --dist dist
-          fi
-          tar -C dist/linux_${{ matrix.arch }} -czf \
-            dist/ai-chat-cli_snapshot_linux_${{ matrix.arch }}.tar.gz ai-chat-cli
+          goreleaser release --clean --snapshot \
+            --id deb --id rpm --dist dist
+          tar -C dist/linux_amd64 -czf \
+            dist/ai-chat-cli_snapshot_linux_amd64.tar.gz ai-chat-cli
 
       - uses: actions/upload-artifact@v4
         with:
-          name: snapshot-linux-${{ matrix.arch }}
+          name: snapshot-linux-amd64
           path: dist/*
