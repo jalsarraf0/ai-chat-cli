@@ -1,4 +1,4 @@
-# .github/workflows/ci.ymlAdd commentMore actions
+# .github/workflows/ci.yml
 #
 # COMPLETE CI WORKFLOW — amd64-only
 # ─────────────────────────────────────────────────────────────────────────────
@@ -26,10 +26,12 @@ on:
     branches: [dev]
     paths-ignore:
       - ".github/workflows/ci.yml"
+      - "ci.yml"            # ← NEW ①  (ignore root-level file too)
   pull_request:
     branches: [dev]
     paths-ignore:
       - ".github/workflows/ci.yml"
+      - "ci.yml"            # ← NEW ①
 
 jobs:
   # ────────────────────────────── LINT ──────────────────────────────
@@ -188,6 +190,18 @@ jobs:
     runs-on: [self-hosted, linux]
 
     steps:
+      # ── BuildKit & Buildx (NEW ②) ──────────────────────────────────
+      - name: Enable BuildKit and install Buildx
+        run: |
+          export DOCKER_BUILDKIT=1
+          BUILDX_VERSION=v0.14.0
+          mkdir -p ~/.docker/cli-plugins
+          curl -sSL \
+            "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-amd64" \
+            -o ~/.docker/cli-plugins/docker-buildx
+          chmod +x ~/.docker/cli-plugins/docker-buildx
+          docker buildx version
+
       - name: Fix permissions for Go caches
         run: |
           sudo chmod -R u+w ~/.cache/go-build || true
@@ -211,6 +225,13 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+
+      # ── Safety net for missing go.sum (NEW ③) ──────────────────────
+      - name: Generate go.sum if it is missing (safety net)
+        run: |
+          if [ ! -f go.sum ]; then
+            go mod tidy
+          fi
 
       - name: Verify go.sum file
         run: |
