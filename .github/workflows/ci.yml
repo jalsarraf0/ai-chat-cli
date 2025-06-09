@@ -40,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1]
 
     steps:
       - name: Fix permissions for Go caches
@@ -249,10 +249,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           urls=(
-            "https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz"
-            "https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_2.9.0_amd64.deb"
-            "https://github.com/goreleaser/goreleaser/releases/download/v2.8.2/goreleaser_Linux_x86_64.tar.gz"
-            "https://github.com/goreleaser/goreleaser/releases/download/v2.8.2/goreleaser_2.8.2_amd64.deb"
+            "https://github.com/goreleaser/goreleaser/releases/download/v2.10.2/goreleaser_2.10.2_amd64.deb"
+            "https://github.com/goreleaser/goreleaser/releases/download/v2.10.2/goreleaser_Linux_x86_64.tar.gz"
           )
           install_success=false
           for u in "${urls[@]}"; do
@@ -271,7 +269,7 @@ jobs:
           done
           if ! $install_success; then
             echo "Falling back to building from source…"
-            src_url="https://github.com/goreleaser/goreleaser/archive/refs/tags/v2.9.0.tar.gz"
+            src_url="https://github.com/goreleaser/goreleaser/archive/refs/tags/v2.10.2.tar.gz"
             tmpdir=$(mktemp -d)
             curl -sSfL "$src_url" | tar -xz -C "$tmpdir" --strip-components=1
             pushd "$tmpdir" >/dev/null
