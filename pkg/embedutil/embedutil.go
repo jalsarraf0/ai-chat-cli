@@ -28,10 +28,15 @@ import (
 	"github.com/jalsarraf0/ai-chat-cli/internal/assets"
 )
 
+var (
+	assetsFS fs.FS = assets.FS
+	walkDir        = fs.WalkDir
+)
+
 // List returns the names of all embedded files.
 func List() []string {
 	var names []string
-	if err := fs.WalkDir(assets.FS, ".", func(path string, d fs.DirEntry, _ error) error {
+	if err := walkDir(assetsFS, ".", func(path string, d fs.DirEntry, _ error) error {
 		if !d.IsDir() {
 			names = append(names, path)
 		}

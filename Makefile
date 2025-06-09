@@ -34,7 +34,7 @@ test: lint unit
 .PHONY: security-scan
 
 security-scan: ## Run gosec static analysis
-        GOFLAGS='-trimpath' gosec ./...
+	GOFLAGS='-trimpath' gosec ./...
 
 coverage:
 	go test -race -covermode=atomic -coverprofile=coverage.out ./...
@@ -82,11 +82,19 @@ prompt:
 	chmod +x dist/prompt/stub.sh
 
 snapshot:
-	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
+	@command -v goreleaser >/dev/null || (\
+	curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz \
+	| tar -xz goreleaser && sudo mv goreleaser /usr/local/bin/)
+	@[ -f go.sum ] || go mod tidy
+	go mod verify
 	goreleaser release --snapshot --clean --skip=publish --skip=docker --skip=sign
 
 release:
-	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
+	@command -v goreleaser >/dev/null || (\
+	                                       curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz \
+	                                       | tar -xz goreleaser && sudo mv goreleaser /usr/local/bin/)
+	@[ -f go.sum ] || go mod tidy
+	go mod verify
 	goreleaser release --clean --skip=publish --skip=docker
 
 

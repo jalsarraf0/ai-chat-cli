@@ -28,7 +28,7 @@ import (
 
 // versionCmd represents the version command
 var (
-    Version = "v1.0.1"
+	Version = "v1.0.1"
 	Commit  = "none"
 	Date    = "unknown"
 )

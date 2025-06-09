@@ -17,8 +17,6 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-//go:build unit
-
 package openai
 
 import (
@@ -38,8 +36,12 @@ func TestCompletionStream(t *testing.T) {
 			t.Fatalf("missing auth")
 		}
 		w.Header().Set("Content-Type", "text/event-stream")
-		io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\n")
-		io.WriteString(w, "data: [DONE]\n\n")
+		if _, err := io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		if _, err := io.WriteString(w, "data: [DONE]\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
 	}))
 	defer srv.Close()
 	t.Setenv("AI_CHAT_API_KEY", "k")
@@ -60,9 +62,11 @@ func TestCompletionStream(t *testing.T) {
 }
 
 func TestCompletionHTTPError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		io.WriteString(w, "bad")
+		if _, err := io.WriteString(w, "bad"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
 	}))
 	defer srv.Close()
 	t.Setenv("AI_CHAT_API_KEY", "k")
