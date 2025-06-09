@@ -17,14 +17,13 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-//go:build unit
-
 package cmd
 
 import (
 	"bytes"
-	"github.com/spf13/cobra"
 	"testing"
+
+	"github.com/spf13/cobra"
 
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/mock"
 )

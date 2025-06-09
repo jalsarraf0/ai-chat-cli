@@ -12,6 +12,12 @@
 > **ai‑chat‑cli** is a lightweight, cross‑platform command‑line interface for interacting with GPT‑style large language models (LLMs).
 > Written in pure **Go**, it streams answers in real‑time, keeps your history, and supports an extensible plug‑in system — all in a single ≈ 6 MiB binary.
 
+## Quick Setup
+1. Download a release or clone the repo and run `./setup.sh`.
+2. `export OPENAI_API_KEY="sk-..."`
+3. Run `ai-chat-cli` and start typing.
+
+
 ---
 
 ## 📚 Table of Contents
@@ -83,7 +89,13 @@ make build   # requires Go 1.24.x
 ### Interactive Installer
 Run the guided setup:
 ```bash
-./scripts/install.sh
+./setup.sh
+```
+
+### Uninstall
+Remove the binary and configuration:
+```bash
+./uninstall.sh
 ```
 
 ---
@@ -95,6 +107,8 @@ ai-chat-cli                      # start interactive chat
 ```
 ![installer](assets/installer-demo.txt)
 Use `Ctrl‑K` for the command palette.
+The interface adapts to any terminal size and chooses a light or dark theme
+based on `$COLORTERM`. Set `NO_COLOR=1` to disable ANSI colours entirely.
 
 ---
 

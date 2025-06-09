@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 DRY=0
 YES=0
 OPENAI=""
@@ -45,7 +49,10 @@ EOF
         echo "OPENAI_API_KEY=$OPENAI" >"$ENV_FILE"
         chmod 600 "$ENV_FILE"
     fi
-    go install ./cmd/ai-chat-cli@latest
+    (
+        cd "$REPO_ROOT"
+        go install ./cmd/ai-chat-cli@latest
+    )
 }
 if [ $DRY -eq 1 ]; then
     echo "Would install to $CONFIG and build binary"

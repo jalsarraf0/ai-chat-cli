@@ -43,6 +43,7 @@ func TestAskCmd(t *testing.T) {
 		t.Fatalf("output %q", buf.String())
 	}
 }
+
 func TestAskCmdFlags(t *testing.T) {
 	t.Parallel()
 	buf := new(bytes.Buffer)

@@ -20,27 +20,47 @@
 package cmd
 
 import (
-	"bytes"
-	"io"
+	"os"
+	"path/filepath"
 	"testing"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
-func TestTuiCmd(t *testing.T) {
+func TestAssetsListWriteError(t *testing.T) {
 	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
-	ran := false
-	teaRun = func(_ *tea.Program) (tea.Model, error) { ran = true; return nil, nil }
-	defer func() { teaRun = func(p *tea.Program) (tea.Model, error) { return p.Run() } }()
-
+	cfg := filepath.Join(t.TempDir(), "c.yaml")
 	root := newRootCmd()
-	root.SetArgs([]string{"tui", "--theme", "light", "--height", "5"})
-	root.SetIn(bytes.NewBufferString(":q\n"))
-	root.SetOut(io.Discard)
-	if err := root.Execute(); err != nil {
-		t.Fatalf("execute: %v", err)
+	root.SetArgs([]string{"--config", cfg, "assets", "list"})
+	root.SetOut(failWriter{})
+	if err := root.Execute(); err == nil {
+		t.Fatalf("expected error")
 	}
-	if !ran || height != 5 {
-		t.Fatalf("flags not set or program not run")
+}
+
+func TestAssetsCatError(t *testing.T) {
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	cfg := filepath.Join(t.TempDir(), "c.yaml")
+	root := newRootCmd()
+	root.SetArgs([]string{"--config", cfg, "assets", "cat", "missing.txt"})
+	if err := root.Execute(); err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
+func TestAssetsExportMkdirError(t *testing.T) {
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	cfg := filepath.Join(t.TempDir(), "c.yaml")
+	base := filepath.Join(t.TempDir(), "dir")
+	if err := os.MkdirAll(base, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(base, "file")
+	if err := os.WriteFile(file, []byte{}, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	dest := filepath.Join(file, "out.json")
+	root := newRootCmd()
+	root.SetArgs([]string{"--config", cfg, "assets", "export", "themes/light.json", dest})
+	if err := root.Execute(); err == nil {
+		t.Fatalf("expected error")
 	}
 }

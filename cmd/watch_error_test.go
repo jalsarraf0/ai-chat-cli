@@ -21,26 +21,21 @@ package cmd
 
 import (
 	"bytes"
-	"io"
+	"os"
+	"path/filepath"
 	"testing"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
-func TestTuiCmd(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
-	ran := false
-	teaRun = func(_ *tea.Program) (tea.Model, error) { ran = true; return nil, nil }
-	defer func() { teaRun = func(p *tea.Program) (tea.Model, error) { return p.Run() } }()
-
-	root := newRootCmd()
-	root.SetArgs([]string{"tui", "--theme", "light", "--height", "5"})
-	root.SetIn(bytes.NewBufferString(":q\n"))
-	root.SetOut(io.Discard)
-	if err := root.Execute(); err != nil {
-		t.Fatalf("execute: %v", err)
+func TestWatchCmdWriteError(t *testing.T) {
+	cfg := filepath.Join(t.TempDir(), "watch.yaml")
+	if err := os.WriteFile(cfg, []byte("patterns:\n  - ERR"), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
 	}
-	if !ran || height != 5 {
-		t.Fatalf("flags not set or program not run")
+	cmd := newWatchCmd()
+	cmd.SetArgs([]string{"--config", cfg})
+	cmd.SetIn(bytes.NewBufferString("ERR line\n"))
+	cmd.SetOut(failWriter{})
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected error")
 	}
 }
