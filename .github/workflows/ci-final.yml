@@ -13,7 +13,10 @@ env:
   GOLANGCI_VERSION: 2.1.6
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
+
   GORELEASER_VERSION: v2.10.2
+
+
 
 jobs:
   lint:
