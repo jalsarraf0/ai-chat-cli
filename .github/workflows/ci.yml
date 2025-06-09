@@ -1,15 +1,3 @@
-# .github/workflows/ci.yml
-#
-# COMPLETE CI WORKFLOW — amd64-only
-# ─────────────────────────────────────────────────────────────────────────────
-# Snapshot job replaced with the exact logic requested:
-#   • No matrix (amd64 only)
-#   • Uses classic install script for GoReleaser
-#   • Builds deb/rpm via `--id deb --id rpm --dist dist`
-#   • Tarballs the snapshot artefact
-# Everything else (lint, tests, security scans) is unchanged.
-# ─────────────────────────────────────────────────────────────────────────────
-
 name: CI
 
 permissions:
