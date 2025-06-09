@@ -1,11 +1,11 @@
 # .github/workflows/ci.yml
 #
 # COMPLETE CI WORKFLOW — amd64-only
-# ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────[...]
 # • Lint, Test, Security and Snapshot jobs.
 # • Snapshot job uses classic GoReleaser install script (`--id deb --id rpm`).
 # • Security job now has full steps so the workflow file is valid.
-# ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────[...]
 
 name: CI
 
@@ -24,10 +24,12 @@ env:
 on:
   push:
     branches: [dev]
-    paths-ignore: [".github/workflows/ci.yml"]
+    paths-ignore:
+      - ".github/workflows/ci.yml"
   pull_request:
     branches: [dev]
-    paths-ignore: [".github/workflows/ci.yml"]
+    paths-ignore:
+      - ".github/workflows/ci.yml"
 
 jobs:
   # ────────────────────────────── LINT ──────────────────────────────
