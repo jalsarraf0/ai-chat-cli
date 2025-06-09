@@ -243,7 +243,7 @@ jobs:
         run: |
           mkdir -p dist/linux_amd64
           GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" \
-            -o dist/linux_amd64/ai-chat-cli ./cmd/ai-chat-cli
+            -o dist/linux_amd64/ai-chat ./cmd/ai-chat
 
       - name: Install GoReleaser with fallbacks  # v2.10.2 ONLY
         run: |

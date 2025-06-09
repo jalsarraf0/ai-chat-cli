@@ -23,7 +23,7 @@ check tar
 if [ "$(uname)" = "Darwin" ]; then
     command -v brew >/dev/null 2>&1 || { echo "brew missing"; exit 1; }
 fi
-printf 'Welcome to ai-chat-cli installer\n'
+printf 'Welcome to ai-chat installer\n'
 [ $DRY -eq 1 ] && echo '(dry run)'
 prompt(){
     var=$1; def=$2; msg=$3;
@@ -34,7 +34,7 @@ prompt MODEL "gpt-4o" "Model [gpt-4o]: "
 prompt FORMAT "markdown" "Response format [markdown]: "
 prompt TELEMETRY "no" "Enable telemetry? [y/N]: "
 [ -n "$OPENAI" ] || prompt OPENAI "" "OPENAI_API_KEY: "
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ai-chat-cli"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ai-chat"
 CONFIG="$CONFIG_DIR/config.yaml"
 ENV_FILE="$CONFIG_DIR/.env"
 do_install(){
@@ -51,7 +51,7 @@ EOF
     fi
     (
         cd "$REPO_ROOT"
-        go install ./cmd/ai-chat-cli@latest
+        go install ./cmd/ai-chat@latest
     )
 }
 if [ $DRY -eq 1 ]; then
@@ -59,6 +59,6 @@ if [ $DRY -eq 1 ]; then
     exit 0
 fi
 do_install
-ai-chat-cli --version
-ai-chat-cli healthcheck
+ai-chat --version
+ai-chat healthcheck
 echo "Installation complete at $(go env GOBIN 2>/dev/null || echo "$HOME/go/bin")"
