@@ -7,20 +7,20 @@ name: Release
 
 on:
   push:
-    tags: ['v*']          # e.g. v1.2.3
-  workflow_dispatch:      # manual run button
+    tags: ['v*']            # e.g. v1.2.3
+  workflow_dispatch:        # manual run button
 
 jobs:
   release:
     runs-on: [self-hosted, linux]
     permissions:
-      contents: write      # GoReleaser uploads assets via GitHub API
+      contents: write        # GoReleaser uploads assets via GitHub API
       packages: read
 
     strategy:
       matrix:
         os:   [linux]
-        arch: [amd64]      # ARM intentionally skipped
+        arch: [amd64]        # ARM intentionally skipped
 
     steps:
     # 1 ── Checkout ──────────────────────────────────────────────
@@ -43,7 +43,14 @@ jobs:
       with:
         go-version-file: go.mod
 
-    # 4 ── Run unit tests ───────────────────────────────────────
+    # 3½ ── Install GoReleaser v2 for tests ─────────────────────
+    - name: Install GoReleaser v2 for tests
+      uses: goreleaser/goreleaser-action@v5
+      with:
+        version: v2.10.2
+        install-only: true         # puts CLI in PATH, doesn’t run it
+
+    # 4 ── Run unit tests (incl. TestSnapshotSBOM) ──────────────
     - name: Run Go tests
       run: go test ./...
 
