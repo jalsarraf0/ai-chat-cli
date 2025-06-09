@@ -54,11 +54,10 @@ jobs:
     - name: Run Go tests
       run: go test ./...
 
-    # 5 ── GoReleaser: build & publish artefacts ────────────────
+# 5 ── GoReleaser: build & publish artefacts ────────────────
     - name: GoReleaser release
       uses: goreleaser/goreleaser-action@v5
       with:
         version: v2.10.2
-        args: release --clean \
-              --id deb --id rpm --dist dist \
-              --skip=docker
+        args: release --clean --skip=docker
+
