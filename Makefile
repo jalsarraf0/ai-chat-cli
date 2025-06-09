@@ -1,8 +1,10 @@
 .PHONY: format lint lint-all static security test docs build man shell-test cross
 GOFILES := $(shell git ls-files '*.go')
+export PATH := $(HOME)/.local/bin:$(PATH)
 
 format:
 	gofumpt -l -w $(GOFILES)
+	
 
 lint: ## static analysis
 	golangci-lint run ./...
@@ -52,9 +54,19 @@ coverage-gate:
        if [ $${pct%.*} -lt 90 ]; then \
        echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
 
-docs:
-	@git ls-files "*.md" | xargs -r sed -i "s/[ 	]*$$//" && git diff --exit-code || true
-	hugo --contentDir=docs --destination=public
+install-hugo:
+	./scripts/install_hugo.sh
+
+docs: install-hugo
+	@echo "📖 Building Hugo site"
+	hugo --minify
+
+readme: install-hugo
+	@echo "📝 Re-rendering README.md"
+	hugo --quiet -D --renderToREADME -d .
+
+docs-all: docs readme
+
 
 
 build:

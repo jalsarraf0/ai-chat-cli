@@ -1,0 +1,12 @@
+baseURL = 'https://example.com/'
+title = 'AI Chat CLI'
+
+[outputFormats]
+  [outputFormats.readme]
+    mediaType = 'text/markdown'
+    baseName = 'README'
+    isPlainText = true
+    notAlternative = true
+
+[outputs]
+  home = ['HTML', 'readme']
