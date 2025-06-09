@@ -52,7 +52,7 @@ jobs:
       - name: Set up GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
-          version: v1.27.0           # update when you upgrade your local CLI
+          version: v2.10.2           # update when you upgrade your local CLI
 
       # ─── 6. Build binary for this matrix item ─────────────────────────────
       - name: Build binary
