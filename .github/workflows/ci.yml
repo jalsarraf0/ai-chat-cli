@@ -3,9 +3,9 @@
 # COMPLETE CI WORKFLOW — amd64-only
 # ─────────────────────────────────────────────────────────────────────────────
 # • Added “Verify go.sum file” in the snapshot job.
-# • GoReleaser installs through a five-level fallback chain.
-# • Fixed YAML style (no inline mappings) so every line validates, including
-#   the previous line-103 area inside the `lint` job’s `strategy` block.
+# • GoReleaser installs through a five-level fallback chain (all v2.10.2).
+# • Docker image build is now skipped in CI (handled locally).
+# • Fixed YAML style (no inline mappings) so every line validates.
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: CI
@@ -26,12 +26,12 @@ on:
     branches: [dev]
     paths-ignore:
       - ".github/workflows/ci.yml"
-      - "ci.yml"            # ← NEW ①  (ignore root-level file too)
+      - "ci.yml"
   pull_request:
     branches: [dev]
     paths-ignore:
       - ".github/workflows/ci.yml"
-      - "ci.yml"            # ← NEW ①
+      - "ci.yml"
 
 jobs:
   # ────────────────────────────── LINT ──────────────────────────────
@@ -190,7 +190,7 @@ jobs:
     runs-on: [self-hosted, linux]
 
     steps:
-      # ── BuildKit & Buildx (NEW ②) ──────────────────────────────────
+      # ── BuildKit & Buildx ──────────────────────────────────────────
       - name: Enable BuildKit and install Buildx
         run: |
           export DOCKER_BUILDKIT=1
@@ -226,7 +226,7 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      # ── Safety net for missing go.sum (NEW ③) ──────────────────────
+      # ── Safety net for missing go.sum ──────────────────────────────
       - name: Generate go.sum if it is missing (safety net)
         run: |
           if [ ! -f go.sum ]; then
@@ -245,7 +245,7 @@ jobs:
           GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" \
             -o dist/linux_amd64/ai-chat-cli ./cmd/ai-chat-cli
 
-      - name: Install GoReleaser with fallbacks
+      - name: Install GoReleaser with fallbacks  # v2.10.2 ONLY
         run: |
           set -Eeuo pipefail
           urls=(
@@ -281,7 +281,8 @@ jobs:
 
       - name: Snapshot packages (.deb/.rpm)
         run: |
-          goreleaser release --clean --snapshot
+          # Skip Docker image build; the image will be built locally later
+          goreleaser release --clean --snapshot --skip=docker
           tar -C dist/linux_amd64 -czf \
             dist/ai-chat-cli_snapshot_linux_amd64.tar.gz ai-chat-cli
 
