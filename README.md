@@ -1,4 +1,7 @@
-# AI‑Chat‑CLI
+# AI‑Chat‑CLI 🤖
+
+
+
 
 
 [![CI + Release](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml)
@@ -6,6 +9,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/jalsarraf0/ai-chat-cli)](https://goreportcard.com/report/github.com/jalsarraf0/ai-chat-cli)
 [![Latest Release](https://img.shields.io/github/v/release/jalsarraf0/ai-chat-cli?include_prereleases&sort=semver)](https://github.com/jalsarraf0/ai-chat-cli/releases)
 [![License](https://img.shields.io/github/license/jalsarraf0/ai-chat-cli)](https://github.com/jalsarraf0/ai-chat-cli/blob/dev/LICENSE)
+
+
 
 
 ![CI](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml/badge.svg)
@@ -22,8 +27,18 @@
 
 
 
-> **ai‑chat‑cli** is a lightweight, cross‑platform command‑line interface for interacting with GPT‑style large language models (LLMs).
-> Written in pure **Go**, it streams answers in real‑time, keeps your history, and supports an extensible plug‑in system — all in a single ≈ 6 MiB binary.
+
+> **ai‑chat‑cli** ✨ is a lightweight command‑line tool for GPT‑style models.
+> Written in **Go**, it streams answers in real time, remembers chat history and supports plug‑ins — all in a ~6 MiB binary.
+
+
+## Quick Start 🚀
+```bash
+curl -fsSL https://raw.githubusercontent.com/jalsarraf0/ai-chat-cli/main/scripts/install.sh | bash
+ai-chat "Hello"
+```
+The installer checks prerequisites, compiles the binary and copies it to `/usr/local/bin`.
+It stores your API key in `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
 
 ## Quick Start
 ```bash
@@ -51,25 +66,26 @@ The installer checks prerequisites, compiles the binary and stores your API key 
 
 
 
+
 ---
 
 ## 📚 Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Installation](#installation)
+3. [Installation](#installation-)
    * [Packages](#packages)
    * [Build from Source](#build-from-source)
-4. [Quick Start](#quick-start)
-5. [Commands](#commands)
-6. [Configuration](#configuration)
-7. [Plug‑ins](#plug-ins)
-8. [Testing & CI](#testing--ci)
-9. [Development](#development)
-10. [Contributing](#contributing)
-11. [Security](#security)
-12. [License](#license)
-13. [Changelog](#changelog)
-14. [Acknowledgements](#acknowledgements)
+4. [Quick Start](#quick-start-)
+5. [Commands](#commands-)
+6. [Configuration](#configuration-)
+7. [Plug‑ins](#plugins-)
+8. [Testing & CI](#testing--ci-)
+9. [Development](#development-)
+10. [Contributing](#contributing-)
+11. [Security](#security-)
+12. [License](#license-)
+13. [Changelog](#changelog-)
+14. [Acknowledgements](#acknowledgements-)
 
 ---
 
@@ -100,7 +116,7 @@ plugins (shell) ────┘
 
 ---
 
-## Installation
+## Installation 📦
 
 ### Packages
 
@@ -133,7 +149,11 @@ Remove the binary and configuration:
 
 ---
 
+
+## Usage 💻
+=======
 ## Usage
+
 ```bash
 export OPENAI_API_KEY="sk-..."   # set once
 ai-chat                          # start interactive chat
@@ -148,12 +168,11 @@ Run `ai-chat --help` for available commands. Use `ai-chat <command> --help` for 
 
 ---
 
-## Commands
+## Commands 🛠
 
 | Command | Purpose |
 |---------|---------|
-| `chat` | Interactive REPL |
-| `ask` | One‑off prompt |
+| *(prompt)* | One‑off question |
 | `plugins` | Manage plug‑ins |
 | `history` | List/search old chats |
 | `export` | Save chats |
@@ -162,7 +181,7 @@ Run `ai-chat --help` for available commands. Use `ai-chat <command> --help` for 
 
 ---
 
-## Configuration
+## Configuration ⚙
 Default file `~/.config/ai-chat/ai-chat.yaml`:
 
 ```yaml
@@ -177,7 +196,7 @@ Environment variables (`AI_CHAT_MODEL`, etc.) override file values.
 
 ---
 
-## Plug‑ins
+## Plug‑ins 🔌
 
 Example hello‑world plug‑in:
 
@@ -191,7 +210,7 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 
 ---
 
-## Testing & CI
+## Testing & CI ✅
 | Job | Tool | Gate |
 |-----|------|------|
 | **Lint** | golangci‑lint | no warnings |
@@ -201,7 +220,7 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 
 ---
 
-## Development
+## Development 👷
 ```bash
 make              # format, vet, lint, test
 make coverage     # HTML coverage report
@@ -210,7 +229,7 @@ make release      # goreleaser release --clean --skip=docker
 
 ---
 
-## Contributing
+## Contributing 🤝
 1. Fork & branch: `git checkout -b feat/my-feature`
 2. Write tests & code
 3. `make` must pass
@@ -218,23 +237,23 @@ make release      # goreleaser release --clean --skip=docker
 
 ---
 
-## Security
+## Security 🔐
 Please report vulnerabilities via [GitHub Advisories](https://github.com/jalsarraf0/ai-chat-cli/security/advisories).
 We follow a 90‑day disclosure window.
 
 ---
 
-## License
+## License 📝
 MIT – see [LICENSE](LICENSE).
 
 ---
 
-## Changelog
+## Changelog 📜
 See [Releases](https://github.com/jalsarraf0/ai-chat-cli/releases) or [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-## Acknowledgements
+## Acknowledgements 🙏
 - OpenAI & Azure OpenAI
 - Charm Bracelet (Bubble Tea)
 - spf13/cobra
