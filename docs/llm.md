@@ -1,6 +1,6 @@
 # LLM Usage
 
-`ai-chat ask` streams chat completions to stdout. Set your OpenAI key in `ai-chat.yaml` (`openai_api_key`) or `AI_CHAT_API_KEY`.
+`ai-chat` streams chat completions to stdout. Set your OpenAI key in `ai-chat.yaml` (`openai_api_key`) or `AI_CHAT_API_KEY`.
 
 | Flag | Config key | Purpose |
 |------|------------|---------|
