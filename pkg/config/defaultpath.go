@@ -32,5 +32,5 @@ func defaultPathImpl() string {
 			base = os.TempDir()
 		}
 	}
-	return filepath.Join(base, "ai-chat", "ai-chat.yaml")
+	return filepath.Join(base, "ai-chat-cli", "config.yaml")
 }

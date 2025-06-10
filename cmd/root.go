@@ -21,6 +21,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/jalsarraf0/ai-chat-cli/internal/shell"
 	"github.com/jalsarraf0/ai-chat-cli/pkg/chat"
@@ -52,6 +53,10 @@ func newRootCmd() *cobra.Command {
 		Args:  cobra.ArbitraryArgs,
 		RunE:  askRunE(llmClient),
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if strings.HasPrefix(cmd.CommandPath(), cmd.Root().Name()+" config") {
+				config.SkipValidation(true)
+				defer config.SkipValidation(false)
+			}
 			if err := config.Load(cfgFile); err != nil {
 				return err
 			}
