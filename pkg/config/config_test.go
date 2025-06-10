@@ -79,8 +79,8 @@ func TestDefaultPathXDG(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
 	t.Setenv("XDG_CONFIG_HOME", dir)
-	p := defaultPath()
-	want := filepath.Join(dir, "ai-chat", "ai-chat.yaml")
+       p := defaultPath()
+       want := filepath.Join(dir, "ai-chat-cli", "config.yaml")
 	if p != want {
 		t.Fatalf("want %s got %s", want, p)
 	}
@@ -90,7 +90,7 @@ func TestDefaultPathHome(t *testing.T) {
 	Reset()
 	t.Setenv("XDG_CONFIG_HOME", "")
 	p := defaultPath()
-	if !strings.Contains(p, ".config/ai-chat/ai-chat.yaml") {
+       if !strings.Contains(p, ".config/ai-chat-cli/config.yaml") {
 		t.Fatalf("unexpected %s", p)
 	}
 }
@@ -101,7 +101,7 @@ func TestDefaultPathFallback(t *testing.T) {
 	oldHome := os.Getenv("HOME")
 	t.Setenv("HOME", "")
 	p := defaultPath()
-	if !strings.Contains(p, "ai-chat/ai-chat.yaml") {
+       if !strings.Contains(p, "ai-chat-cli/config.yaml") {
 		t.Fatalf("unexpected %s", p)
 	}
 	if oldHome != "" {
@@ -230,4 +230,18 @@ func TestAllAndIsSet(t *testing.T) {
 	if all["foo"] != "bar" {
 		t.Fatalf("all map")
 	}
+}
+
+func TestSkipValidation(t *testing.T) {
+    Reset()
+    dir := t.TempDir()
+    file := filepath.Join(dir, "c.yaml")
+    SkipValidation(true)
+    t.Cleanup(func() { SkipValidation(false) })
+    if err := Load(file); err != nil {
+        t.Fatalf("load skip: %v", err)
+    }
+    if Path() != file {
+        t.Fatalf("path %s", Path())
+    }
 }

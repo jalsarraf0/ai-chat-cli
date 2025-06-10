@@ -97,9 +97,15 @@ prompt:
 
 snapshot:
 	@command -v goreleaser >/dev/null || (\
-		curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz \
-		| tar -xz goreleaser && sudo mv goreleaser /usr/local/bin/)
+	curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz \
+	| tar -xz goreleaser && sudo mv goreleaser /usr/local/bin/)
 	goreleaser release --snapshot --clean --skip=publish --skip=docker --skip=sign
+	
+package:
+	@command -v goreleaser >/dev/null || (\
+	curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz \
+	| tar -xz goreleaser && sudo mv goreleaser /usr/local/bin/)
+	goreleaser release --snapshot --clean
 
 release:
 	       @command -v goreleaser >/dev/null || (\
