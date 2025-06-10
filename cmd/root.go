@@ -22,6 +22,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/jalsarraf0/ai-chat-cli/internal/shell"
@@ -29,13 +30,15 @@ import (
 	"github.com/jalsarraf0/ai-chat-cli/pkg/config"
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/mock"
+	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/openai"
 	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var (
 	chatClient    chat.Client = chat.NewMockClient()
-	llmClient     llm.Client  = mock.New("hello")
+	defaultLLM    llm.Client  = mock.New("hello")
+	llmClient     llm.Client  = defaultLLM
 	verbose       bool
 	detectedShell shell.Kind
 	cfgFile       string
@@ -84,6 +87,9 @@ func newRootCmd() *cobra.Command {
 				return err
 			}
 			log.Printf("INFO: config %s", config.Path())
+			if reflect.DeepEqual(llmClient, defaultLLM) {
+				llmClient = openai.New()
+			}
 			if verbose {
 				if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "shell=%s\n", detectedShell); err != nil {
 					cmd.Println("Error:", err)
