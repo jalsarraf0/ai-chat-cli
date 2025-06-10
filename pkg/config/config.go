@@ -25,15 +25,20 @@ import (
 )
 
 var (
-	v    = viper.New()
-	path string
+	v            = viper.New()
+	path         string
+	skipValidate bool
 )
 
 // Reset is intended for tests to reinitialize the package state.
 func Reset() {
 	v = viper.New()
 	path = ""
+	skipValidate = false
 }
+
+// SkipValidation controls whether Load skips validation. Intended for CLI config commands.
+func SkipValidation(enable bool) { skipValidate = enable }
 
 // Load reads configuration from file, env and flags.
 func Load(p string) error {
@@ -53,6 +58,9 @@ func Load(p string) error {
 		if !errors.As(err, &e) && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
+	}
+	if skipValidate {
+		return nil
 	}
 	return validate()
 }

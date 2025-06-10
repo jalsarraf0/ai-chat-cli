@@ -148,3 +148,8 @@ jobs:
         with:
           version: v2.10.2
           args: release --clean          # builds tar.gz, .deb, .rpm
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*

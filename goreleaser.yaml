@@ -9,11 +9,11 @@ before:
 
 # ─── Builds ──────────────────────────────────────────────────────────
 builds:
-  - id: linux_amd64
-    main: ./cmd/ai-chat
-    goos:  [linux]
+  - id: default
+    main: ./cmd/ai-chat-cli
+    goos: [linux]
     goarch: [amd64]
-    env:   [CGO_ENABLED=0]
+    env: [CGO_ENABLED=0]
     ldflags: >-
       -s -w
       -X main.version={{ .Version }}
@@ -23,9 +23,9 @@ builds:
 # ─── Archives ────────────────────────────────────────────────────────
 archives:
   - id: default
-    ids:     [linux_amd64]
+    ids:     [default]
     formats: [tar.gz]
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: "ai-chat-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     files:
       - LICENSE*
       - README.md
@@ -34,8 +34,9 @@ archives:
 nfpms:
   # Debian package
   - id: deb
-    builds:   [linux_amd64]
+    builds:   [default]
     formats:  [deb]
+    package_name: ai-chat-cli
     section:  utils
     maintainer: Jamal Al-Sarraf <you@example.com>
     vendor:      AI-Chat-CLI
@@ -47,8 +48,9 @@ nfpms:
 
   # RPM package
   - id: rpm
-    builds:   [linux_amd64]
+    builds:   [default]
     formats:  [rpm]
+    package_name: ai-chat-cli
     maintainer: Jamal Al-Sarraf <you@example.com>
     vendor:      AI-Chat-CLI
     homepage:    https://github.com/jalsarraf0/ai-chat-cli
@@ -61,6 +63,10 @@ nfpms:
 checksum:
   name_template: checksums.txt
   algorithm: sha256
+
+sboms:
+  - id: default
+    artifacts: archive
 
 # ─── GitHub Release ─────────────────────────────────────────────────
 release:
