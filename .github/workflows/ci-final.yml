@@ -82,7 +82,7 @@ jobs:
         run: |
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
-          
+
   # 4 ── Tests & Coverage ────────────────────────────────────
   test:
     needs: [lint, docs]
