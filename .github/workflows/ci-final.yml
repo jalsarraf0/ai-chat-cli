@@ -4,10 +4,14 @@ name: CI + Release
 on:
   push:
     branches: [dev]
-    tags: ['v*']           # triggers again on version tags
+    tags: ['v*']                  # still run on version tags
+    paths-ignore:
+      - '.github/workflows/ci-final.yml'
   pull_request:
     branches: [dev]
-  workflow_dispatch:       # manual trigger
+    paths-ignore:
+      - '.github/workflows/ci-final.yml'
+  workflow_dispatch:              # manual trigger remains
 
 env:
   GO_BIN: $HOME/go/bin
@@ -17,8 +21,7 @@ env:
   GOSEC_VERSION: v2.19.0
   OSV_VERSION: v1.7.3
 
-# All jobs can upload artifacts or releases
-permissions:
+permissions:                      # global write access
   contents: write
   packages: write
 
