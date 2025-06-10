@@ -19,7 +19,13 @@ ai-chat "Hello"
 ```
 
 The installer checks prerequisites, compiles the binary and copies it to `/usr/local/bin`.
-It stores your API key in `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
+Set your OpenAI API key first with `export OPENAI_API_KEY=<key>` or run:
+
+```bash
+ai-chat login <key>
+```
+
+Your key is stored in `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
 
 ---
 
