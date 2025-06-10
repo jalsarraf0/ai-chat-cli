@@ -15,6 +15,11 @@ curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/scripts/install.sh 
 ai-chat "Hello"
 ```
 
+The installer checks prerequisites, compiles the binary and stores your API key in
+`$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
+
+
+
 
 ---
 
