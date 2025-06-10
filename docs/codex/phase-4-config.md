@@ -16,7 +16,7 @@ Author: Jamal Al‑Sarraf <jalsarraf0@gmail.com>
 |---|-------------|---------|
 | 1 | **Config package (`pkg/config`)** | Wrap **spf13/viper** with helper functions:<br>`Load()`, `Save()`, `GetString(key)`, `Set(key,val)`. Default path `~/.config/ai-chat/config.yaml` on Unix & `%APPDATA%\ai-chat\config.yaml` on Windows. |
 | 2 | **CLI sub‑command `ai-chat config`** | Sub‑commands:<br>`show` (print current YAML), `set <key> <value>`, `edit` (opens `$EDITOR`, fallback to `vi`/`notepad`). |
-| 3 | **Environment & flag overrides** | • ENV prefix `AICHAT_` (e.g., `AICHAT_OPENAI_API_KEY`).<br>• Global `--config <file>` flag to override path. |
+| 3 | **Environment & flag overrides** | • ENV prefix `AICHAT_` (e.g., `OPENAI_API_KEY`).<br>• Global `--config <file>` flag to override path. |
 | 4 | **Validation hooks** | Custom validators (e.g., API key non-empty, model name allowed). Fail fast with helpful error. |
 | 5 | **Docs & examples** | Update README + add `docs/config.md` detailing keys. |
 

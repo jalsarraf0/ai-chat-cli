@@ -22,7 +22,7 @@ import (
 )
 
 func TestAssetsListWriteError(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	cfg := filepath.Join(t.TempDir(), "c.yaml")
 	root := newRootCmd()
 	root.SetArgs([]string{"--config", cfg, "assets", "list"})
@@ -33,7 +33,7 @@ func TestAssetsListWriteError(t *testing.T) {
 }
 
 func TestAssetsCatError(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	cfg := filepath.Join(t.TempDir(), "c.yaml")
 	root := newRootCmd()
 	root.SetArgs([]string{"--config", cfg, "assets", "cat", "missing.txt"})
@@ -43,7 +43,7 @@ func TestAssetsCatError(t *testing.T) {
 }
 
 func TestAssetsExportMkdirError(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	cfg := filepath.Join(t.TempDir(), "c.yaml")
 	base := filepath.Join(t.TempDir(), "dir")
 	if err := os.MkdirAll(base, 0o755); err != nil {

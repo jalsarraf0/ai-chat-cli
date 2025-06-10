@@ -35,7 +35,7 @@ func TestStampedVersion(t *testing.T) {
 		t.Fatalf("build: %v\n%s", err, out)
 	}
 	cmd := exec.Command(exe, "version")
-	cmd.Env = append(cmd.Env, "AICHAT_OPENAI_API_KEY=dummy")
+	cmd.Env = append(cmd.Env, "OPENAI_API_KEY=dummy")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Fatalf("run: %v", err)

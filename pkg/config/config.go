@@ -52,6 +52,7 @@ func Load(p string) error {
 	v.SetConfigType("yaml")
 	v.SetEnvPrefix("AICHAT")
 	v.AutomaticEnv()
+	_ = v.BindEnv("openai_api_key", "OPENAI_API_KEY")
 	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
 		return err
 	}

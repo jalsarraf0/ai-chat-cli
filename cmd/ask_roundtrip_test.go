@@ -25,7 +25,7 @@ import (
 )
 
 func TestAskCommand(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	out := new(bytes.Buffer)
 	llmClient = mock.New("ok")
 	root := newRootCmd()

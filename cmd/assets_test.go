@@ -26,7 +26,7 @@ import (
 )
 
 func TestAssetsCommands(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	config.Reset()
 	cfg := filepath.Join(t.TempDir(), "c.yaml")
 	root := newRootCmd()
@@ -78,7 +78,7 @@ func TestAssetsCommands(t *testing.T) {
 }
 
 func TestAssetsExportError(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	config.Reset()
 	cfg := filepath.Join(t.TempDir(), "c.yaml")
 	dest := filepath.Join(t.TempDir(), "dup.json")

@@ -1,6 +1,6 @@
 # LLM Usage
 
-`ai-chat` streams chat completions to stdout. Set your OpenAI key in `ai-chat.yaml` (`openai_api_key`) or `AI_CHAT_API_KEY`.
+`ai-chat` streams chat completions to stdout. Set your OpenAI key in `ai-chat.yaml` (`openai_api_key`) or `OPENAI_API_KEY`.
 
 | Flag | Config key | Purpose |
 |------|------------|---------|
@@ -18,4 +18,4 @@ Run offline tests with:
 go test -tags unit ./...
 ```
 
-Live tests hit the real API only when `AI_CHAT_API_KEY` is set. Use `make live-openai-test` to run them.
+Live tests hit the real API only when `OPENAI_API_KEY` is set. Use `make live-openai-test` to run them.

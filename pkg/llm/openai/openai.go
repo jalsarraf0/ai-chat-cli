@@ -55,7 +55,7 @@ type Client struct {
 
 // New creates a Client reading credentials from env or config.
 func New(opts ...Option) Client {
-	key := os.Getenv("AI_CHAT_API_KEY")
+	key := os.Getenv("OPENAI_API_KEY")
 	if key == "" {
 		key = config.GetString("openai_api_key")
 	}
