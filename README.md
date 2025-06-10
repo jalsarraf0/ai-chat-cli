@@ -1,5 +1,6 @@
 # AI‑Chat‑CLI 🤖
 
+
 [![CI](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml)
 [![Coverage](https://codecov.io/gh/jalsarraf0/ai-chat-cli/branch/dev/graph/badge.svg)](https://codecov.io/gh/jalsarraf0/ai-chat-cli)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jalsarraf0/ai-chat-cli)](https://goreportcard.com/report/github.com/jalsarraf0/ai-chat-cli)
@@ -17,12 +18,84 @@ The installer checks prerequisites, compiles the binary and copies it to `/usr/l
 It stores your API key in `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
 
 
+
+
+
+
+[![CI + Release](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml)
+[![Coverage](https://codecov.io/gh/jalsarraf0/ai-chat-cli/branch/dev/graph/badge.svg)](https://codecov.io/gh/jalsarraf0/ai-chat-cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jalsarraf0/ai-chat-cli)](https://goreportcard.com/report/github.com/jalsarraf0/ai-chat-cli)
+[![Latest Release](https://img.shields.io/github/v/release/jalsarraf0/ai-chat-cli?include_prereleases&sort=semver)](https://github.com/jalsarraf0/ai-chat-cli/releases)
+[![License](https://img.shields.io/github/license/jalsarraf0/ai-chat-cli)](https://github.com/jalsarraf0/ai-chat-cli/blob/dev/LICENSE)
+
+
+
+
+![CI](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml/badge.svg)
+![Coverage](https://img.shields.io/codecov/c/github/jalsarraf0/ai-chat-cli?label=coverage)
+![Go Report](https://goreportcard.com/badge/github.com/jalsarraf0/ai-chat-cli)
+![Version](https://img.shields.io/github/v/release/jalsarraf0/ai-chat-cli)
+![License](https://img.shields.io/github/license/jalsarraf0/ai-chat-cli)
+
+![CI](https://github.com/OWNER/REPO/actions/workflows/ci-final.yml/badge.svg)
+![Coverage](https://img.shields.io/codecov/c/github/OWNER/REPO?label=coverage)
+![Go Report](https://goreportcard.com/badge/github.com/OWNER/REPO)
+![Version](https://img.shields.io/github/v/release/OWNER/REPO)
+![License](https://img.shields.io/github/license/OWNER/REPO)
+
+
+
+
+> **ai‑chat‑cli** ✨ is a lightweight command‑line tool for GPT‑style models.
+> Written in **Go**, it streams answers in real time, remembers chat history and supports plug‑ins — all in a ~6 MiB binary.
+
+
+## Quick Start 🚀
+```bash
+curl -fsSL https://raw.githubusercontent.com/jalsarraf0/ai-chat-cli/main/scripts/install.sh | bash
+ai-chat "Hello"
+```
+The installer checks prerequisites, compiles the binary and copies it to `/usr/local/bin`.
+It stores your API key in `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
+
+## Quick Start
+```bash
+curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/scripts/install.sh | bash
+ai-chat "Hello"
+```
+
+The installer checks prerequisites, compiles the binary and copies it to `/usr/local/bin`.
+It stores your API key in `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
+
+
+The installer checks prerequisites, compiles the binary and copies it to `/usr/local/bin`.
+It stores your API key in `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
+
+
+The installer checks prerequisites, compiles the binary and copies it to `/usr/local/bin`.
+It stores your API key in `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
+
+
+The installer checks prerequisites, compiles the binary and stores your API key in
+`$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
+
+
+
+
+
+
+
+
 ---
 
 ## 📚 Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [Installation](#installation-)
+
+
+   * [Packages](#packages)
+
    * [Build from Source](#build-from-source)
 4. [Quick Start](#quick-start-)
 5. [Commands](#commands-)
@@ -67,6 +140,19 @@ plugins (shell) ────┘
 
 ## Installation 📦
 
+
+
+### Packages
+
+| Package | Command |
+|---------|---------|
+| **tar.gz** | `tar -xzf ai-chat_linux_amd64.tar.gz && sudo mv ai-chat /usr/local/bin` |
+| **DEB** | `sudo dpkg -i ai-chat_<ver>_amd64.deb` |
+| **RPM** | `sudo rpm -Uvh ai-chat_<ver>_amd64.rpm` |
+| **Homebrew** | `brew install jalsarraf0/tap/ai-chat` |
+| **Scoop** | `scoop bucket add jalsarraf0 https://github.com/jalsarraf0/scoop-bucket && scoop install ai-chat` |
+
+
 ### Build from Source
 ```bash
 git clone https://github.com/jalsarraf0/ai-chat-cli.git
@@ -88,7 +174,15 @@ Remove the binary and configuration:
 
 ---
 
+
 ## Usage 💻
+
+
+## Usage 💻
+
+## Usage
+
+
 ```bash
 export OPENAI_API_KEY="sk-..."   # set once
 ai-chat                          # start interactive chat
@@ -182,7 +276,11 @@ MIT – see [LICENSE](LICENSE).
 ---
 
 ## Changelog 📜
+
 See [CHANGELOG](CHANGELOG) for recent updates.
+
+See [Releases](https://github.com/jalsarraf0/ai-chat-cli/releases) or [CHANGELOG.md](CHANGELOG.md).
+
 
 ---
 
