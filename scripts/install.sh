@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+
+
+
+
 echo "== ai-chat-cli installer =="
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "Error: $1 not found" >&2; exit 1; }; }
@@ -24,6 +28,7 @@ fi
 
 echo "-- building ai-chat..."
 go install ./cmd/ai-chat
+
 bin="$(go env GOPATH)/bin/ai-chat"
 if [ -x "$bin" ]; then
   if [ -w /usr/local/bin ]; then
@@ -32,6 +37,8 @@ if [ -x "$bin" ]; then
     sudo cp "$bin" /usr/local/bin/
   fi
 fi
+
+
 
 config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ai-chat"
 config_file="$config_dir/ai-chat.yaml"
@@ -50,4 +57,32 @@ if command -v pre-commit >/dev/null 2>&1; then
     esac
 fi
 
+
 echo "Done. Try running: ai-chat \"Hello\""
+
+echo "Done. Try: ai-chat \"Hello\""
+
+require(){ command -v "$1" >/dev/null 2>&1 || { echo "$1 required"; exit 1; }; }
+require go
+require docker
+require git
+
+go version | grep -q "go1.24" || { echo "Go 1.24.x required"; exit 1; }
+
+read -rp "OPENAI_API_KEY: " OPENAI_API_KEY
+[ -z "$OPENAI_API_KEY" ] && { echo "key required"; exit 1; }
+
+make deps && make build
+
+go install ./cmd/ai-chat
+
+if command -v pre-commit >/dev/null 2>&1; then
+    read -rp "Install git hooks? [y/N]: " ans
+    case "$ans" in
+        y|Y) pre-commit install;;
+    esac
+fi
+
+echo "Installation complete"
+
+
