@@ -1,16 +1,12 @@
 # Getting Started
 
-Follow these steps to get up and running quickly:
+Getting started is one command away:
 
-1. **Install the binary** from the [releases page](https://github.com/jalsarraf0/ai-chat-cli/releases) or run `./setup.sh` after cloning the repo.
-2. **Export your API key** once:
-   ```bash
-   export OPENAI_API_KEY="sk-..."
-   ```
-3. **Start chatting** interactively:
-   ```bash
-   ai-chat
-   ```
-4. Use `/help` inside the chat for available commands.
+```bash
+curl -fsSL https://raw.githubusercontent.com/jalsarraf0/ai-chat-cli/main/scripts/install.sh | bash
+ai-chat "Hello"
+```
+The script prompts for your API key, installs the binary to `/usr/local/bin` and writes the key to `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml`.
+Use `/help` inside the chat for more commands.
 
 That's it! You can now start asking questions straight from your terminal.

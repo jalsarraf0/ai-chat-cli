@@ -53,6 +53,28 @@ func TestConfigCommands(t *testing.T) {
 	if err := edit.Execute(); err != nil {
 		t.Fatalf("edit: %v", err)
 	}
+
+	get := newRootCmd()
+	out.Reset()
+	get.SetOut(out)
+	get.SetArgs([]string{"--config", dir + "/c.yaml", "config", "get", "openai_api_key"})
+	if err := get.Execute(); err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if strings.TrimSpace(out.String()) != "abc" {
+		t.Fatalf("get output %q", out.String())
+	}
+
+	list := newRootCmd()
+	out.Reset()
+	list.SetOut(out)
+	list.SetArgs([]string{"--config", dir + "/c.yaml", "config", "list"})
+	if err := list.Execute(); err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if !strings.Contains(out.String(), "openai_api_key") {
+		t.Fatalf("list output %q", out.String())
+	}
 }
 
 func TestConfigShowMissing(t *testing.T) {
@@ -72,6 +94,32 @@ func TestConfigSetInvalid(t *testing.T) {
 	config.Reset()
 	c := newRootCmd()
 	c.SetArgs([]string{"--config", filepath.Join(dir, "c.yaml"), "config", "set", "model", "bad"})
+	if err := c.Execute(); err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
+func TestConfigGetMissingKey(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	config.Reset()
+	c := newRootCmd()
+	c.SetArgs([]string{"--config", filepath.Join(dir, "c.yaml"), "config", "get", "missing"})
+	if err := c.Execute(); err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
+func TestConfigCorruptFile(t *testing.T) {
+	dir := t.TempDir()
+	cfgFile := filepath.Join(dir, "c.yaml")
+	if err := os.WriteFile(cfgFile, []byte(":bad"), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	config.Reset()
+	c := newRootCmd()
+	c.SetArgs([]string{"--config", cfgFile, "config", "list"})
 	if err := c.Execute(); err == nil {
 		t.Fatalf("expected error")
 	}
