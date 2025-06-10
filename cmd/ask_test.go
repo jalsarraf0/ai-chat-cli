@@ -25,11 +25,11 @@ import (
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/mock"
 )
 
-func TestAskCmd(t *testing.T) {
-	t.Parallel()
+func TestRootAsk(t *testing.T) {
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
 	buf := new(bytes.Buffer)
-	c := mock.New("h", "i")
-	cmd := newAskCmd(c)
+	llmClient = mock.New("h", "i")
+	cmd := newRootCmd()
 	cmd.SetArgs([]string{"hello"})
 	cmd.SetOut(buf)
 	if err := cmd.Execute(); err != nil {
@@ -40,12 +40,12 @@ func TestAskCmd(t *testing.T) {
 	}
 }
 
-func TestAskCmdFlags(t *testing.T) {
-	t.Parallel()
+func TestRootAskFlags(t *testing.T) {
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
 	buf := new(bytes.Buffer)
-	c := mock.New("z")
-	cmd := newAskCmd(c)
-	cmd.SetArgs([]string{"--model", "gpt-4", "--temperature", "0.5", "--max_tokens", "1", "ping"})
+	llmClient = mock.New("z")
+	cmd := newRootCmd()
+	cmd.SetArgs([]string{"--model", "gpt-4", "--temperature", "0.5", "--max-tokens", "1", "hello"})
 	cmd.SetOut(buf)
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("run: %v", err)
@@ -61,9 +61,10 @@ func (errorClient) Completion(_ context.Context, _ llm.Request) (llm.Stream, err
 	return nil, io.EOF
 }
 
-func TestAskCmdError(t *testing.T) {
-	t.Parallel()
-	cmd := newAskCmd(errorClient{})
+func TestRootAskError(t *testing.T) {
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	llmClient = errorClient{}
+	cmd := newRootCmd()
 	cmd.SetArgs([]string{"oops"})
 	if err := cmd.Execute(); err == nil {
 		t.Fatalf("expected error")

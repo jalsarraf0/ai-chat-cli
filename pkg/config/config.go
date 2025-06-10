@@ -83,6 +83,15 @@ func GetFloat64(key string) float64 { return v.GetFloat64(key) }
 // GetInt returns an int value.
 func GetInt(key string) int { return v.GetInt(key) }
 
+// Get returns a value of any type.
+func Get(key string) any { return v.Get(key) }
+
+// IsSet returns true if key exists.
+func IsSet(key string) bool { return v.IsSet(key) }
+
+// All returns all configuration as a map.
+func All() map[string]any { return v.AllSettings() }
+
 // defaultPath returns the platform-specific config file path.
 func defaultPath() string { return defaultPathImpl() }
 
