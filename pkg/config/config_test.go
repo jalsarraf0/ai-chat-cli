@@ -208,3 +208,26 @@ func TestGetters(t *testing.T) {
 		t.Fatalf("int default")
 	}
 }
+
+func TestAllAndIsSet(t *testing.T) {
+	Reset()
+	dir := t.TempDir()
+	file := filepath.Join(dir, "c.yaml")
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	if err := Load(file); err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if err := Set("foo", "bar"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if !IsSet("foo") {
+		t.Fatalf("expected key")
+	}
+	if Get("foo") != "bar" {
+		t.Fatalf("get value")
+	}
+	all := All()
+	if all["foo"] != "bar" {
+		t.Fatalf("all map")
+	}
+}

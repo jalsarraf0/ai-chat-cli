@@ -25,14 +25,16 @@ import (
 )
 
 func TestAskCommand(t *testing.T) {
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
 	out := new(bytes.Buffer)
+	llmClient = mock.New("ok")
 	root := newRootCmd()
 	root.SetOut(out)
 	root.SetArgs([]string{"ask", "hi"})
 	root.SilenceErrors = true
 	root.SilenceUsage = true
 	root.PersistentPreRun = func(*cobra.Command, []string) {}
-	if err := newAskCmd(mock.New("ok")).RunE(root, []string{"hi"}); err != nil {
+	if err := root.Execute(); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	if out.String() != "ok\n" {
