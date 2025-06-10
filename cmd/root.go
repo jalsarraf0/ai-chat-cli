@@ -45,6 +45,24 @@ var (
 	profile       string
 )
 
+func shouldSkipCfgValidation(cmd *cobra.Command) bool {
+	root := cmd.Root().Name()
+	allowed := map[string]struct{}{
+		root + " config":      {},
+		root + " version":     {},
+		root + " ping":        {},
+		root + " assets":      {},
+		root + " completion":  {},
+		root + " healthcheck": {},
+	}
+	for a := range allowed {
+		if strings.HasPrefix(cmd.CommandPath(), a) {
+			return true
+		}
+	}
+	return false
+}
+
 func newRootCmd() *cobra.Command {
 	detectedShell = shell.Detect()
 	cmd := &cobra.Command{
@@ -53,7 +71,7 @@ func newRootCmd() *cobra.Command {
 		Args:  cobra.ArbitraryArgs,
 		RunE:  askRunE(llmClient),
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if strings.HasPrefix(cmd.CommandPath(), cmd.Root().Name()+" config") {
+			if shouldSkipCfgValidation(cmd) {
 				config.SkipValidation(true)
 				defer config.SkipValidation(false)
 			}
