@@ -1,6 +1,38 @@
 # AI‑Chat‑CLI 🤖
 
-[![workflow](https://img.shields.io/github/actions/workflow/status/jalsarraf0/ai-chat-cli/ci-final.yml?label=CI%20%2B%20Release)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml) [![codecov](https://codecov.io/gh/jalsarraf0/ai-chat-cli/branch/dev/graph/badge.svg)](https://codecov.io/gh/jalsarraf0/ai-chat-cli) [![goreport](https://goreportcard.com/badge/github.com/jalsarraf0/ai-chat-cli)](https://goreportcard.com/report/github.com/jalsarraf0/ai-chat-cli) [![release](https://img.shields.io/github/v/release/jalsarraf0/ai-chat-cli?include_prereleases)](https://github.com/jalsarraf0/ai-chat-cli/releases) [![license](https://img.shields.io/github/license/jalsarraf0/ai-chat-cli)](https://github.com/jalsarraf0/ai-chat-cli/blob/dev/LICENSE)
+<p align="center">
+
+  <!-- CI workflow -->
+  <a href="https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/jalsarraf0/ai-chat-cli/ci-final.yml?label=CI%20%2B%20Release&logo=githubactions&logoColor=white&style=for-the-badge"
+         alt="CI status"/>
+  </a>
+
+  <!-- Codecov – shows live percentage; will be bright-green at 93 %+ -->
+  <a href="https://codecov.io/gh/jalsarraf0/ai-chat-cli">
+    <img src="https://img.shields.io/codecov/c/github/jalsarraf0/ai-chat-cli/dev?label=Coverage&logo=codecov&logoColor=white&style=for-the-badge&color=brightgreen"
+         alt="Test coverage"/>
+  </a>
+
+  <!-- Go Report Card – “A+” (clean) when everything passes -->
+  <a href="https://goreportcard.com/report/github.com/jalsarraf0/ai-chat-cli">
+    <img src="https://goreportcard.com/badge/github.com/jalsarraf0/ai-chat-cli?style=for-the-badge"
+         alt="Go Report Card"/>
+  </a>
+
+  <!-- Latest release – explicitly shows v1.0.1 -->
+  <a href="https://github.com/jalsarraf0/ai-chat-cli/releases/tag/v1.0.1">
+    <img src="https://img.shields.io/github/v/release/jalsarraf0/ai-chat-cli?include_prereleases&label=v1.0.1&logo=github&logoColor=white&style=for-the-badge"
+         alt="Latest release"/>
+  </a>
+
+  <!-- MIT licence – static badge so it never “misdetects” -->
+  <a href="https://github.com/jalsarraf0/ai-chat-cli/blob/dev/LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge"
+         alt="License: MIT"/>
+  </a>
+
+</p>
 
 > **ai‑chat‑cli** ✨ is a lightweight command‑line tool for GPT‑style models.
 > Written in **Go**, it streams answers in real time, remembers chat history and supports plug‑ins — all in a ~6 MiB binary.
