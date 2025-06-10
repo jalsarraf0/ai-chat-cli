@@ -1,21 +1,20 @@
-# AI‑Chat‑CLI
+# AI‑Chat‑CLI 🤖
 
-[![Coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)](./)
-[![Go](https://img.shields.io/badge/go-1.24.x-00ADD8?logo=go)](https://go.dev/doc/go1.24)
-[![Security](https://img.shields.io/badge/security-passing-brightgreen)](./)
-[![Cosign (OIDC)](https://img.shields.io/badge/cosign%20(OIDC)-verified-brightgreen)](https://github.com/sigstore/cosign)
-[![Security Scan](https://img.shields.io/badge/security%20scan-100%25%20clean-brightgreen)](./)
-[![Release](https://img.shields.io/badge/release-no%20releases%20or%20repo%20not%20found-lightgrey)](./)
-[![Container](https://img.shields.io/badge/container-ghcr.io%2Fjalsarraf0%2Fai--chat--cli-blue)](https://ghcr.io/jalsarraf0/ai-chat-cli)
-[![License](https://img.shields.io/badge/license-repo%20not%20found-lightgrey)](./)
+[![CI](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml)
+[![Coverage](https://codecov.io/gh/jalsarraf0/ai-chat-cli/branch/dev/graph/badge.svg)](https://codecov.io/gh/jalsarraf0/ai-chat-cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jalsarraf0/ai-chat-cli)](https://goreportcard.com/report/github.com/jalsarraf0/ai-chat-cli)
+[![License](https://img.shields.io/github/license/jalsarraf0/ai-chat-cli)](https://github.com/jalsarraf0/ai-chat-cli/blob/dev/LICENSE)
 
-> **ai‑chat‑cli** is a lightweight, cross‑platform command‑line interface for interacting with GPT‑style large language models (LLMs).
-> Written in pure **Go**, it streams answers in real‑time, keeps your history, and supports an extensible plug‑in system — all in a single ≈ 6 MiB binary.
+> **ai‑chat‑cli** ✨ is a lightweight command‑line tool for GPT‑style models.
+> Written in **Go**, it streams answers in real time, remembers chat history and supports plug‑ins — all in a ~6 MiB binary.
 
-## Quick Setup
-1. Download a release or clone the repo and run `./setup.sh`.
-2. `export OPENAI_API_KEY="sk-..."`
-3. Run `ai-chat` and start typing.
+## Quick Start 🚀
+```bash
+curl -fsSL https://raw.githubusercontent.com/jalsarraf0/ai-chat-cli/main/scripts/install.sh | bash
+ai-chat "Hello"
+```
+The installer checks prerequisites, compiles the binary and copies it to `/usr/local/bin`.
+It stores your API key in `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
 
 
 ---
@@ -23,20 +22,19 @@
 ## 📚 Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Installation](#installation)
-   * [Packages](#packages)
+3. [Installation](#installation-)
    * [Build from Source](#build-from-source)
-4. [Quick Start](#quick-start)
-5. [Commands](#commands)
-6. [Configuration](#configuration)
-7. [Plug‑ins](#plug-ins)
-8. [Testing & CI](#testing--ci)
-9. [Development](#development)
-10. [Contributing](#contributing)
-11. [Security](#security)
-12. [License](#license)
-13. [Changelog](#changelog)
-14. [Acknowledgements](#acknowledgements)
+4. [Quick Start](#quick-start-)
+5. [Commands](#commands-)
+6. [Configuration](#configuration-)
+7. [Plug‑ins](#plugins-)
+8. [Testing & CI](#testing--ci-)
+9. [Development](#development-)
+10. [Contributing](#contributing-)
+11. [Security](#security-)
+12. [License](#license-)
+13. [Changelog](#changelog-)
+14. [Acknowledgements](#acknowledgements-)
 
 ---
 
@@ -67,17 +65,7 @@ plugins (shell) ────┘
 
 ---
 
-## Installation
-
-### Packages
-
-| Package | Command |
-|---------|---------|
-| **tar.gz** | `tar -xzf ai-chat_linux_amd64.tar.gz && sudo mv ai-chat /usr/local/bin` |
-| **DEB** | `sudo dpkg -i ai-chat_<ver>_amd64.deb` |
-| **RPM** | `sudo rpm -Uvh ai-chat_<ver>_amd64.rpm` |
-| **Homebrew** | `brew install jalsarraf0/tap/ai-chat` |
-| **Scoop** | `scoop bucket add jalsarraf0 https://github.com/jalsarraf0/scoop-bucket && scoop install ai-chat` |
+## Installation 📦
 
 ### Build from Source
 ```bash
@@ -100,7 +88,7 @@ Remove the binary and configuration:
 
 ---
 
-## Quick Start
+## Usage 💻
 ```bash
 export OPENAI_API_KEY="sk-..."   # set once
 ai-chat                          # start interactive chat
@@ -115,12 +103,11 @@ Run `ai-chat --help` for available commands. Use `ai-chat <command> --help` for 
 
 ---
 
-## Commands
+## Commands 🛠
 
 | Command | Purpose |
 |---------|---------|
-| `chat` | Interactive REPL |
-| `ask` | One‑off prompt |
+| *(prompt)* | One‑off question |
 | `plugins` | Manage plug‑ins |
 | `history` | List/search old chats |
 | `export` | Save chats |
@@ -129,7 +116,7 @@ Run `ai-chat --help` for available commands. Use `ai-chat <command> --help` for 
 
 ---
 
-## Configuration
+## Configuration ⚙
 Default file `~/.config/ai-chat/ai-chat.yaml`:
 
 ```yaml
@@ -144,7 +131,7 @@ Environment variables (`AI_CHAT_MODEL`, etc.) override file values.
 
 ---
 
-## Plug‑ins
+## Plug‑ins 🔌
 
 Example hello‑world plug‑in:
 
@@ -158,26 +145,24 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 
 ---
 
-## Testing & CI
+## Testing & CI ✅
 | Job | Tool | Gate |
 |-----|------|------|
 | **Lint** | golangci‑lint | no warnings |
 | **Unit** | `go test -race` | 90 %+ coverage |
 | **Security** | gosec, govulncheck | zero criticals |
-| **Release** | GoReleaser v2 | binary, tar.gz, deb, rpm |
 
 ---
 
-## Development
+## Development 👷
 ```bash
 make              # format, vet, lint, test
 make coverage     # HTML coverage report
-make release      # goreleaser release --clean --skip=docker
 ```
 
 ---
 
-## Contributing
+## Contributing 🤝
 1. Fork & branch: `git checkout -b feat/my-feature`
 2. Write tests & code
 3. `make` must pass
@@ -185,25 +170,24 @@ make release      # goreleaser release --clean --skip=docker
 
 ---
 
-## Security
+## Security 🔐
 Please report vulnerabilities via [GitHub Advisories](https://github.com/jalsarraf0/ai-chat-cli/security/advisories).
 We follow a 90‑day disclosure window.
 
 ---
 
-## License
+## License 📝
 MIT – see [LICENSE](LICENSE).
 
 ---
 
-## Changelog
-See [Releases](https://github.com/jalsarraf0/ai-chat-cli/releases) or [CHANGELOG.md](CHANGELOG.md).
+## Changelog 📜
+See [CHANGELOG](CHANGELOG) for recent updates.
 
 ---
 
-## Acknowledgements
+## Acknowledgements 🙏
 - OpenAI & Azure OpenAI
 - Charm Bracelet (Bubble Tea)
 - spf13/cobra
-- GoReleaser
 - Sigstore **cosign**

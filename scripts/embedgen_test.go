@@ -15,9 +15,19 @@
 
 package main
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
-func TestMainFunc(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+func TestMainRun(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(".."); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(cwd) }()
 	main()
 }

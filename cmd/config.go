@@ -29,6 +29,8 @@ func newConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "config", Short: "Manage configuration"}
 	cmd.AddCommand(newConfigShowCmd())
 	cmd.AddCommand(newConfigSetCmd())
+	cmd.AddCommand(newConfigGetCmd())
+	cmd.AddCommand(newConfigListCmd())
 	cmd.AddCommand(newConfigEditCmd())
 	return cmd
 }
@@ -56,6 +58,36 @@ func newConfigSetCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return config.Set(args[0], args[1])
+		},
+	}
+}
+
+func newConfigGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <key>",
+		Short: "Get a configuration value",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !config.IsSet(args[0]) {
+				return fmt.Errorf("key not found")
+			}
+			_, err := fmt.Fprintln(cmd.OutOrStdout(), config.Get(args[0]))
+			return err
+		},
+	}
+}
+
+func newConfigListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List configuration",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			for k, v := range config.All() {
+				if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s: %v\n", k, v); err != nil {
+					return err
+				}
+			}
+			return nil
 		},
 	}
 }

@@ -1,64 +1,53 @@
-#!/usr/bin/env sh
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+echo "== ai-chat-cli installer =="
 
-DRY=0
-YES=0
-OPENAI=""
-for arg in "$@"; do
-    case "$arg" in
-        --dry-run) DRY=1 ;;
-        --yes) YES=1 ;;
-        --openai-key=*) OPENAI="${arg#*=}" ;;
-    esac
-done
-check(){ command -v "$1" >/dev/null 2>&1 || { echo "$1 missing"; exit 1; }; }
-check go
-check curl
-check grep
-check awk
-check tar
-if [ "$(uname)" = "Darwin" ]; then
-    command -v brew >/dev/null 2>&1 || { echo "brew missing"; exit 1; }
+require() { command -v "$1" >/dev/null 2>&1 || { echo "Error: $1 not found" >&2; exit 1; }; }
+require go
+require git
+
+if ! go version | grep -q "go1.24"; then
+    echo "Go 1.24.x required" >&2
+    exit 1
 fi
-printf 'Welcome to ai-chat installer\n'
-[ $DRY -eq 1 ] && echo '(dry run)'
-prompt(){
-    var=$1; def=$2; msg=$3;
-    [ $YES -eq 1 ] && { eval "$var=$def"; return; }
-    printf '%s' "$msg"; read -r ans; [ -z "$ans" ] && ans=$def; eval "$var=$ans"
-}
-prompt MODEL "gpt-4o" "Model [gpt-4o]: "
-prompt FORMAT "markdown" "Response format [markdown]: "
-prompt TELEMETRY "no" "Enable telemetry? [y/N]: "
-[ -n "$OPENAI" ] || prompt OPENAI "" "OPENAI_API_KEY: "
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ai-chat"
-CONFIG="$CONFIG_DIR/config.yaml"
-ENV_FILE="$CONFIG_DIR/.env"
-do_install(){
-    mkdir -p "$CONFIG_DIR"
-    cat >"$CONFIG" <<EOF
-model: $MODEL
-format: $FORMAT
-telemetry: $TELEMETRY
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "Warning: docker not installed; some features may be disabled" >&2
+fi
+
+OPENAI_API_KEY=${OPENAI_API_KEY:-}
+if [ -z "$OPENAI_API_KEY" ]; then
+    read -rp "Enter OPENAI_API_KEY: " OPENAI_API_KEY
+fi
+[ -z "$OPENAI_API_KEY" ] && { echo "API key required" >&2; exit 1; }
+
+echo "-- building ai-chat..."
+go install ./cmd/ai-chat
+bin="$(go env GOPATH)/bin/ai-chat"
+if [ -x "$bin" ]; then
+  if [ -w /usr/local/bin ]; then
+    cp "$bin" /usr/local/bin/
+  else
+    sudo cp "$bin" /usr/local/bin/
+  fi
+fi
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ai-chat"
+config_file="$config_dir/ai-chat.yaml"
+mkdir -p "$config_dir"
+if [ ! -f "$config_file" ]; then
+cat >"$config_file" <<EOF
+openai_api_key: $OPENAI_API_KEY
+model: gpt-4o
 EOF
-    chmod 600 "$CONFIG"
-    if [ "$OPENAI" ]; then
-        echo "OPENAI_API_KEY=$OPENAI" >"$ENV_FILE"
-        chmod 600 "$ENV_FILE"
-    fi
-    (
-        cd "$REPO_ROOT"
-        go install ./cmd/ai-chat@latest
-    )
-}
-if [ $DRY -eq 1 ]; then
-    echo "Would install to $CONFIG and build binary"
-    exit 0
 fi
-do_install
-ai-chat --version
-ai-chat healthcheck
-echo "Installation complete at $(go env GOBIN 2>/dev/null || echo "$HOME/go/bin")"
+
+if command -v pre-commit >/dev/null 2>&1; then
+    read -rp "Install git hooks? [y/N]: " ans
+    case "$ans" in
+        y|Y) pre-commit install;;
+    esac
+fi
+
+echo "Done. Try running: ai-chat \"Hello\""
