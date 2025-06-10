@@ -25,7 +25,7 @@ import (
 
 func TestConfigEditRunWindows(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	config.Reset()
 	editor := filepath.Join(dir, "ed.bat")
 	// simple batch file that exits successfully

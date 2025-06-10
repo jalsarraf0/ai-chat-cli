@@ -24,7 +24,7 @@ import (
 )
 
 func TestTuiCmd(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	ran := false
 	teaRun = func(_ *tea.Program) (tea.Model, error) { ran = true; return nil, nil }
 	defer func() { teaRun = func(p *tea.Program) (tea.Model, error) { return p.Run() } }()

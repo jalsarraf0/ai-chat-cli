@@ -24,7 +24,7 @@ go test -race -covermode=atomic -coverprofile=coverage.out -tags unit ./...
    ```
 6. **macOS cache fix**: pre‑clean `${{ env.CACHE_DIR }}` before `actions/cache@v3` restore.
 7. **Docs**: update `docs/llm.md` with “Unit vs Live” test section.
-8. **Gate**: total coverage ≥ 90 % on all OSes; live tests remain opt‑in (`AI_CHAT_API_KEY`).
+8. **Gate**: total coverage ≥ 90 % on all OSes; live tests remain opt‑in (`OPENAI_API_KEY`).
 
 ---
 

@@ -40,7 +40,7 @@ func TestCompletionStream(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	t.Setenv("AI_CHAT_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	t.Setenv("AICHAT_BASE_URL", srv.URL)
 	c := New()
 	s, err := c.Completion(context.Background(), llm.Request{Model: "m", Messages: []llm.Message{{Role: "user", Content: "q"}}})
@@ -65,7 +65,7 @@ func TestCompletionHTTPError(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	t.Setenv("AI_CHAT_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	t.Setenv("AICHAT_BASE_URL", srv.URL)
 	c := New()
 	_, err := c.Completion(context.Background(), llm.Request{Model: "m"})
