@@ -43,9 +43,9 @@ func TestRootExecute(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv("SHELL", "/bin/bash")
 			if tt.name == "ping" || tt.name == "ping-verbose" || tt.name == "version" {
-				t.Setenv("AICHAT_OPENAI_API_KEY", "")
+				t.Setenv("OPENAI_API_KEY", "")
 			} else {
-				t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+				t.Setenv("OPENAI_API_KEY", "key")
 			}
 			config.Reset()
 			cfg := filepath.Join(t.TempDir(), "c.yaml")
@@ -77,12 +77,12 @@ func TestExecuteFailure(t *testing.T) {
 	cmd := exec.Command(os.Args[0], "-test.run=TestExecuteFailure")
 	env := []string{"GO_WANT_HELPER_PROCESS=1"}
 	for _, e := range os.Environ() {
-		if !strings.HasPrefix(e, "AICHAT_OPENAI_API_KEY=") {
+		if !strings.HasPrefix(e, "OPENAI_API_KEY=") {
 			env = append(env, e)
 		}
 	}
 	cmd.Env = env
-	// Ensure config.Load fails by not setting AICHAT_OPENAI_API_KEY
+	// Ensure config.Load fails by not setting OPENAI_API_KEY
 	err := cmd.Run()
 	if err == nil {
 		t.Fatalf("expected exit")

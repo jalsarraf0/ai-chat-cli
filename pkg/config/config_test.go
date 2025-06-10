@@ -26,7 +26,7 @@ func TestLoadSetEnv(t *testing.T) {
 	Reset()
 	dir := t.TempDir()
 	file := filepath.Join(dir, "config.yaml")
-	t.Setenv("AICHAT_OPENAI_API_KEY", "envkey")
+	t.Setenv("OPENAI_API_KEY", "envkey")
 	if err := Load(file); err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestValidation(t *testing.T) {
 	Reset()
 	dir := t.TempDir()
 	file := filepath.Join(dir, "c.yaml")
-	t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+	t.Setenv("OPENAI_API_KEY", "key")
 	if err := Load(file); err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestPathAndSave(t *testing.T) {
 	Reset()
 	dir := t.TempDir()
 	file := filepath.Join(dir, "c.yaml")
-	t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+	t.Setenv("OPENAI_API_KEY", "key")
 	if err := Load(file); err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -77,10 +77,10 @@ func TestPathAndSave(t *testing.T) {
 func TestDefaultPathXDG(t *testing.T) {
 	Reset()
 	dir := t.TempDir()
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	t.Setenv("XDG_CONFIG_HOME", dir)
-       p := defaultPath()
-       want := filepath.Join(dir, "ai-chat-cli", "config.yaml")
+	p := defaultPath()
+	want := filepath.Join(dir, "ai-chat-cli", "config.yaml")
 	if p != want {
 		t.Fatalf("want %s got %s", want, p)
 	}
@@ -90,7 +90,7 @@ func TestDefaultPathHome(t *testing.T) {
 	Reset()
 	t.Setenv("XDG_CONFIG_HOME", "")
 	p := defaultPath()
-       if !strings.Contains(p, ".config/ai-chat-cli/config.yaml") {
+	if !strings.Contains(p, ".config/ai-chat-cli/config.yaml") {
 		t.Fatalf("unexpected %s", p)
 	}
 }
@@ -101,7 +101,7 @@ func TestDefaultPathFallback(t *testing.T) {
 	oldHome := os.Getenv("HOME")
 	t.Setenv("HOME", "")
 	p := defaultPath()
-       if !strings.Contains(p, "ai-chat-cli/config.yaml") {
+	if !strings.Contains(p, "ai-chat-cli/config.yaml") {
 		t.Fatalf("unexpected %s", p)
 	}
 	if oldHome != "" {
@@ -113,7 +113,7 @@ func TestSetValidModel(t *testing.T) {
 	Reset()
 	dir := t.TempDir()
 	file := filepath.Join(dir, "c.yaml")
-	t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+	t.Setenv("OPENAI_API_KEY", "key")
 	if err := Load(file); err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestLoadExistingFile(t *testing.T) {
 	Reset()
 	dir := t.TempDir()
 	file := filepath.Join(dir, "c.yaml")
-	t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+	t.Setenv("OPENAI_API_KEY", "key")
 	if err := Load(file); err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestLoadExistingFile(t *testing.T) {
 		t.Fatalf("set: %v", err)
 	}
 	Reset()
-	t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+	t.Setenv("OPENAI_API_KEY", "key")
 	if err := Load(file); err != nil {
 		t.Fatalf("reload: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestSaveError(t *testing.T) {
 	Reset()
 	dir := t.TempDir()
 	file := filepath.Join(dir, "c.yaml")
-	t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+	t.Setenv("OPENAI_API_KEY", "key")
 	if err := Load(file); err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -170,7 +170,7 @@ func TestLoadInvalidYAML(t *testing.T) {
 	Reset()
 	dir := t.TempDir()
 	file := filepath.Join(dir, "c.yaml")
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	if err := os.WriteFile(file, []byte(": bad"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
@@ -186,7 +186,7 @@ func TestLoadDirError(t *testing.T) {
 	if err := os.Mkdir(path, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	if err := Load(path); err == nil {
 		t.Fatalf("expected error")
 	}
@@ -196,7 +196,7 @@ func TestGetters(t *testing.T) {
 	Reset()
 	dir := t.TempDir()
 	file := filepath.Join(dir, "c.yaml")
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	if err := Load(file); err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestAllAndIsSet(t *testing.T) {
 	Reset()
 	dir := t.TempDir()
 	file := filepath.Join(dir, "c.yaml")
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	if err := Load(file); err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -233,15 +233,15 @@ func TestAllAndIsSet(t *testing.T) {
 }
 
 func TestSkipValidation(t *testing.T) {
-    Reset()
-    dir := t.TempDir()
-    file := filepath.Join(dir, "c.yaml")
-    SkipValidation(true)
-    t.Cleanup(func() { SkipValidation(false) })
-    if err := Load(file); err != nil {
-        t.Fatalf("load skip: %v", err)
-    }
-    if Path() != file {
-        t.Fatalf("path %s", Path())
-    }
+	Reset()
+	dir := t.TempDir()
+	file := filepath.Join(dir, "c.yaml")
+	SkipValidation(true)
+	t.Cleanup(func() { SkipValidation(false) })
+	if err := Load(file); err != nil {
+		t.Fatalf("load skip: %v", err)
+	}
+	if Path() != file {
+		t.Fatalf("path %s", Path())
+	}
 }

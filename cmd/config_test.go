@@ -28,7 +28,7 @@ import (
 
 func TestConfigCommands(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+	t.Setenv("OPENAI_API_KEY", "key")
 	config.Reset()
 	cfg := newRootCmd()
 	cfg.SetArgs([]string{"--config", dir + "/c.yaml", "config", "set", "openai_api_key", "abc"})
@@ -79,7 +79,7 @@ func TestConfigCommands(t *testing.T) {
 
 func TestConfigShowMissing(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	config.Reset()
 	c := newRootCmd()
 	c.SetArgs([]string{"--config", filepath.Join(dir, "c.yaml"), "config", "show"})
@@ -90,7 +90,7 @@ func TestConfigShowMissing(t *testing.T) {
 
 func TestConfigSetInvalid(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	config.Reset()
 	c := newRootCmd()
 	c.SetArgs([]string{"--config", filepath.Join(dir, "c.yaml"), "config", "set", "model", "bad"})
@@ -101,7 +101,7 @@ func TestConfigSetInvalid(t *testing.T) {
 
 func TestConfigGetMissingKey(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	config.Reset()
 	c := newRootCmd()
 	c.SetArgs([]string{"--config", filepath.Join(dir, "c.yaml"), "config", "get", "missing"})
@@ -116,7 +116,7 @@ func TestConfigCorruptFile(t *testing.T) {
 	if err := os.WriteFile(cfgFile, []byte(":bad"), 0o600); err != nil {
 		t.Fatalf("write: %v", err)
 	}
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	config.Reset()
 	c := newRootCmd()
 	c.SetArgs([]string{"--config", cfgFile, "config", "list"})
@@ -130,7 +130,7 @@ func TestConfigEditRun(t *testing.T) {
 		t.Skip("skip on windows")
 	}
 	dir := t.TempDir()
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	config.Reset()
 	editor := filepath.Join(dir, "ed.sh")
 	if err := os.WriteFile(editor, []byte("#!/bin/sh\n"), 0o755); err != nil {
@@ -149,7 +149,7 @@ func TestConfigEditDefaultEditor(t *testing.T) {
 		t.Skip("skip on windows")
 	}
 	dir := t.TempDir()
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	config.Reset()
 	vi := filepath.Join(dir, "vi")
 	if err := os.WriteFile(vi, []byte("#!/bin/sh\n"), 0o755); err != nil {

@@ -25,8 +25,8 @@ import (
 )
 
 func TestLiveCompletion(t *testing.T) {
-	if os.Getenv("AI_CHAT_API_KEY") == "" {
-		t.Skip("AI_CHAT_API_KEY not set")
+	if os.Getenv("OPENAI_API_KEY") == "" {
+		t.Skip("OPENAI_API_KEY not set")
 	}
 	c := New()
 	s, err := c.Completion(context.Background(), llm.Request{
