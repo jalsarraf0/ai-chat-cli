@@ -67,10 +67,12 @@ readme: install-hugo
 
 docs-all: docs readme
 
-
+clean:
+	rm -f bin/ai-chat-linux-amd64
 
 build:
-	go build -o bin/ai-chat-linux-amd64 .
+	GOOS=linux GOARCH=amd64 \
+	go build -o bin/ai-chat-linux-amd64 ./cmd/ai-chat
 
 man:
 	cobra-cli man --dir docs/man

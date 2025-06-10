@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
-# Wrapper script to run the interactive installer
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$SCRIPT_DIR/scripts/install.sh" "$@"
+set -euo pipefail
+# Wrapper script to run the interactive installer regardless of cwd
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "${SCRIPT_DIR}/scripts/install.sh" "$@"
