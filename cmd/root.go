@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -45,20 +46,6 @@ var (
 	profile       string
 )
 
-
-func shouldSkipCfgValidation(cmd *cobra.Command) bool {
-	root := cmd.Root().Name()
-	allowed := map[string]struct{}{
-		root + " config":      {},
-		root + " version":     {},
-		root + " ping":        {},
-		root + " assets":      {},
-		root + " completion":  {},
-		root + " healthcheck": {},
-	}
-	for a := range allowed {
-		if strings.HasPrefix(cmd.CommandPath(), a) {
-
 func skipCfgValidation(cmd *cobra.Command) bool {
 	root := cmd.Root().Name()
 	prefixes := []string{
@@ -68,10 +55,10 @@ func skipCfgValidation(cmd *cobra.Command) bool {
 		root + " assets",
 		root + " completion",
 		root + " healthcheck",
+		root + " login",
 	}
 	for _, p := range prefixes {
 		if strings.HasPrefix(cmd.CommandPath(), p) {
-
 			return true
 		}
 	}
@@ -86,15 +73,14 @@ func newRootCmd() *cobra.Command {
 		Args:  cobra.ArbitraryArgs,
 		RunE:  askRunE(llmClient),
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-
-			if shouldSkipCfgValidation(cmd) {
-
 			if skipCfgValidation(cmd) {
-
 				config.SkipValidation(true)
 				defer config.SkipValidation(false)
 			}
 			if err := config.Load(cfgFile); err != nil {
+				if errors.Is(err, config.ErrAPIKeyMissing) {
+					return fmt.Errorf("%w\nset with 'ai-chat login <key>' or env AI_CHAT_API_KEY", err)
+				}
 				return err
 			}
 			log.Printf("INFO: config %s", config.Path())
@@ -117,6 +103,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newVersionCmd(Version, Commit, Date))
 	cmd.AddCommand(newAssetsCmd())
 	cmd.AddCommand(newConfigCmd())
+	cmd.AddCommand(newLoginCmd())
 	cmd.AddCommand(newTuiCmd())
 	cmd.AddCommand(newAskCmd(llmClient))
 	cmd.AddCommand(newHealthcheckCmd())
