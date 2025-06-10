@@ -1,36 +1,35 @@
-// Copyright (c) 2025 AI Chat
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-// the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package cmd
 
 import (
 	"bytes"
+	"context"
+	"io"
 	"testing"
 
+	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/mock"
 )
 
-func TestAskCmd(t *testing.T) {
-	t.Parallel()
+func TestRootAsk(t *testing.T) {
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
 	buf := new(bytes.Buffer)
-	c := mock.New("h", "i")
-	cmd := newAskCmd(c)
+	llmClient = mock.New("h", "i")
+	cmd := newRootCmd()
 	cmd.SetArgs([]string{"hello"})
 	cmd.SetOut(buf)
 	if err := cmd.Execute(); err != nil {
@@ -40,17 +39,34 @@ func TestAskCmd(t *testing.T) {
 		t.Fatalf("output %q", buf.String())
 	}
 }
-func TestAskCmdFlags(t *testing.T) {
-	t.Parallel()
+
+func TestRootAskFlags(t *testing.T) {
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
 	buf := new(bytes.Buffer)
-	c := mock.New("z")
-	cmd := newAskCmd(c)
-	cmd.SetArgs([]string{"--model", "gpt-4", "--temperature", "0.5", "--max_tokens", "1", "ping"})
+	llmClient = mock.New("z")
+	cmd := newRootCmd()
+	cmd.SetArgs([]string{"--model", "gpt-4", "--temperature", "0.5", "--max-tokens", "1", "hello"})
 	cmd.SetOut(buf)
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	if buf.String() != "z\n" {
 		t.Fatalf("output %q", buf.String())
+	}
+}
+
+type errorClient struct{}
+
+func (errorClient) Completion(_ context.Context, _ llm.Request) (llm.Stream, error) {
+	return nil, io.EOF
+}
+
+func TestRootAskError(t *testing.T) {
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	llmClient = errorClient{}
+	cmd := newRootCmd()
+	cmd.SetArgs([]string{"oops"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected error")
 	}
 }

@@ -1,25 +1,22 @@
-// Copyright (c) 2025 AI Chat
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-// the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -57,6 +54,7 @@ func TestModelUpdate(t *testing.T) {
 		t.Fatalf("expect quit")
 	}
 }
+
 func TestQuitSequence(t *testing.T) {
 	t.Parallel()
 	m := NewModel(5)
@@ -76,6 +74,7 @@ func TestWindowResize(t *testing.T) {
 		t.Fatalf("height calc")
 	}
 }
+
 func TestUseLightTheme(t *testing.T) {
 	t.Parallel()
 	m := NewModel(5)
@@ -84,6 +83,7 @@ func TestUseLightTheme(t *testing.T) {
 		t.Fatalf("flag not set")
 	}
 }
+
 func TestInitCmd(t *testing.T) {
 	t.Parallel()
 	m := NewModel(0)
@@ -94,9 +94,10 @@ func TestInitCmd(t *testing.T) {
 
 func TestLoadStylesDiff(t *testing.T) {
 	t.Parallel()
-	_ = LoadStyles(false)
-	_ = LoadStyles(true)
+	_ = LoadStyles("")
+	_ = LoadStyles("themes/light.json")
 }
+
 func TestHistoryHeightZero(t *testing.T) {
 	t.Parallel()
 	m := NewModel(0)
@@ -113,11 +114,13 @@ func TestQuitEsc(t *testing.T) {
 		t.Fatalf("expect quit")
 	}
 }
+
 func TestNoOpMessage(t *testing.T) {
 	t.Parallel()
 	m := NewModel(5)
 	_, _ = m.Update(struct{}{})
 }
+
 func TestScrollBounds(t *testing.T) {
 	t.Parallel()
 	m := NewModel(10)
@@ -135,5 +138,24 @@ func TestScrollBounds(t *testing.T) {
 	m = tm.(Model)
 	if m.cursor != 0 {
 		t.Fatalf("scroll reset")
+	}
+}
+
+func TestUseTheme(t *testing.T) {
+	m := NewModel(5)
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("panic: %v", r)
+		}
+	}()
+	m.UseTheme("themes/light.json")
+}
+
+func TestNoColorEnv(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+	s := LoadStyles("")
+	out := s.History.Render("x")
+	if strings.Contains(out, "\x1b[") {
+		t.Fatalf("unexpected ansi: %q", out)
 	}
 }

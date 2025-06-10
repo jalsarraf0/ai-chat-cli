@@ -1,8 +1,10 @@
 .PHONY: format lint lint-all static security test docs build man shell-test cross
 GOFILES := $(shell git ls-files '*.go')
+export PATH := $(HOME)/.local/bin:$(PATH)
 
 format:
 	gofumpt -l -w $(GOFILES)
+	
 
 lint: ## static analysis
 	golangci-lint run ./...
@@ -34,7 +36,12 @@ test: lint unit
 .PHONY: security-scan
 
 security-scan: ## Run gosec static analysis
-	GOFLAGS='-trimpath' gosec ./...
+        GOFLAGS='-trimpath' gosec ./...
+
+coverage:
+	go test -race -covermode=atomic -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+.PHONY: coverage
 
 coverage-gate:
 
@@ -47,19 +54,23 @@ coverage-gate:
        if [ $${pct%.*} -lt 90 ]; then \
        echo "::error::coverage < 90% (got $${pct}%)"; exit 1; fi
 
-docs:
-	@git ls-files "*.md" | xargs -r sed -i "s/[ 	]*$$//" && git diff --exit-code || true
-	npm install
-	npm audit fix --force || true
-	npm audit --audit-level=high
-	@echo '#!/usr/bin/env bash\nexec mdbook "$@"' > node_modules/.bin/mdbook
-	@chmod +x node_modules/.bin/mdbook
-	npx mdbook build docs
-	
+install-hugo:
+	./scripts/install_hugo.sh
+
+docs: install-hugo
+	@echo "📖 Building Hugo site"
+	hugo --minify
+
+readme: install-hugo
+	@echo "📝 Re-rendering README.md"
+	hugo --quiet -D --renderToREADME -d .
+
+docs-all: docs readme
+
 
 
 build:
-	go build -o bin/ai-chat-cli-linux-amd64 .
+	go build -o bin/ai-chat-linux-amd64 .
 
 man:
 	cobra-cli man --dir docs/man
@@ -83,12 +94,16 @@ prompt:
 	chmod +x dist/prompt/stub.sh
 
 snapshot:
-	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
+	@command -v goreleaser >/dev/null || (\
+		curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz \
+		| tar -xz goreleaser && sudo mv goreleaser /usr/local/bin/)
 	goreleaser release --snapshot --clean --skip=publish --skip=docker --skip=sign
 
 release:
-	@command -v goreleaser >/dev/null || GOFLAGS= go install github.com/goreleaser/goreleaser@latest
-	goreleaser release --clean --skip=publish --skip=docker
+	       @command -v goreleaser >/dev/null || (\
+				               curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v2.9.0/goreleaser_Linux_x86_64.tar.gz \
+				               | tar -xz goreleaser && sudo mv goreleaser /usr/local/bin/)
+	       goreleaser release --clean --skip=publish --skip=docker
 
 
 live-openai-test:

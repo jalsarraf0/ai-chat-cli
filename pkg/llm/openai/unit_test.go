@@ -1,23 +1,17 @@
-// Copyright (c) 2025 AI Chat
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-// the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-//go:build unit
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package openai
 
@@ -46,8 +40,12 @@ func TestEnvOverride(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth = r.Header.Get("Authorization")
 		w.Header().Set("Content-Type", "text/event-stream")
-		io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\n\n")
-		io.WriteString(w, "data: [DONE]\n\n")
+		if _, err := io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		if _, err := io.WriteString(w, "data: [DONE]\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
 	}))
 	defer srv.Close()
 
@@ -68,7 +66,7 @@ func TestEnvOverride(t *testing.T) {
 }
 
 func TestHTTPError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "fail", http.StatusBadRequest)
 	}))
 	defer srv.Close()
@@ -82,11 +80,17 @@ func TestHTTPError(t *testing.T) {
 }
 
 func TestIgnoreNonDataLines(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		io.WriteString(w, "event: noop\n\n")
-		io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"x\"}}]}\n\n")
-		io.WriteString(w, "data: [DONE]\n\n")
+		if _, err := io.WriteString(w, "event: noop\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		if _, err := io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"x\"}}]}\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		if _, err := io.WriteString(w, "data: [DONE]\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
 	}))
 	defer srv.Close()
 	t.Setenv("AI_CHAT_API_KEY", "k")
@@ -103,11 +107,17 @@ func TestIgnoreNonDataLines(t *testing.T) {
 }
 
 func TestInvalidJSON(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		io.WriteString(w, "data: {bad}\n\n")
-		io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\n\n")
-		io.WriteString(w, "data: [DONE]\n\n")
+		if _, err := io.WriteString(w, "data: {bad}\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		if _, err := io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		if _, err := io.WriteString(w, "data: [DONE]\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
 	}))
 	defer srv.Close()
 	t.Setenv("AI_CHAT_API_KEY", "k")
@@ -124,10 +134,14 @@ func TestInvalidJSON(t *testing.T) {
 }
 
 func TestRetry(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\n\n")
-		io.WriteString(w, "data: [DONE]\n\n")
+		if _, err := io.WriteString(w, "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		if _, err := io.WriteString(w, "data: [DONE]\n\n"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
 	}))
 	defer srv.Close()
 	t.Setenv("AI_CHAT_API_KEY", "k")
@@ -175,11 +189,15 @@ func TestNewFromConfig(t *testing.T) {
 }
 
 func TestRecvScannerError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		io.WriteString(w, "data: {")
+		if _, err := io.WriteString(w, "data: {"); err != nil {
+			t.Fatalf("write: %v", err)
+		}
 		conn, _, _ := w.(http.Hijacker).Hijack()
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			t.Fatalf("close: %v", err)
+		}
 	}))
 	defer srv.Close()
 	t.Setenv("AI_CHAT_API_KEY", "k")
@@ -196,7 +214,7 @@ func TestRecvScannerError(t *testing.T) {
 }
 
 func TestRetryFails(t *testing.T) {
-	rt := testhttp.RoundTripFunc(func(r *http.Request) (*http.Response, error) {
+	rt := testhttp.RoundTripFunc(func(_ *http.Request) (*http.Response, error) {
 		return nil, io.ErrUnexpectedEOF
 	})
 	client := &http.Client{Transport: rt}
@@ -207,18 +225,25 @@ func TestRetryFails(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 }
+
 func TestNewDefaults(t *testing.T) {
 	config.Reset()
 	oldKey := os.Getenv("AI_CHAT_API_KEY")
 	oldBase := os.Getenv("AICHAT_BASE_URL")
 	oldTimeout := os.Getenv("AICHAT_TIMEOUT")
-	os.Setenv("AI_CHAT_API_KEY", "tok")
-	os.Setenv("AICHAT_BASE_URL", "")
-	os.Setenv("AICHAT_TIMEOUT", "")
+	if err := os.Setenv("AI_CHAT_API_KEY", "tok"); err != nil {
+		t.Fatalf("setenv: %v", err)
+	}
+	if err := os.Setenv("AICHAT_BASE_URL", ""); err != nil {
+		t.Fatalf("setenv: %v", err)
+	}
+	if err := os.Setenv("AICHAT_TIMEOUT", ""); err != nil {
+		t.Fatalf("setenv: %v", err)
+	}
 	t.Cleanup(func() {
-		os.Setenv("AI_CHAT_API_KEY", oldKey)
-		os.Setenv("AICHAT_BASE_URL", oldBase)
-		os.Setenv("AICHAT_TIMEOUT", oldTimeout)
+		_ = os.Setenv("AI_CHAT_API_KEY", oldKey)
+		_ = os.Setenv("AICHAT_BASE_URL", oldBase)
+		_ = os.Setenv("AICHAT_TIMEOUT", oldTimeout)
 	})
 	c := New()
 	if c.base != "https://api.openai.com" {
@@ -235,11 +260,15 @@ func TestNewDefaults(t *testing.T) {
 func TestNewTimeoutEnv(t *testing.T) {
 	oldKey := os.Getenv("AI_CHAT_API_KEY")
 	oldTimeout := os.Getenv("AICHAT_TIMEOUT")
-	os.Setenv("AI_CHAT_API_KEY", "tok")
-	os.Setenv("AICHAT_TIMEOUT", "5s")
+	if err := os.Setenv("AI_CHAT_API_KEY", "tok"); err != nil {
+		t.Fatalf("setenv: %v", err)
+	}
+	if err := os.Setenv("AICHAT_TIMEOUT", "5s"); err != nil {
+		t.Fatalf("setenv: %v", err)
+	}
 	t.Cleanup(func() {
-		os.Setenv("AI_CHAT_API_KEY", oldKey)
-		os.Setenv("AICHAT_TIMEOUT", oldTimeout)
+		_ = os.Setenv("AI_CHAT_API_KEY", oldKey)
+		_ = os.Setenv("AICHAT_TIMEOUT", oldTimeout)
 	})
 	c := New()
 	if c.http.Timeout != 5*time.Second {
@@ -249,8 +278,10 @@ func TestNewTimeoutEnv(t *testing.T) {
 
 func TestNewNilOptions(t *testing.T) {
 	oldKey := os.Getenv("AI_CHAT_API_KEY")
-	os.Setenv("AI_CHAT_API_KEY", "tok")
-	t.Cleanup(func() { os.Setenv("AI_CHAT_API_KEY", oldKey) })
+	if err := os.Setenv("AI_CHAT_API_KEY", "tok"); err != nil {
+		t.Fatalf("setenv: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Setenv("AI_CHAT_API_KEY", oldKey) })
 	c := New(WithHTTPClient(nil), WithSleep(nil))
 	if c.http == nil || c.sleep == nil {
 		t.Fatalf("nil not defaulted")

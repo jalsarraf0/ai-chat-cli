@@ -1,4 +1,4 @@
-# AI-Chat-CLI Documentation
+# AI‑Chat‑CLI Documentation
 
-Welcome to the AI-Chat-CLI documentation.
+Welcome! If you're new here, check out [Getting Started](getting_started.md) for a two‑minute setup guide.
 

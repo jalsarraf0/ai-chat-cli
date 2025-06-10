@@ -1,32 +1,29 @@
-// Copyright (c) 2025 AI Chat
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-// the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package cmd
 
 import (
 	"bytes"
-	"github.com/jalsarraf0/ai-chat-cli/pkg/config"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/jalsarraf0/ai-chat-cli/pkg/config"
 )
 
 func TestConfigCommands(t *testing.T) {
@@ -56,6 +53,28 @@ func TestConfigCommands(t *testing.T) {
 	if err := edit.Execute(); err != nil {
 		t.Fatalf("edit: %v", err)
 	}
+
+	get := newRootCmd()
+	out.Reset()
+	get.SetOut(out)
+	get.SetArgs([]string{"--config", dir + "/c.yaml", "config", "get", "openai_api_key"})
+	if err := get.Execute(); err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if strings.TrimSpace(out.String()) != "abc" {
+		t.Fatalf("get output %q", out.String())
+	}
+
+	list := newRootCmd()
+	out.Reset()
+	list.SetOut(out)
+	list.SetArgs([]string{"--config", dir + "/c.yaml", "config", "list"})
+	if err := list.Execute(); err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if !strings.Contains(out.String(), "openai_api_key") {
+		t.Fatalf("list output %q", out.String())
+	}
 }
 
 func TestConfigShowMissing(t *testing.T) {
@@ -80,6 +99,32 @@ func TestConfigSetInvalid(t *testing.T) {
 	}
 }
 
+func TestConfigGetMissingKey(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	config.Reset()
+	c := newRootCmd()
+	c.SetArgs([]string{"--config", filepath.Join(dir, "c.yaml"), "config", "get", "missing"})
+	if err := c.Execute(); err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
+func TestConfigCorruptFile(t *testing.T) {
+	dir := t.TempDir()
+	cfgFile := filepath.Join(dir, "c.yaml")
+	if err := os.WriteFile(cfgFile, []byte(":bad"), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	config.Reset()
+	c := newRootCmd()
+	c.SetArgs([]string{"--config", cfgFile, "config", "list"})
+	if err := c.Execute(); err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
 func TestConfigEditRun(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skip on windows")
@@ -98,6 +143,7 @@ func TestConfigEditRun(t *testing.T) {
 		t.Fatalf("edit: %v", err)
 	}
 }
+
 func TestConfigEditDefaultEditor(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skip on windows")

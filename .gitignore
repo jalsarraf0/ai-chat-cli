@@ -8,3 +8,6 @@
 # Go modules cache
 vendor/
 coverage.out
+public/
+.hugo_build.lock
+node_modules/

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 #
-# Build ai-chat-cli and generate .tar.gz, .deb and .rpm packages on Fedora 42.
+# Build ai-chat and generate .tar.gz, .deb and .rpm packages on Fedora 42.
 # Usage: ./build-packages.sh [version]
 #
 # Pass a semantic version like v1.2.3 and the script will tag & build that
@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-APP_NAME="ai-chat-cli"      # must match go.mod & main package
+APP_NAME="ai-chat"      # must match go.mod & main package
 GO_VERSION="1.24"
 ARCH="amd64"
 DIST_DIR="dist"
