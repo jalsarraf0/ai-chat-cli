@@ -42,7 +42,11 @@ func TestRootExecute(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv("SHELL", "/bin/bash")
-			t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+			if tt.name == "ping" || tt.name == "ping-verbose" || tt.name == "version" {
+				t.Setenv("AICHAT_OPENAI_API_KEY", "")
+			} else {
+				t.Setenv("AICHAT_OPENAI_API_KEY", "key")
+			}
 			config.Reset()
 			cfg := filepath.Join(t.TempDir(), "c.yaml")
 			cmd := newRootCmd()
@@ -66,7 +70,7 @@ func TestRootExecute(t *testing.T) {
 
 func TestExecuteFailure(t *testing.T) {
 	if os.Getenv("GO_WANT_HELPER_PROCESS") == "1" {
-		os.Args = []string{"ai-chat", "ping"}
+		os.Args = []string{"ai-chat", "hello"}
 		Execute()
 		return
 	}
