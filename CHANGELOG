@@ -6,6 +6,11 @@
 - Fix GoReleaser snapshot packaging path and ensure go.sum is present
 
 
+## [1.0.6] - 2025-06-10
+- Simplify installer: auto-copies binary to /usr/local/bin
+- Add global flags and config commands for easier usage
+- Bump default version output to v1.0.6
+
 ## [1.0.1] - 2025-06-07
 - Refactor repository layout and add installer script.
 - Improve TUI with responsive layout and theme loader.

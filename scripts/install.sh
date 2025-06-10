@@ -2,6 +2,9 @@
 set -euo pipefail
 
 
+
+
+
 echo "== ai-chat-cli installer =="
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "Error: $1 not found" >&2; exit 1; }; }
@@ -26,6 +29,17 @@ fi
 echo "-- building ai-chat..."
 go install ./cmd/ai-chat
 
+bin="$(go env GOPATH)/bin/ai-chat"
+if [ -x "$bin" ]; then
+  if [ -w /usr/local/bin ]; then
+    cp "$bin" /usr/local/bin/
+  else
+    sudo cp "$bin" /usr/local/bin/
+  fi
+fi
+
+
+
 config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ai-chat"
 config_file="$config_dir/ai-chat.yaml"
 mkdir -p "$config_dir"
@@ -42,6 +56,9 @@ if command -v pre-commit >/dev/null 2>&1; then
         y|Y) pre-commit install;;
     esac
 fi
+
+
+echo "Done. Try running: ai-chat \"Hello\""
 
 echo "Done. Try: ai-chat \"Hello\""
 
@@ -67,4 +84,5 @@ if command -v pre-commit >/dev/null 2>&1; then
 fi
 
 echo "Installation complete"
+
 
