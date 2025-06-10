@@ -28,6 +28,8 @@ var (
 	v            = viper.New()
 	path         string
 	skipValidate bool
+	// ErrAPIKeyMissing indicates the OpenAI key was not provided.
+	ErrAPIKeyMissing = errors.New("openai_api_key required")
 )
 
 // Reset is intended for tests to reinitialize the package state.
@@ -110,7 +112,7 @@ var allowedModels = map[string]struct{}{
 
 func validate() error {
 	if k := v.GetString("openai_api_key"); k == "" {
-		return errors.New("openai_api_key required")
+		return ErrAPIKeyMissing
 	}
 	if m := v.GetString("model"); m != "" {
 		if _, ok := allowedModels[m]; !ok {
