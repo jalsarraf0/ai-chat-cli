@@ -120,7 +120,7 @@ export OPENAI_API_KEY="sk-..."   # set once
 ai-chat                          # start interactive chat
 ```
 
-![installer](assets/installer-demo.txt)
+## Installer 📦
 Use `Ctrl‑K` for the command palette.
 The interface adapts to any terminal size and chooses a light or dark theme
 based on `$COLORTERM`. Set `NO_COLOR=1` to disable ANSI colours entirely.
