@@ -5,6 +5,9 @@ set -euo pipefail
 
 
 
+
+
+
 echo "== ai-chat-cli installer =="
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "Error: $1 not found" >&2; exit 1; }; }
@@ -18,16 +21,27 @@ fi
 
 if ! command -v docker >/dev/null 2>&1; then
     echo "Warning: docker not installed; some features may be disabled" >&2
+
 fi
 
 OPENAI_API_KEY=${OPENAI_API_KEY:-}
 if [ -z "$OPENAI_API_KEY" ]; then
     read -rp "Enter OPENAI_API_KEY: " OPENAI_API_KEY
 fi
+
+fi
+
+OPENAI_API_KEY=${OPENAI_API_KEY:-}
+if [ -z "$OPENAI_API_KEY" ]; then
+    read -rp "Enter OPENAI_API_KEY: " OPENAI_API_KEY
+fi
+
 [ -z "$OPENAI_API_KEY" ] && { echo "API key required" >&2; exit 1; }
 
 echo "-- building ai-chat..."
 go install ./cmd/ai-chat
+
+
 
 bin="$(go env GOPATH)/bin/ai-chat"
 if [ -x "$bin" ]; then
@@ -37,6 +51,9 @@ if [ -x "$bin" ]; then
     sudo cp "$bin" /usr/local/bin/
   fi
 fi
+
+
+
 
 
 
@@ -56,6 +73,9 @@ if command -v pre-commit >/dev/null 2>&1; then
         y|Y) pre-commit install;;
     esac
 fi
+
+
+echo "Done. Try running: ai-chat \"Hello\""
 
 
 echo "Done. Try running: ai-chat \"Hello\""
@@ -84,5 +104,6 @@ if command -v pre-commit >/dev/null 2>&1; then
 fi
 
 echo "Installation complete"
+
 
 
