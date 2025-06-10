@@ -82,11 +82,6 @@ jobs:
         run: |
           trivy fs --download-db-only
           trivy fs --exit-code 1 --severity HIGH,CRITICAL .
-      - name: Install addlicense
-        run: go install github.com/google/addlicense@latest
-      - name: Auto-add Apache-2.0 headers
-        run: |
-              addlicense -v -l apache -c "Jamal Al-Sarraf" $(git ls-files '*.go')
 
   # 4 ── Tests & Coverage ────────────────────────────────────
   test:
