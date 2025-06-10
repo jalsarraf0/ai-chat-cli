@@ -1,6 +1,24 @@
 # AI‑Chat‑CLI 🤖
 
 
+[![CI](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml/badge.svg)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml)
+[![Coverage](https://codecov.io/gh/jalsarraf0/ai-chat-cli/branch/dev/graph/badge.svg)](https://codecov.io/gh/jalsarraf0/ai-chat-cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jalsarraf0/ai-chat-cli)](https://goreportcard.com/report/github.com/jalsarraf0/ai-chat-cli)
+[![License](https://img.shields.io/github/license/jalsarraf0/ai-chat-cli)](https://github.com/jalsarraf0/ai-chat-cli/blob/dev/LICENSE)
+
+> **ai‑chat‑cli** ✨ is a lightweight command‑line tool for GPT‑style models.
+> Written in **Go**, it streams answers in real time, remembers chat history and supports plug‑ins — all in a ~6 MiB binary.
+
+## Quick Start 🚀
+```bash
+curl -fsSL https://raw.githubusercontent.com/jalsarraf0/ai-chat-cli/main/scripts/install.sh | bash
+ai-chat "Hello"
+```
+The installer checks prerequisites, compiles the binary and copies it to `/usr/local/bin`.
+It stores your API key in `$XDG_CONFIG_HOME/ai-chat/ai-chat.yaml` so you only enter it once.
+
+
+
 
 
 
@@ -67,13 +85,17 @@ The installer checks prerequisites, compiles the binary and stores your API key 
 
 
 
+
 ---
 
 ## 📚 Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [Installation](#installation-)
+
+
    * [Packages](#packages)
+
    * [Build from Source](#build-from-source)
 4. [Quick Start](#quick-start-)
 5. [Commands](#commands-)
@@ -118,6 +140,8 @@ plugins (shell) ────┘
 
 ## Installation 📦
 
+
+
 ### Packages
 
 | Package | Command |
@@ -127,6 +151,7 @@ plugins (shell) ────┘
 | **RPM** | `sudo rpm -Uvh ai-chat_<ver>_amd64.rpm` |
 | **Homebrew** | `brew install jalsarraf0/tap/ai-chat` |
 | **Scoop** | `scoop bucket add jalsarraf0 https://github.com/jalsarraf0/scoop-bucket && scoop install ai-chat` |
+
 
 ### Build from Source
 ```bash
@@ -151,8 +176,12 @@ Remove the binary and configuration:
 
 
 ## Usage 💻
-=======
+
+
+## Usage 💻
+
 ## Usage
+
 
 ```bash
 export OPENAI_API_KEY="sk-..."   # set once
@@ -216,7 +245,6 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 | **Lint** | golangci‑lint | no warnings |
 | **Unit** | `go test -race` | 90 %+ coverage |
 | **Security** | gosec, govulncheck | zero criticals |
-| **Release** | GoReleaser v2 | binary, tar.gz, deb, rpm |
 
 ---
 
@@ -224,7 +252,6 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 ```bash
 make              # format, vet, lint, test
 make coverage     # HTML coverage report
-make release      # goreleaser release --clean --skip=docker
 ```
 
 ---
@@ -249,7 +276,11 @@ MIT – see [LICENSE](LICENSE).
 ---
 
 ## Changelog 📜
+
+See [CHANGELOG](CHANGELOG) for recent updates.
+
 See [Releases](https://github.com/jalsarraf0/ai-chat-cli/releases) or [CHANGELOG.md](CHANGELOG.md).
+
 
 ---
 
@@ -257,5 +288,4 @@ See [Releases](https://github.com/jalsarraf0/ai-chat-cli/releases) or [CHANGELOG
 - OpenAI & Azure OpenAI
 - Charm Bracelet (Bubble Tea)
 - spf13/cobra
-- GoReleaser
 - Sigstore **cosign**
