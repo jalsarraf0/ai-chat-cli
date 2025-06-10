@@ -54,7 +54,7 @@ then runs security scanners before building and signing release artefacts.
 Install from GitHub Releases and run:
 
 ```bash
-aio-chat-cli ask "hello"
+aio-chat-cli "hello"
 ```
 
 ## Building From Source
