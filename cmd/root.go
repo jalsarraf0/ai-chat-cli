@@ -79,7 +79,7 @@ func newRootCmd() *cobra.Command {
 			}
 			if err := config.Load(cfgFile); err != nil {
 				if errors.Is(err, config.ErrAPIKeyMissing) {
-					return fmt.Errorf("%w\nset with 'ai-chat login <key>' or env AI_CHAT_API_KEY", err)
+					return fmt.Errorf("%w\nset with 'ai-chat login <key>' or env OPENAI_API_KEY", err)
 				}
 				return err
 			}
