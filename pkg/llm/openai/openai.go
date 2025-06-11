@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package openai implements an OpenAI-based Client.
+// Package openai implements an OpenAI client.
 package openai
 
 import (
@@ -33,7 +33,7 @@ import (
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
 )
 
-var models = []string{
+var defaultModels = []string{
 	"gpt-4o",
 	"gpt-4o-mini",
 	"gpt-4o-audio-preview",
@@ -63,6 +63,15 @@ var models = []string{
 	"moderation-v1",
 	"gpt-4o-nano",
 	"gpt-image-1",
+}
+
+func sorted(m map[string]struct{}) []string {
+	models := make([]string, 0, len(m))
+	for id := range m {
+		models = append(models, id)
+	}
+	sort.Strings(models)
+	return models
 }
 
 // Option configures a Client.
@@ -201,29 +210,30 @@ func (s *stream) Recv() (llm.Response, error) {
 	return llm.Response{}, io.EOF
 }
 
-
-// ListModels returns the known OpenAI model identifiers.
-func (c Client) ListModels(context.Context) ([]string, error) {
-	out := make([]string, len(models))
-	copy(out, models)
-	sort.Strings(out)
-	return out, nil
-
 // ListModels retrieves available model identifiers from the OpenAI API.
 func (c Client) ListModels(ctx context.Context) ([]string, error) {
+	uniq := map[string]struct{}{}
+	for _, m := range defaultModels {
+		uniq[m] = struct{}{}
+	}
+
+	if c.key == "" {
+		return sorted(uniq), nil
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base+"/v1/models", nil)
 	if err != nil {
-		return nil, err
+		return sorted(uniq), err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.key)
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, err
+		return sorted(uniq), err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return nil, errors.New(string(b))
+		return sorted(uniq), errors.New(string(b))
 	}
 	var data struct {
 		Data []struct {
@@ -231,13 +241,12 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 		} `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, err
+		return sorted(uniq), err
 	}
-	var models []string
 	for _, m := range data.Data {
-		models = append(models, m.ID)
+		uniq[m.ID] = struct{}{}
 	}
-	sort.Strings(models)
-	return models, nil
+
+	return sorted(uniq), nil
 
 }

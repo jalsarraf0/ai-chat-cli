@@ -11,3 +11,4 @@ coverage.out
 public/
 .hugo_build.lock
 node_modules/
+go.work.sum

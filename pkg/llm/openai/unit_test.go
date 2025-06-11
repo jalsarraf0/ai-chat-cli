@@ -292,7 +292,6 @@ func TestNewNilOptions(t *testing.T) {
 func TestListModels(t *testing.T) {
 
 	t.Setenv("OPENAI_API_KEY", "k")
-	c := New()
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -323,12 +322,11 @@ func TestListModels(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("gpt-4.1-nano missing: %v", models)
-
-	if len(models) != 2 || models[0] != "gpt-a" || models[1] != "gpt-b" {
-		t.Fatalf("models %v", models)
+		if len(models) != 2 || models[0] != "gpt-a" || models[1] != "gpt-b" {
+			t.Fatalf("models %v", models)
+		}
 	}
 }
-
 func TestListModelsHTTPError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "bad", http.StatusBadRequest)
@@ -341,5 +339,50 @@ func TestListModelsHTTPError(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "bad") {
 		t.Fatalf("want error got %v", err)
 
+	}
+}
+
+func TestListModelsDecodeError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, "not-json")
+	}))
+	defer srv.Close()
+	t.Setenv("OPENAI_API_KEY", "k")
+	t.Setenv("AICHAT_BASE_URL", srv.URL)
+	c := newUnitClient(srv, func(time.Duration) {})
+	if _, err := c.ListModels(context.Background()); err == nil {
+		t.Fatalf("expected decode error")
+	}
+}
+
+func TestListModelsNoKey(t *testing.T) {
+	called := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+	}))
+	defer srv.Close()
+	t.Setenv("AICHAT_BASE_URL", srv.URL)
+	t.Setenv("OPENAI_API_KEY", "")
+	c := newUnitClient(srv, func(time.Duration) {})
+	models, err := c.ListModels(context.Background())
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if called {
+		t.Fatalf("unexpected http call")
+	}
+	if len(models) == 0 {
+		t.Fatalf("no models")
+	}
+	found := false
+	for _, m := range models {
+		if m == "gpt-4.1-nano" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("gpt-4.1-nano missing")
 	}
 }

@@ -1,16 +1,24 @@
 #!/usr/bin/env sh
 set -e
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BIN=$(go env GOBIN 2>/dev/null)
-if [ -z "$BIN" ]; then
-    BIN="$(go env GOPATH 2>/dev/null)/bin"
+
+# Remove installed binaries and configuration, including any API keys.
+
+BIN="$(command -v ai-chat 2>/dev/null || true)"
+GOBIN="$(go env GOBIN 2>/dev/null)"
+if [ -z "$GOBIN" ]; then
+    GOBIN="$(go env GOPATH 2>/dev/null)/bin"
 fi
-BIN="$BIN/ai-chat"
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ai-chat"
+DEFAULT_BIN="$GOBIN/ai-chat"
+
+CONFIG_PATH="${AI_CHAT_CONFIG:-}"
+if [ -z "$CONFIG_PATH" ]; then
+    base="${XDG_CONFIG_HOME:-$HOME/.config}"
+    CONFIG_PATH="$base/ai-chat-cli/config.yaml"
+fi
+CONFIG_DIR="$(dirname "$CONFIG_PATH")"
 
 if [ "$1" != "--yes" ]; then
-    printf 'This will remove %s and %s\n' "$BIN" "$CONFIG_DIR"
+    printf 'This will remove %s %s and %s\n' "$DEFAULT_BIN" "$BIN" "$CONFIG_DIR"
     printf 'Continue? [y/N]: '
     read -r ans
     case "$ans" in
@@ -19,7 +27,24 @@ if [ "$1" != "--yes" ]; then
     esac
 fi
 
-rm -f "$BIN"
+# Remove binaries if present, using sudo if necessary.
+remove() {
+    target="$1"
+    if [ -e "$target" ]; then
+        if rm -f "$target" 2>/dev/null; then
+            :
+        else
+            sudo rm -f "$target"
+        fi
+    fi
+}
+
+remove "$DEFAULT_BIN"
+if [ -n "$BIN" ] && [ "$BIN" != "$DEFAULT_BIN" ]; then
+    remove "$BIN"
+fi
+
+# Remove configuration directory containing credentials.
 rm -rf "$CONFIG_DIR"
 
-echo "Uninstalled ai-chat"
+echo "Uninstalled ai-chat and removed configuration"
