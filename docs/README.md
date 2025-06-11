@@ -69,6 +69,13 @@ make build
 Tag a commit. CI builds artefacts, generates an SBOM, signs with Cosign,
 and publishes to GitHub and an OCI registry.
 
+## Intelligent CI Skip
+
+Commits that only modify documentation are detected automatically. A local
+`prepare-commit-msg` hook appends `[skip ci]` to the message, and the
+`pipeline-guard` job exits early so runners stay idle. Any code change runs the
+full suite with a **93 %** coverage gate.
+
 ## Compliance Mapping
 
 | NIST 800-53 Control | Implementation |

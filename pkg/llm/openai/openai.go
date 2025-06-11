@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package openai implements an OpenAI client.
+// Package openai implements an OpenAI-based Client.
 package openai
 
 import (
@@ -216,7 +216,6 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 	for _, m := range defaultModels {
 		uniq[m] = struct{}{}
 	}
-
 	if c.key == "" {
 		return sorted(uniq), nil
 	}
@@ -243,30 +242,9 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return sorted(uniq), err
 	}
-
 	for _, m := range data.Data {
 		uniq[m.ID] = struct{}{}
 	}
-
-
-	for _, m := range data.Data {
-		uniq[m.ID] = struct{}{}
-
-	uniq := map[string]struct{}{}
-	for _, m := range defaultModels {
-		uniq[m] = struct{}{}
-	}
-	for _, m := range data.Data {
-		uniq[m.ID] = struct{}{}
-	}
-
-	models := make([]string, 0, len(uniq))
-	for id := range uniq {
-		models = append(models, id)
-
-	}
-
 
 	return sorted(uniq), nil
-
 }
