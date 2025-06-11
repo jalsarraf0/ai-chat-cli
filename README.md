@@ -198,6 +198,8 @@ make              # format, vet, lint, test
 make coverage     # HTML coverage report
 ```
 
+Run `./scripts/gauntlet.sh` to execute the full CI/CD pipeline locally.
+
 ---
 
 ## Contributing 🤝
