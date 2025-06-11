@@ -26,7 +26,7 @@ import (
 )
 
 func TestRootAsk(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	buf := new(bytes.Buffer)
 	llmClient = mock.New("h", "i")
 	cmd := newRootCmd()
@@ -41,7 +41,7 @@ func TestRootAsk(t *testing.T) {
 }
 
 func TestRootAskFlags(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	buf := new(bytes.Buffer)
 	llmClient = mock.New("z")
 	cmd := newRootCmd()
@@ -62,7 +62,7 @@ func (errorClient) Completion(_ context.Context, _ llm.Request) (llm.Stream, err
 }
 
 func TestRootAskError(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	llmClient = errorClient{}
 	cmd := newRootCmd()
 	cmd.SetArgs([]string{"oops"})
