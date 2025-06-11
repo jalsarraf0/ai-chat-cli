@@ -327,7 +327,6 @@ func TestListModels(t *testing.T) {
 		}
 	}
 }
-
 func TestListModelsHTTPError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "bad", http.StatusBadRequest)
@@ -356,3 +355,37 @@ func TestListModelsDecodeError(t *testing.T) {
 		t.Fatalf("expected decode error")
 	}
 }
+
+
+func TestListModelsNoKey(t *testing.T) {
+	called := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+	}))
+	defer srv.Close()
+	t.Setenv("AICHAT_BASE_URL", srv.URL)
+	t.Setenv("OPENAI_API_KEY", "")
+	c := newUnitClient(srv, func(time.Duration) {})
+	models, err := c.ListModels(context.Background())
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if called {
+		t.Fatalf("unexpected http call")
+	}
+	if len(models) == 0 {
+		t.Fatalf("no models")
+	}
+	found := false
+	for _, m := range models {
+		if m == "gpt-4.1-nano" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("gpt-4.1-nano missing")
+	}
+}
+
+

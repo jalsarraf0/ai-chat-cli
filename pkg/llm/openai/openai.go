@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package openai implements an OpenAI-based Client.
+// Package openai implements an OpenAI client.
 package openai
 
 import (
@@ -63,6 +63,15 @@ var defaultModels = []string{
 	"moderation-v1",
 	"gpt-4o-nano",
 	"gpt-image-1",
+}
+
+func sorted(m map[string]struct{}) []string {
+	models := make([]string, 0, len(m))
+	for id := range m {
+		models = append(models, id)
+	}
+	sort.Strings(models)
+	return models
 }
 
 // Option configures a Client.
@@ -203,19 +212,28 @@ func (s *stream) Recv() (llm.Response, error) {
 
 // ListModels retrieves available model identifiers from the OpenAI API.
 func (c Client) ListModels(ctx context.Context) ([]string, error) {
+	uniq := map[string]struct{}{}
+	for _, m := range defaultModels {
+		uniq[m] = struct{}{}
+	}
+
+	if c.key == "" {
+		return sorted(uniq), nil
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base+"/v1/models", nil)
 	if err != nil {
-		return nil, err
+		return sorted(uniq), err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.key)
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, err
+		return sorted(uniq), err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return nil, errors.New(string(b))
+		return sorted(uniq), errors.New(string(b))
 	}
 	var data struct {
 		Data []struct {
@@ -223,8 +241,12 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 		} `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, err
+		return sorted(uniq), err
 	}
+
+	for _, m := range data.Data {
+		uniq[m.ID] = struct{}{}
+
 	uniq := map[string]struct{}{}
 	for _, m := range defaultModels {
 		uniq[m] = struct{}{}
@@ -236,8 +258,9 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 	models := make([]string, 0, len(uniq))
 	for id := range uniq {
 		models = append(models, id)
+
 	}
-	sort.Strings(models)
-	return models, nil
+
+	return sorted(uniq), nil
 
 }

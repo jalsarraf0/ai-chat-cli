@@ -94,7 +94,7 @@ func TestExecuteFailure(t *testing.T) {
 
 func TestRootModels(t *testing.T) {
 	llmClient = stubLLM{models: []string{"m1"}}
-	t.Setenv("OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "")
 	config.Reset()
 	cfg := filepath.Join(t.TempDir(), "c.yaml")
 	cmd := newRootCmd()
