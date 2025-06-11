@@ -13,44 +13,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mock
+package cmd
 
 import (
-	"context"
-	"io"
+	"bytes"
 	"testing"
-
-	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
 )
 
-func TestStream(t *testing.T) {
-	t.Parallel()
-	c := New("hi", "there")
-	s, err := c.Completion(context.Background(), llm.Request{})
-	if err != nil {
-		t.Fatalf("completion: %v", err)
+func TestModelsCmd(t *testing.T) {
+	cmd := newModelsCmd(stubLLM{models: []string{"b", "a"}})
+	out := new(bytes.Buffer)
+	cmd.SetOut(out)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("exec: %v", err)
 	}
-	r, err := s.Recv()
-	if err != nil || r.Content != "hi" {
-		t.Fatalf("first token: %v %v", r, err)
-	}
-	r, err = s.Recv()
-	if err != nil || r.Content != "there" {
-		t.Fatalf("second token: %v %v", r, err)
-	}
-	_, err = s.Recv()
-	if err != io.EOF {
-		t.Fatalf("want EOF")
+	if out.String() != "a\nb\n" {
+		t.Fatalf("out=%q", out.String())
 	}
 }
 
-func TestListModels(t *testing.T) {
-	c := New()
-	models, err := c.ListModels(context.Background())
-	if err != nil {
-		t.Fatalf("list: %v", err)
-	}
-	if len(models) == 0 {
-		t.Fatalf("no models")
+func TestModelsCmdError(t *testing.T) {
+	cmd := newModelsCmd(errLLM{})
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected error")
 	}
 }

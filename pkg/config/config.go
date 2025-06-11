@@ -107,8 +107,35 @@ func All() map[string]any { return v.AllSettings() }
 func defaultPath() string { return defaultPathImpl() }
 
 var allowedModels = map[string]struct{}{
-	"gpt-4":         {},
-	"gpt-3.5-turbo": {},
+	"gpt-4o":                 {},
+	"gpt-4o-mini":            {},
+	"gpt-4o-audio-preview":   {},
+	"gpt-4o-2024-05-13":      {},
+	"gpt-4.1":                {},
+	"gpt-4.1-mini":           {},
+	"gpt-4.1-nano":           {},
+	"gpt-4.1-2025-04-14":     {},
+	"gpt-4":                  {},
+	"gpt-4-32k":              {},
+	"gpt-4-turbo":            {},
+	"gpt-4-turbo-preview":    {},
+	"gpt-4-vision-preview":   {},
+	"gpt-4-0314":             {},
+	"gpt-4-0613":             {},
+	"gpt-4-0125-preview":     {},
+	"gpt-3.5-turbo":          {},
+	"gpt-3.5-turbo-16k":      {},
+	"gpt-3.5-turbo-0125":     {},
+	"gpt-3.5-turbo-1106":     {},
+	"text-embedding-3-large": {},
+	"text-embedding-3-small": {},
+	"text-embedding-ada-002": {},
+	"whisper-1":              {},
+	"dall-e-3":               {},
+	"moderation-latest":      {},
+	"moderation-v1":          {},
+	"gpt-4o-nano":            {},
+	"gpt-image-1":            {},
 }
 
 func validate() error {

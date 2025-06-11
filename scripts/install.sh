@@ -18,6 +18,15 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
+read -rp "Install prefix [$PREFIX]: " ans || true
+if [ -n "$ans" ]; then
+    PREFIX="$ans"
+fi
+read -rp "Proceed installing to $PREFIX? [Y/n]: " ans || true
+case "$ans" in
+    n|N) echo "Cancelled"; exit 1;;
+esac
+
 pkg_install() {
     if command -v apt-get >/dev/null 2>&1; then
         sudo apt-get update -y && sudo apt-get install -y "$@"
@@ -44,6 +53,11 @@ OPENAI_API_KEY=${OPENAI_API_KEY:-}
 if [ -z "$OPENAI_API_KEY" ]; then
     read -rp "Enter OPENAI_API_KEY (leave blank to edit later): " OPENAI_API_KEY || true
 fi
+MODEL="gpt-4.1-nano"
+read -rp "Default model [$MODEL]: " ans || true
+if [ -n "$ans" ]; then
+    MODEL="$ans"
+fi
 
 echo "-- building ai-chat..."
 go install ./cmd/ai-chat
@@ -64,7 +78,7 @@ mkdir -p "$config_dir"
 if [ ! -f "$config_file" ]; then
     cat >"$config_file" <<EOF
 openai_api_key: $OPENAI_API_KEY
-model: gpt-4
+model: $MODEL
 EOF
     echo "Created $config_file. Add your API key if empty." >&2
 fi

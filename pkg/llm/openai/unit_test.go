@@ -22,6 +22,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -285,5 +286,30 @@ func TestNewNilOptions(t *testing.T) {
 	c := New(WithHTTPClient(nil), WithSleep(nil))
 	if c.http == nil || c.sleep == nil {
 		t.Fatalf("nil not defaulted")
+	}
+}
+
+func TestListModels(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "k")
+	c := New()
+	models, err := c.ListModels(context.Background())
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(models) == 0 {
+		t.Fatalf("no models returned")
+	}
+	if sort.StringsAreSorted(models) == false {
+		t.Fatalf("models not sorted")
+	}
+	found := false
+	for _, m := range models {
+		if m == "gpt-4.1-nano" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("gpt-4.1-nano missing: %v", models)
 	}
 }

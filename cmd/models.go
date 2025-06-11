@@ -13,44 +13,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mock
+package cmd
 
 import (
 	"context"
-	"io"
-	"testing"
+	"fmt"
+	"sort"
 
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
+	"github.com/spf13/cobra"
 )
 
-func TestStream(t *testing.T) {
-	t.Parallel()
-	c := New("hi", "there")
-	s, err := c.Completion(context.Background(), llm.Request{})
-	if err != nil {
-		t.Fatalf("completion: %v", err)
+func newModelsCmd(c llm.Client) *cobra.Command {
+	var list bool
+	cmd := &cobra.Command{
+		Use:   "models",
+		Short: "List available models",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if !list {
+				list = true
+			}
+			if list {
+				models, err := c.ListModels(context.Background())
+				if err != nil {
+					return err
+				}
+				sort.Strings(models)
+				for _, m := range models {
+					if _, err := fmt.Fprintln(cmd.OutOrStdout(), m); err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		},
 	}
-	r, err := s.Recv()
-	if err != nil || r.Content != "hi" {
-		t.Fatalf("first token: %v %v", r, err)
-	}
-	r, err = s.Recv()
-	if err != nil || r.Content != "there" {
-		t.Fatalf("second token: %v %v", r, err)
-	}
-	_, err = s.Recv()
-	if err != io.EOF {
-		t.Fatalf("want EOF")
-	}
-}
-
-func TestListModels(t *testing.T) {
-	c := New()
-	models, err := c.ListModels(context.Background())
-	if err != nil {
-		t.Fatalf("list: %v", err)
-	}
-	if len(models) == 0 {
-		t.Fatalf("no models")
-	}
+	cmd.Flags().BoolVar(&list, "list", false, "list models")
+	return cmd
 }

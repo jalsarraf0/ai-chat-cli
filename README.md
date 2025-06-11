@@ -145,6 +145,7 @@ Run `ai-chat --help` for available commands. Use `ai-chat <command> --help` for 
 | `plugins`  | Manage plug‑ins       |
 | `history`  | List/search old chats |
 | `export`   | Save chats            |
+| `models`   | List available models |
 | `config`   | Show or edit config   |
 | `version`  | Build info            |
 
@@ -156,7 +157,7 @@ Default file `~/.config/ai-chat/ai-chat.yaml`:
 
 ```yaml
 provider: openai
-model: gpt-4o
+model: gpt-4.1-nano
 temperature: 0.6
 context_window: 16
 plugins_dir: ~/.config/ai-chat/plugins

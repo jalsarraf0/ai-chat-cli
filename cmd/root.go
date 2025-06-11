@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -88,7 +87,6 @@ func newRootCmd() *cobra.Command {
 				}
 				return err
 			}
-			log.Printf("INFO: config %s", config.Path())
 			if reflect.DeepEqual(llmClient, defaultLLM) {
 				llmClient = openai.New()
 			}
@@ -112,6 +110,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newAssetsCmd())
 	cmd.AddCommand(newConfigCmd())
 	cmd.AddCommand(newLoginCmd())
+	cmd.AddCommand(newModelsCmd(llmClient))
 	cmd.AddCommand(newTuiCmd())
 	cmd.AddCommand(newAskCmd())
 	cmd.AddCommand(newHealthcheckCmd())
