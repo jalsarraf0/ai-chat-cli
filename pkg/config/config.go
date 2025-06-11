@@ -30,6 +30,8 @@ var (
 	skipValidate bool
 	// ErrAPIKeyMissing indicates the OpenAI key was not provided.
 	ErrAPIKeyMissing = errors.New("openai_api_key required")
+	// DefaultModel is used when no model is configured.
+	DefaultModel = "gpt-4.1-nano"
 )
 
 // Reset is intended for tests to reinitialize the package state.
@@ -57,8 +59,14 @@ func Load(p string) error {
 		return err
 	}
 	if err := v.ReadInConfig(); err != nil {
-		var e viper.ConfigFileNotFoundError
-		if !errors.As(err, &e) && !errors.Is(err, os.ErrNotExist) {
+		var nf viper.ConfigFileNotFoundError
+		var pe viper.ConfigParseError
+		switch {
+		case errors.As(err, &nf), errors.Is(err, os.ErrNotExist):
+			// ignore missing file
+		case errors.As(err, &pe):
+			// ignore malformed config and continue with defaults
+		default:
 			return err
 		}
 	}
