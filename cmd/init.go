@@ -16,38 +16,35 @@
 package cmd
 
 import (
-	"context"
-	"fmt"
-	"sort"
+	"os"
+	"os/exec"
+	"path/filepath"
 
-	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
 	"github.com/spf13/cobra"
 )
 
-func newModelsCmd(c llm.Client) *cobra.Command {
-	var list bool
-	cmd := &cobra.Command{
-		Use:   "models",
-		Short: "List available models",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			if !list {
-				list = true
-			}
-			if list {
-				models, err := c.ListModels(context.Background())
-				if err != nil {
-					return err
-				}
-				sort.Strings(models)
-				for _, m := range models {
-					if _, err := fmt.Fprintln(cmd.OutOrStdout(), m); err != nil {
-						return err
+var setupScript = "./setup.sh"
+
+func newInitCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "init",
+		Short: "Run interactive setup wizard",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			script := setupScript
+			if !filepath.IsAbs(script) {
+				exe, err := os.Executable()
+				if err == nil {
+					dir := filepath.Dir(exe)
+					if _, err := os.Stat(filepath.Join(dir, script)); err == nil {
+						script = filepath.Join(dir, script)
 					}
 				}
 			}
-			return nil
+			w := exec.Command(script, args...)
+			w.Stdin = os.Stdin
+			w.Stdout = cmd.OutOrStdout()
+			w.Stderr = cmd.ErrOrStderr()
+			return w.Run()
 		},
 	}
-	cmd.Flags().BoolVar(&list, "list", false, "list models")
-	return cmd
 }
