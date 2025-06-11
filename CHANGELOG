@@ -5,6 +5,9 @@
 
 - Fix GoReleaser snapshot packaging path and ensure go.sum is present
 
+## [v1.0.2] - 2025-06-11
+* Package linux/amd64 binaries with GoReleaser
+
 
 ## [1.0.6] - 2025-06-10
 - Simplify installer: auto-copies binary to /usr/local/bin

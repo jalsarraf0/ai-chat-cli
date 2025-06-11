@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  goreleaser:
+    needs: build
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: goreleaser/goreleaser-action@v5
+        with:
+          version: v1.25.1
+          args: release --clean --timeout 60m
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
