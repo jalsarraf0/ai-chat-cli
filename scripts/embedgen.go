@@ -29,20 +29,16 @@ type asset struct {
 	Sum  string
 }
 
-func main() {
+func run(base string) error {
 	var assets []asset
-	base := "internal/assets"
 	patterns := []string{"templates/*.tmpl", "themes/*.json"}
 	for _, p := range patterns {
-		matches, err := filepath.Glob(filepath.Join(base, p))
-		if err != nil {
-			panic(err)
-		}
-               for _, m := range matches {
-                       b, err := os.ReadFile(m) // #nosec G304 -- controlled glob
-                       if err != nil {
-                               panic(err)
-                       }
+		matches, _ := filepath.Glob(filepath.Join(base, p))
+		for _, m := range matches {
+			b, err := os.ReadFile(m) // #nosec G304 -- controlled glob
+			if err != nil {
+				return err
+			}
 			h := sha256.Sum256(b)
 			name := filepath.ToSlash(m[len(base)+1:])
 			assets = append(assets, asset{name, hex.EncodeToString(h[:])})
@@ -59,16 +55,21 @@ var assetSHA256 = map[string]string{
 {{- end }}
 }
 `))
-	f, err := os.Create(filepath.Join(base, "assets_gen.go"))
+	f, err := os.Create(filepath.Join(base, "assets_gen.go")) // #nosec G304 -- writing generated file
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer func() {
-		if err := f.Close(); err != nil {
-			panic(err)
-		}
+		_ = f.Close()
 	}()
 	if err := tmpl.Execute(f, assets); err != nil {
+		return err
+	}
+	return nil
+}
+
+func main() {
+	if err := run("internal/assets"); err != nil {
 		panic(err)
 	}
 }

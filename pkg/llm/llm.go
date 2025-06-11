@@ -45,4 +45,6 @@ type Stream interface {
 // Client sends completion requests to a language model.
 type Client interface {
 	Completion(ctx context.Context, req Request) (Stream, error)
+	// ListModels returns all available model identifiers.
+	ListModels(ctx context.Context) ([]string, error)
 }
