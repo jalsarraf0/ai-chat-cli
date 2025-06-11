@@ -342,3 +342,17 @@ func TestListModelsHTTPError(t *testing.T) {
 
 	}
 }
+
+func TestListModelsDecodeError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, "not-json")
+	}))
+	defer srv.Close()
+	t.Setenv("OPENAI_API_KEY", "k")
+	t.Setenv("AICHAT_BASE_URL", srv.URL)
+	c := newUnitClient(srv, func(time.Duration) {})
+	if _, err := c.ListModels(context.Background()); err == nil {
+		t.Fatalf("expected decode error")
+	}
+}

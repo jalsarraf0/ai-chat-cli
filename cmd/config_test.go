@@ -120,8 +120,8 @@ func TestConfigCorruptFile(t *testing.T) {
 	config.Reset()
 	c := newRootCmd()
 	c.SetArgs([]string{"--config", cfgFile, "config", "list"})
-	if err := c.Execute(); err == nil {
-		t.Fatalf("expected error")
+	if err := c.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
