@@ -292,7 +292,6 @@ func TestNewNilOptions(t *testing.T) {
 func TestListModels(t *testing.T) {
 
 	t.Setenv("OPENAI_API_KEY", "k")
-	c := New()
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -323,9 +322,9 @@ func TestListModels(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("gpt-4.1-nano missing: %v", models)
-
-	if len(models) != 2 || models[0] != "gpt-a" || models[1] != "gpt-b" {
-		t.Fatalf("models %v", models)
+		if len(models) != 2 || models[0] != "gpt-a" || models[1] != "gpt-b" {
+			t.Fatalf("models %v", models)
+		}
 	}
 }
 
@@ -341,5 +340,19 @@ func TestListModelsHTTPError(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "bad") {
 		t.Fatalf("want error got %v", err)
 
+	}
+}
+
+func TestListModelsDecodeError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, "not-json")
+	}))
+	defer srv.Close()
+	t.Setenv("OPENAI_API_KEY", "k")
+	t.Setenv("AICHAT_BASE_URL", srv.URL)
+	c := newUnitClient(srv, func(time.Duration) {})
+	if _, err := c.ListModels(context.Background()); err == nil {
+		t.Fatalf("expected decode error")
 	}
 }
