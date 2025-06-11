@@ -33,7 +33,7 @@ import (
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
 )
 
-var models = []string{
+var defaultModels = []string{
 	"gpt-4o",
 	"gpt-4o-mini",
 	"gpt-4o-audio-preview",
@@ -201,14 +201,6 @@ func (s *stream) Recv() (llm.Response, error) {
 	return llm.Response{}, io.EOF
 }
 
-
-// ListModels returns the known OpenAI model identifiers.
-func (c Client) ListModels(context.Context) ([]string, error) {
-	out := make([]string, len(models))
-	copy(out, models)
-	sort.Strings(out)
-	return out, nil
-
 // ListModels retrieves available model identifiers from the OpenAI API.
 func (c Client) ListModels(ctx context.Context) ([]string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base+"/v1/models", nil)
@@ -233,9 +225,17 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, err
 	}
-	var models []string
+	uniq := map[string]struct{}{}
+	for _, m := range defaultModels {
+		uniq[m] = struct{}{}
+	}
 	for _, m := range data.Data {
-		models = append(models, m.ID)
+		uniq[m.ID] = struct{}{}
+	}
+
+	models := make([]string, 0, len(uniq))
+	for id := range uniq {
+		models = append(models, id)
 	}
 	sort.Strings(models)
 	return models, nil
