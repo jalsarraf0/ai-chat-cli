@@ -1,6 +1,7 @@
 .PHONY: format lint lint-all static security test docs build man shell-test cross
 GOFILES := $(shell git ls-files '*.go')
 export PATH := $(HOME)/.local/bin:$(PATH)
+COVERAGE_THRESHOLD ?= 93
 
 format:
 	gofumpt -l -w $(GOFILES)
@@ -44,9 +45,9 @@ coverage:
 .PHONY: coverage
 
 coverage-gate:
-        @pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $$3}'); \
-        th=93; if echo "$$pct < $$th" | bc -l | grep -q 1; then \
-            echo "::error::coverage < $$th% (got $$pct%)"; exit 1; fi
+       @pct=$$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","" );print $$3}'); \
+       th=$(COVERAGE_THRESHOLD); if echo "$$pct < $$th" | bc -l | grep -q 1; then \
+           echo "::error::coverage < $$th% (got $$pct%)"; exit 1; fi
 
 install-hugo:
 	./scripts/install_hugo.sh
