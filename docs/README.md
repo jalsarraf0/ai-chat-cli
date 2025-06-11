@@ -75,6 +75,8 @@ Commits that only modify documentation are detected automatically. A local
 `prepare-commit-msg` hook appends `[skip ci]` to the message, and the
 `pipeline-guard` job exits early so runners stay idle. Any code change runs the
 full suite with a **93 %** coverage gate.
+You can run the entire pipeline locally with `./scripts/gauntlet.sh`.
+The docs gate executes after tests to keep coverage and security checks in front.
 
 ## Compliance Mapping
 

@@ -73,27 +73,7 @@ jobs:
       - name: Lint
         run: bash lint_cli.sh
 
-  # 2 ── Docs ────────────────────────────────────────────────
-  docs:
-    needs: [changes, pipeline-guard, lint]
-    if: needs.changes.outputs.ci_final != 'true' && needs.pipeline-guard.outputs.docs_only != 'true'
-    runs-on: [self-hosted, linux]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install NPM packages
-        run: npm install
-      - name: Audit NPM packages
-        run: npm audit
-      - name: Build docs
-        run: make docs
-
-  # 3 ── Security ───────────────────────────────────────────
+  # 2 ── Security ───────────────────────────────────────────
   security:
     needs: [changes, pipeline-guard, lint]
     if: needs.changes.outputs.ci_final != 'true' && needs.pipeline-guard.outputs.docs_only != 'true'
@@ -122,7 +102,7 @@ jobs:
 
   # 4 ── Tests & Coverage ───────────────────────────────────
   test:
-    needs: [changes, pipeline-guard, lint, docs]
+    needs: [changes, pipeline-guard, lint, security]
     if: needs.changes.outputs.ci_final != 'true' && needs.pipeline-guard.outputs.docs_only != 'true'
     runs-on: [self-hosted, linux]
     steps:
@@ -149,10 +129,30 @@ jobs:
       - name: Verify go.sum
         run: test -f go.sum
 
-  # 6 ── Release (runs on v* tags, never skipped) ───────────
+  # 6 ── Docs ────────────────────────────────────────────────
+  docs:
+    needs: [changes, pipeline-guard, verify-go-sum]
+    if: needs.changes.outputs.ci_final != 'true' && needs.pipeline-guard.outputs.docs_only != 'true'
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install NPM packages
+        run: npm install
+      - name: Audit NPM packages
+        run: npm audit
+      - name: Build docs
+        run: make docs
+
+  # 7 ── Release (runs on v* tags, never skipped) ───────────
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [changes, pipeline-guard, verify-go-sum]
+    needs: [changes, pipeline-guard, docs]
     runs-on: [self-hosted, linux]
 
     permissions:
