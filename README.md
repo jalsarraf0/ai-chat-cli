@@ -188,6 +188,7 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 | **Lint**     | golangci‑lint      | no warnings    |
 | **Unit**     | `go test -race`    | 93 %+ coverage |
 | **Security** | gosec, govulncheck | zero criticals |
+| **Docs**     | mdbook             | runs last |
 
 ---
 
@@ -197,6 +198,9 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 make              # format, vet, lint, test
 make coverage     # HTML coverage report
 ```
+
+Run `./scripts/gauntlet.sh` to execute the full CI/CD pipeline locally.
+The docs generation step runs last to ensure tests and security scans always run.
 
 ---
 
