@@ -1,7 +1,7 @@
 # AI‑Chat‑CLI 🤖
 
 [![CI](https://img.shields.io/github/actions/workflow/status/jalsarraf0/ai-chat-cli/ci-final.yml?label=CI&logo=githubactions&logoColor=white&style=flat-square)](https://github.com/jalsarraf0/ai-chat-cli/actions/workflows/ci-final.yml)
-[![Coverage 95%](https://img.shields.io/badge/Coverage-95%25-brightgreen?style=flat-square&logo=codecov&logoColor=white)](https://codecov.io/gh/jalsarraf0/ai-chat-cli)
+[![Coverage 93%](https://img.shields.io/badge/Coverage-93%25-brightgreen?style=flat-square&logo=codecov&logoColor=white)](https://codecov.io/gh/jalsarraf0/ai-chat-cli)
 [![Go Report: Clean](https://img.shields.io/badge/Go%20Report-Clean-brightgreen?style=flat-square&logo=go&logoColor=white)](https://goreportcard.com/report/github.com/jalsarraf0/ai-chat-cli)
 [![Release](https://img.shields.io/github/v/release/jalsarraf0/ai-chat-cli?include_prereleases&label=Release&logo=github&logoColor=white&style=flat-square)](https://github.com/jalsarraf0/ai-chat-cli/releases)
 [![License MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://github.com/jalsarraf0/ai-chat-cli/blob/dev/LICENSE)
@@ -186,7 +186,7 @@ Any executable placed in the plug‑ins directory becomes a slash‑command: `/h
 | Job          | Tool               | Gate           |
 | ------------ | ------------------ | -------------- |
 | **Lint**     | golangci‑lint      | no warnings    |
-| **Unit**     | `go test -race`    | 90 %+ coverage |
+| **Unit**     | `go test -race`    | 93 %+ coverage |
 | **Security** | gosec, govulncheck | zero criticals |
 
 ---
@@ -206,6 +206,7 @@ make coverage     # HTML coverage report
 2. Write tests & code
 3. `make` must pass
 4. Open PR 🚀
+5. Docs-only changes auto-add `[skip ci]` via git hook
 
 ---
 
