@@ -201,10 +201,43 @@ func (s *stream) Recv() (llm.Response, error) {
 	return llm.Response{}, io.EOF
 }
 
+
 // ListModels returns the known OpenAI model identifiers.
 func (c Client) ListModels(context.Context) ([]string, error) {
 	out := make([]string, len(models))
 	copy(out, models)
 	sort.Strings(out)
 	return out, nil
+
+// ListModels retrieves available model identifiers from the OpenAI API.
+func (c Client) ListModels(ctx context.Context) ([]string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base+"/v1/models", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.key)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return nil, errors.New(string(b))
+	}
+	var data struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+	var models []string
+	for _, m := range data.Data {
+		models = append(models, m.ID)
+	}
+	sort.Strings(models)
+	return models, nil
+
 }
