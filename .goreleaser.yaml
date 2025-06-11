@@ -1,0 +1,28 @@
+project_name: ai-chat-cli
+builds:
+  - id: default
+    goos: linux
+    goarch: amd64
+    main: ./cmd/ai-chat-cli
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - "-s -w -X 'main.version={{ .Version }}'"
+archives:
+  - id: tar
+    format: tar.gz
+    files:
+      - license*
+nfpms:
+  - id: pkg
+    formats: [deb, rpm]
+    maintainer: "Your Name <you@example.com>"
+    description: "ai-chat-cli CLI tool"
+    homepage: "https://github.com/jalsarraf0/ai-chat-cli"
+    license: MIT
+    section: default
+    priority: optional
+release:
+  github:
+    owner: jalsarraf0
+    name: ai-chat-cli
