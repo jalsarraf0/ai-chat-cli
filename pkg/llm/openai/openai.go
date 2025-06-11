@@ -246,6 +246,11 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 
 	for _, m := range data.Data {
 		uniq[m.ID] = struct{}{}
+	}
+
+
+	for _, m := range data.Data {
+		uniq[m.ID] = struct{}{}
 
 	uniq := map[string]struct{}{}
 	for _, m := range defaultModels {
@@ -260,6 +265,7 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 		models = append(models, id)
 
 	}
+
 
 	return sorted(uniq), nil
 
