@@ -74,7 +74,9 @@ func newRootCmd() *cobra.Command {
 		Use:   "ai-chat [prompt]",
 		Short: "Interact with AI chat services",
 		Args:  cobra.ArbitraryArgs,
-		RunE:  askRunE(llmClient),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return askRunE(llmClient)(cmd, args)
+		},
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if skipCfgValidation(cmd) {
 				config.SkipValidation(true)
@@ -111,7 +113,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newConfigCmd())
 	cmd.AddCommand(newLoginCmd())
 	cmd.AddCommand(newTuiCmd())
-	cmd.AddCommand(newAskCmd(llmClient))
+	cmd.AddCommand(newAskCmd())
 	cmd.AddCommand(newHealthcheckCmd())
 	cmd.AddCommand(newAIOpsCmd())
 	return cmd
