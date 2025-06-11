@@ -16,6 +16,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -174,8 +175,23 @@ func TestLoadInvalidYAML(t *testing.T) {
 	if err := os.WriteFile(file, []byte(": bad"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
-	if err := Load(file); err == nil {
-		t.Fatalf("expected error")
+	if err := Load(file); err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if GetString("openai_api_key") != "k" {
+		t.Fatalf("env override")
+	}
+}
+
+func TestLoadParseErrorNoEnv(t *testing.T) {
+	Reset()
+	dir := t.TempDir()
+	file := filepath.Join(dir, "c.yaml")
+	if err := os.WriteFile(file, []byte("x: :"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := Load(file); !errors.Is(err, ErrAPIKeyMissing) {
+		t.Fatalf("want missing key, got %v", err)
 	}
 }
 

@@ -38,3 +38,26 @@ func TestInitRunsScript(t *testing.T) {
 		t.Fatalf("out=%q", out.String())
 	}
 }
+
+func TestInitRelativeScript(t *testing.T) {
+	exe, err := os.Executable()
+	if err != nil {
+		t.Skip(err)
+	}
+	dir := filepath.Dir(exe)
+	script := filepath.Join(dir, "setup.sh")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\necho hi"), 0o755); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Remove(script) })
+	setupScript = "setup.sh"
+	cmd := newInitCmd()
+	out := new(bytes.Buffer)
+	cmd.SetOut(out)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("exec: %v", err)
+	}
+	if out.String() != "hi\n" {
+		t.Fatalf("out=%q", out.String())
+	}
+}

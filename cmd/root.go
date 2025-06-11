@@ -130,14 +130,52 @@ func Execute() {
 
 func askRunE(c llm.Client) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
+		var prompt string
+		if len(args) > 0 {
+			prompt = args[0]
+		}
+		in := cmd.InOrStdin()
+		if f, ok := in.(*os.File); ok {
+			if st, err := f.Stat(); err == nil && (st.Mode()&os.ModeCharDevice) == 0 {
+				data, err := io.ReadAll(in)
+				if err != nil {
+					return err
+				}
+				if prompt == "" {
+					prompt = string(data)
+				} else {
+					prompt += "\n" + string(data)
+				}
+			}
+		} else {
+			if data, err := io.ReadAll(in); err == nil && len(data) > 0 {
+				if prompt == "" {
+					prompt = string(data)
+				} else {
+					prompt += "\n" + string(data)
+				}
+			}
+		}
+		if prompt == "" {
 			return cmd.Help()
 		}
 		req := llm.Request{
 			Model:       model,
 			Temperature: temp,
 			MaxTokens:   maxTokens,
-			Messages:    []llm.Message{{Role: "user", Content: args[0]}},
+			Messages:    []llm.Message{{Role: "user", Content: prompt}},
+		}
+		if !cmd.Flags().Changed("model") {
+			req.Model = config.GetString("model")
+			if req.Model == "" {
+				req.Model = config.DefaultModel
+			}
+		}
+		if !cmd.Flags().Changed("temperature") && config.IsSet("temperature") {
+			req.Temperature = config.GetFloat64("temperature")
+		}
+		if !cmd.Flags().Changed("max-tokens") && config.IsSet("max_tokens") {
+			req.MaxTokens = config.GetInt("max_tokens")
 		}
 		stream, err := c.Completion(cmd.Context(), req)
 		if err != nil {
