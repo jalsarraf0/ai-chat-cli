@@ -386,3 +386,7 @@ func TestListModelsNoKey(t *testing.T) {
 		t.Fatalf("gpt-4.1-nano missing")
 	}
 }
+
+
+
+

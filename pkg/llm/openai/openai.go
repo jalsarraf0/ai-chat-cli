@@ -243,9 +243,29 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return sorted(uniq), err
 	}
+
 	for _, m := range data.Data {
 		uniq[m.ID] = struct{}{}
 	}
+
+
+	for _, m := range data.Data {
+		uniq[m.ID] = struct{}{}
+
+	uniq := map[string]struct{}{}
+	for _, m := range defaultModels {
+		uniq[m] = struct{}{}
+	}
+	for _, m := range data.Data {
+		uniq[m.ID] = struct{}{}
+	}
+
+	models := make([]string, 0, len(uniq))
+	for id := range uniq {
+		models = append(models, id)
+
+	}
+
 
 	return sorted(uniq), nil
 
