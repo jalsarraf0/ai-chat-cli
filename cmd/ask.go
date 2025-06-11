@@ -16,15 +16,16 @@
 package cmd
 
 import (
-	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
 	"github.com/spf13/cobra"
 )
 
-func newAskCmd(c llm.Client) *cobra.Command {
+func newAskCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "ask [prompt]",
 		Hidden: true,
-		RunE:   askRunE(c),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return askRunE(llmClient)(cmd, args)
+		},
 	}
 	return cmd
 }

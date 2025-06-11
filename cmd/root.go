@@ -22,6 +22,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/jalsarraf0/ai-chat-cli/internal/shell"
@@ -29,13 +30,15 @@ import (
 	"github.com/jalsarraf0/ai-chat-cli/pkg/config"
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/mock"
+	"github.com/jalsarraf0/ai-chat-cli/pkg/llm/openai"
 	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var (
 	chatClient    chat.Client = chat.NewMockClient()
-	llmClient     llm.Client  = mock.New("hello")
+	defaultLLM    llm.Client  = mock.New("hello")
+	llmClient     llm.Client  = defaultLLM
 	verbose       bool
 	detectedShell shell.Kind
 	cfgFile       string
@@ -71,7 +74,9 @@ func newRootCmd() *cobra.Command {
 		Use:   "ai-chat [prompt]",
 		Short: "Interact with AI chat services",
 		Args:  cobra.ArbitraryArgs,
-		RunE:  askRunE(llmClient),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return askRunE(llmClient)(cmd, args)
+		},
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if skipCfgValidation(cmd) {
 				config.SkipValidation(true)
@@ -79,11 +84,14 @@ func newRootCmd() *cobra.Command {
 			}
 			if err := config.Load(cfgFile); err != nil {
 				if errors.Is(err, config.ErrAPIKeyMissing) {
-					return fmt.Errorf("%w\nset with 'ai-chat login <key>' or env AI_CHAT_API_KEY", err)
+					return fmt.Errorf("%w\nset with 'ai-chat login <key>' or env OPENAI_API_KEY", err)
 				}
 				return err
 			}
 			log.Printf("INFO: config %s", config.Path())
+			if reflect.DeepEqual(llmClient, defaultLLM) {
+				llmClient = openai.New()
+			}
 			if verbose {
 				if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "shell=%s\n", detectedShell); err != nil {
 					cmd.Println("Error:", err)
@@ -105,7 +113,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newConfigCmd())
 	cmd.AddCommand(newLoginCmd())
 	cmd.AddCommand(newTuiCmd())
-	cmd.AddCommand(newAskCmd(llmClient))
+	cmd.AddCommand(newAskCmd())
 	cmd.AddCommand(newHealthcheckCmd())
 	cmd.AddCommand(newAIOpsCmd())
 	return cmd

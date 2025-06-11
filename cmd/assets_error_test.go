@@ -23,7 +23,7 @@ import (
 )
 
 func TestAssetsExportErrors(t *testing.T) {
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	cfg := filepath.Join(t.TempDir(), "c.yaml")
 	dest := filepath.Join(t.TempDir(), "out.json")
 

@@ -49,7 +49,7 @@ func TestEnvOverride(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	t.Setenv("AI_CHAT_API_KEY", "token")
+	t.Setenv("OPENAI_API_KEY", "token")
 	t.Setenv("AICHAT_BASE_URL", srv.URL)
 	c := newUnitClient(srv, func(time.Duration) {})
 	s, err := c.Completion(context.Background(), llm.Request{Model: "m", Messages: []llm.Message{{Role: "user", Content: "q"}}})
@@ -70,7 +70,7 @@ func TestHTTPError(t *testing.T) {
 		http.Error(w, "fail", http.StatusBadRequest)
 	}))
 	defer srv.Close()
-	t.Setenv("AI_CHAT_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	t.Setenv("AICHAT_BASE_URL", srv.URL)
 	c := newUnitClient(srv, func(time.Duration) {})
 	_, err := c.Completion(context.Background(), llm.Request{Model: "m"})
@@ -93,7 +93,7 @@ func TestIgnoreNonDataLines(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	t.Setenv("AI_CHAT_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	t.Setenv("AICHAT_BASE_URL", srv.URL)
 	c := newUnitClient(srv, func(time.Duration) {})
 	s, err := c.Completion(context.Background(), llm.Request{Model: "m", Messages: []llm.Message{{Role: "u", Content: "q"}}})
@@ -120,7 +120,7 @@ func TestInvalidJSON(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	t.Setenv("AI_CHAT_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	t.Setenv("AICHAT_BASE_URL", srv.URL)
 	c := newUnitClient(srv, func(time.Duration) {})
 	s, err := c.Completion(context.Background(), llm.Request{Model: "m", Messages: []llm.Message{{Role: "u", Content: "q"}}})
@@ -144,7 +144,7 @@ func TestRetry(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	t.Setenv("AI_CHAT_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	t.Setenv("AICHAT_BASE_URL", srv.URL)
 	first := true
 	slept := false
@@ -174,14 +174,14 @@ func TestNewFromConfig(t *testing.T) {
 	config.Reset()
 	dir := t.TempDir()
 	file := filepath.Join(dir, "c.yaml")
-	t.Setenv("AICHAT_OPENAI_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	if err := config.Load(file); err != nil {
 		t.Fatalf("load: %v", err)
 	}
 	if err := config.Set("openai_api_key", "cfg"); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	t.Setenv("AI_CHAT_API_KEY", "")
+	t.Setenv("OPENAI_API_KEY", "")
 	c := New()
 	if c.key != "cfg" {
 		t.Fatalf("want cfg got %s", c.key)
@@ -200,7 +200,7 @@ func TestRecvScannerError(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	t.Setenv("AI_CHAT_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	t.Setenv("AICHAT_BASE_URL", srv.URL)
 	c := newUnitClient(srv, func(time.Duration) {})
 	s, err := c.Completion(context.Background(), llm.Request{Model: "m", Messages: []llm.Message{{Role: "u", Content: "q"}}})
@@ -218,7 +218,7 @@ func TestRetryFails(t *testing.T) {
 		return nil, io.ErrUnexpectedEOF
 	})
 	client := &http.Client{Transport: rt}
-	t.Setenv("AI_CHAT_API_KEY", "k")
+	t.Setenv("OPENAI_API_KEY", "k")
 	c := New(WithHTTPClient(client), WithSleep(func(time.Duration) {}))
 	_, err := c.Completion(context.Background(), llm.Request{Model: "m"})
 	if err == nil {
@@ -228,10 +228,10 @@ func TestRetryFails(t *testing.T) {
 
 func TestNewDefaults(t *testing.T) {
 	config.Reset()
-	oldKey := os.Getenv("AI_CHAT_API_KEY")
+	oldKey := os.Getenv("OPENAI_API_KEY")
 	oldBase := os.Getenv("AICHAT_BASE_URL")
 	oldTimeout := os.Getenv("AICHAT_TIMEOUT")
-	if err := os.Setenv("AI_CHAT_API_KEY", "tok"); err != nil {
+	if err := os.Setenv("OPENAI_API_KEY", "tok"); err != nil {
 		t.Fatalf("setenv: %v", err)
 	}
 	if err := os.Setenv("AICHAT_BASE_URL", ""); err != nil {
@@ -241,7 +241,7 @@ func TestNewDefaults(t *testing.T) {
 		t.Fatalf("setenv: %v", err)
 	}
 	t.Cleanup(func() {
-		_ = os.Setenv("AI_CHAT_API_KEY", oldKey)
+		_ = os.Setenv("OPENAI_API_KEY", oldKey)
 		_ = os.Setenv("AICHAT_BASE_URL", oldBase)
 		_ = os.Setenv("AICHAT_TIMEOUT", oldTimeout)
 	})
@@ -258,16 +258,16 @@ func TestNewDefaults(t *testing.T) {
 }
 
 func TestNewTimeoutEnv(t *testing.T) {
-	oldKey := os.Getenv("AI_CHAT_API_KEY")
+	oldKey := os.Getenv("OPENAI_API_KEY")
 	oldTimeout := os.Getenv("AICHAT_TIMEOUT")
-	if err := os.Setenv("AI_CHAT_API_KEY", "tok"); err != nil {
+	if err := os.Setenv("OPENAI_API_KEY", "tok"); err != nil {
 		t.Fatalf("setenv: %v", err)
 	}
 	if err := os.Setenv("AICHAT_TIMEOUT", "5s"); err != nil {
 		t.Fatalf("setenv: %v", err)
 	}
 	t.Cleanup(func() {
-		_ = os.Setenv("AI_CHAT_API_KEY", oldKey)
+		_ = os.Setenv("OPENAI_API_KEY", oldKey)
 		_ = os.Setenv("AICHAT_TIMEOUT", oldTimeout)
 	})
 	c := New()
@@ -277,11 +277,11 @@ func TestNewTimeoutEnv(t *testing.T) {
 }
 
 func TestNewNilOptions(t *testing.T) {
-	oldKey := os.Getenv("AI_CHAT_API_KEY")
-	if err := os.Setenv("AI_CHAT_API_KEY", "tok"); err != nil {
+	oldKey := os.Getenv("OPENAI_API_KEY")
+	if err := os.Setenv("OPENAI_API_KEY", "tok"); err != nil {
 		t.Fatalf("setenv: %v", err)
 	}
-	t.Cleanup(func() { _ = os.Setenv("AI_CHAT_API_KEY", oldKey) })
+	t.Cleanup(func() { _ = os.Setenv("OPENAI_API_KEY", oldKey) })
 	c := New(WithHTTPClient(nil), WithSleep(nil))
 	if c.http == nil || c.sleep == nil {
 		t.Fatalf("nil not defaulted")
