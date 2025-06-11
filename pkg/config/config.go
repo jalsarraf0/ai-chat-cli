@@ -30,6 +30,8 @@ var (
 	skipValidate bool
 	// ErrAPIKeyMissing indicates the OpenAI key was not provided.
 	ErrAPIKeyMissing = errors.New("openai_api_key required")
+	// DefaultModel is used when no model is configured.
+	DefaultModel = "gpt-4.1-nano"
 )
 
 // Reset is intended for tests to reinitialize the package state.
