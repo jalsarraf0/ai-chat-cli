@@ -356,6 +356,7 @@ func TestListModelsDecodeError(t *testing.T) {
 	}
 }
 
+
 func TestListModelsNoKey(t *testing.T) {
 	called := false
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -386,3 +387,5 @@ func TestListModelsNoKey(t *testing.T) {
 		t.Fatalf("gpt-4.1-nano missing")
 	}
 }
+
+
