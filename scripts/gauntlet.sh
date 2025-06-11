@@ -21,6 +21,7 @@ fi
 
 [[ ${CI:-} && $BRANCH != "main" ]] && export SKIP_RELEASE=1
 
+
 # Ensure required tools are available
 for tool in gofumpt golangci-lint addlicense; do
   if ! command -v $tool >/dev/null; then
@@ -34,6 +35,8 @@ for tool in gofumpt golangci-lint addlicense; do
     esac
   fi
 done
+
+
 
 
 log "Running format/lint..."; make format lint
