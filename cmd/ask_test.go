@@ -19,6 +19,9 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
@@ -69,5 +72,75 @@ func TestRootAskError(t *testing.T) {
 	cmd.SetArgs([]string{"oops"})
 	if err := cmd.Execute(); err == nil {
 		t.Fatalf("expected error")
+	}
+}
+
+func TestRootAskStdin(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "k")
+	buf := new(bytes.Buffer)
+	llmClient = mock.New("ok")
+	cmd := newRootCmd()
+	cmd.SetIn(bytes.NewBufferString("hello"))
+	cmd.SetOut(buf)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("exec: %v", err)
+	}
+	if buf.String() != "ok\n" {
+		t.Fatalf("got %q", buf.String())
+	}
+}
+
+func TestRootAskArgAndStdin(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "k")
+	llmClient = mock.New("done")
+	buf := new(bytes.Buffer)
+	cmd := newRootCmd()
+	cmd.SetArgs([]string{"question"})
+	cmd.SetIn(bytes.NewBufferString("context"))
+	cmd.SetOut(buf)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("exec: %v", err)
+	}
+	if buf.String() != "done\n" {
+		t.Fatalf("got %q", buf.String())
+	}
+}
+
+func TestRootAskFileStdin(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "k")
+	dir := t.TempDir()
+	filePath := filepath.Join(dir, "in.txt")
+	if err := os.WriteFile(filePath, []byte("file"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	f, err := os.Open(filePath)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	llmClient = mock.New("f")
+	out := new(bytes.Buffer)
+	cmd := newRootCmd()
+	cmd.SetIn(f)
+	cmd.SetOut(out)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("exec: %v", err)
+	}
+	if out.String() != "f\n" {
+		t.Fatalf("got %q", out.String())
+	}
+}
+
+func TestRootAskHelp(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "k")
+	llmClient = mock.New()
+	out := new(bytes.Buffer)
+	cmd := newRootCmd()
+	cmd.SetOut(out)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("exec: %v", err)
+	}
+	if !strings.Contains(out.String(), "Interact with AI chat services") {
+		t.Fatalf("unexpected %q", out.String())
 	}
 }
