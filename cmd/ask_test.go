@@ -60,6 +60,7 @@ type errorClient struct{}
 func (errorClient) Completion(_ context.Context, _ llm.Request) (llm.Stream, error) {
 	return nil, io.EOF
 }
+func (errorClient) ListModels(context.Context) ([]string, error) { return nil, nil }
 
 func TestRootAskError(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "k")

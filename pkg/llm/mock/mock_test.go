@@ -43,3 +43,14 @@ func TestStream(t *testing.T) {
 		t.Fatalf("want EOF")
 	}
 }
+
+func TestListModels(t *testing.T) {
+	c := New()
+	models, err := c.ListModels(context.Background())
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(models) == 0 {
+		t.Fatalf("no models")
+	}
+}

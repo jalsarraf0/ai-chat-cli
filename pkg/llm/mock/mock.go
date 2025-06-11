@@ -26,16 +26,22 @@ import (
 // Client returns predetermined tokens.
 type Client struct {
 	tokens []string
+	models []string
 }
 
 // New creates a mock client that streams the given tokens.
 func New(tokens ...string) Client {
-	return Client{tokens: tokens}
+	return Client{tokens: tokens, models: []string{"gpt-4.1-nano", "gpt-3.5-turbo"}}
 }
 
 // Completion returns a stream of predetermined tokens.
 func (c Client) Completion(_ context.Context, _ llm.Request) (llm.Stream, error) {
 	return &stream{tokens: c.tokens}, nil
+}
+
+// ListModels returns a fixed set of model names.
+func (c Client) ListModels(context.Context) ([]string, error) {
+	return c.models, nil
 }
 
 type stream struct {
