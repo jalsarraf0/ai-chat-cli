@@ -22,6 +22,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -289,6 +290,10 @@ func TestNewNilOptions(t *testing.T) {
 }
 
 func TestListModels(t *testing.T) {
+
+	t.Setenv("OPENAI_API_KEY", "k")
+	c := New()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"data": [{"id": "gpt-a"}, {"id": "gpt-b"}]}`)
@@ -297,10 +302,28 @@ func TestListModels(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "k")
 	t.Setenv("AICHAT_BASE_URL", srv.URL)
 	c := newUnitClient(srv, func(time.Duration) {})
+
 	models, err := c.ListModels(context.Background())
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
+
+	if len(models) == 0 {
+		t.Fatalf("no models returned")
+	}
+	if sort.StringsAreSorted(models) == false {
+		t.Fatalf("models not sorted")
+	}
+	found := false
+	for _, m := range models {
+		if m == "gpt-4.1-nano" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("gpt-4.1-nano missing: %v", models)
+
 	if len(models) != 2 || models[0] != "gpt-a" || models[1] != "gpt-b" {
 		t.Fatalf("models %v", models)
 	}
@@ -317,5 +340,6 @@ func TestListModelsHTTPError(t *testing.T) {
 	_, err := c.ListModels(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "bad") {
 		t.Fatalf("want error got %v", err)
+
 	}
 }

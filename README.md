@@ -157,7 +157,7 @@ Default file `~/.config/ai-chat/ai-chat.yaml`:
 
 ```yaml
 provider: openai
-model: gpt-4o
+model: gpt-4.1-nano
 temperature: 0.6
 context_window: 16
 plugins_dir: ~/.config/ai-chat/plugins

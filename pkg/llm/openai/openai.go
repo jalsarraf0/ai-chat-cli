@@ -33,6 +33,38 @@ import (
 	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
 )
 
+var models = []string{
+	"gpt-4o",
+	"gpt-4o-mini",
+	"gpt-4o-audio-preview",
+	"gpt-4o-2024-05-13",
+	"gpt-4.1",
+	"gpt-4.1-mini",
+	"gpt-4.1-nano",
+	"gpt-4.1-2025-04-14",
+	"gpt-4",
+	"gpt-4-32k",
+	"gpt-4-turbo",
+	"gpt-4-turbo-preview",
+	"gpt-4-vision-preview",
+	"gpt-4-0314",
+	"gpt-4-0613",
+	"gpt-4-0125-preview",
+	"gpt-3.5-turbo",
+	"gpt-3.5-turbo-16k",
+	"gpt-3.5-turbo-0125",
+	"gpt-3.5-turbo-1106",
+	"text-embedding-3-large",
+	"text-embedding-3-small",
+	"text-embedding-ada-002",
+	"whisper-1",
+	"dall-e-3",
+	"moderation-latest",
+	"moderation-v1",
+	"gpt-4o-nano",
+	"gpt-image-1",
+}
+
 // Option configures a Client.
 type Option func(*Client)
 
@@ -169,6 +201,14 @@ func (s *stream) Recv() (llm.Response, error) {
 	return llm.Response{}, io.EOF
 }
 
+
+// ListModels returns the known OpenAI model identifiers.
+func (c Client) ListModels(context.Context) ([]string, error) {
+	out := make([]string, len(models))
+	copy(out, models)
+	sort.Strings(out)
+	return out, nil
+
 // ListModels retrieves available model identifiers from the OpenAI API.
 func (c Client) ListModels(ctx context.Context) ([]string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base+"/v1/models", nil)
@@ -199,4 +239,5 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 	}
 	sort.Strings(models)
 	return models, nil
+
 }
