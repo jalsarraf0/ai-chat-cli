@@ -164,6 +164,7 @@ func askRunE(c llm.Client) func(cmd *cobra.Command, args []string) error {
 			Temperature: temp,
 			MaxTokens:   maxTokens,
 			Messages:    []llm.Message{{Role: "user", Content: prompt}},
+
 		}
 		if !cmd.Flags().Changed("model") {
 			req.Model = config.GetString("model")
@@ -176,6 +177,8 @@ func askRunE(c llm.Client) func(cmd *cobra.Command, args []string) error {
 		}
 		if !cmd.Flags().Changed("max-tokens") && config.IsSet("max_tokens") {
 			req.MaxTokens = config.GetInt("max_tokens")
+
+
 		}
 		stream, err := c.Completion(cmd.Context(), req)
 		if err != nil {
