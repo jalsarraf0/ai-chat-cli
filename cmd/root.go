@@ -112,6 +112,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newAssetsCmd())
 	cmd.AddCommand(newConfigCmd())
 	cmd.AddCommand(newLoginCmd())
+	cmd.AddCommand(newModelsCmd(llmClient))
 	cmd.AddCommand(newTuiCmd())
 	cmd.AddCommand(newAskCmd())
 	cmd.AddCommand(newHealthcheckCmd())

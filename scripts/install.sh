@@ -18,6 +18,15 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
+read -rp "Install prefix [$PREFIX]: " ans || true
+if [ -n "$ans" ]; then
+    PREFIX="$ans"
+fi
+read -rp "Proceed installing to $PREFIX? [Y/n]: " ans || true
+case "$ans" in
+    n|N) echo "Cancelled"; exit 1;;
+esac
+
 pkg_install() {
     if command -v apt-get >/dev/null 2>&1; then
         sudo apt-get update -y && sudo apt-get install -y "$@"

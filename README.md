@@ -145,6 +145,7 @@ Run `ai-chat --help` for available commands. Use `ai-chat <command> --help` for 
 | `plugins`  | Manage plug‑ins       |
 | `history`  | List/search old chats |
 | `export`   | Save chats            |
+| `models`   | List available models |
 | `config`   | Show or edit config   |
 | `version`  | Build info            |
 

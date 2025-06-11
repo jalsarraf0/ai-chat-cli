@@ -15,8 +15,24 @@
 
 package cmd
 
-import "io"
+import (
+	"context"
+	"errors"
+	"io"
+
+	"github.com/jalsarraf0/ai-chat-cli/pkg/llm"
+)
 
 type failWriter struct{}
 
 func (failWriter) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
+
+type stubLLM struct{ models []string }
+
+func (s stubLLM) Completion(context.Context, llm.Request) (llm.Stream, error) { return nil, nil }
+func (s stubLLM) ListModels(context.Context) ([]string, error)                { return s.models, nil }
+
+type errLLM struct{}
+
+func (errLLM) Completion(context.Context, llm.Request) (llm.Stream, error) { return nil, nil }
+func (errLLM) ListModels(context.Context) ([]string, error)                { return nil, errors.New("fail") }

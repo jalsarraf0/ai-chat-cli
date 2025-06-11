@@ -55,7 +55,7 @@ var assetSHA256 = map[string]string{
 {{- end }}
 }
 `))
-	f, err := os.Create(filepath.Join(base, "assets_gen.go"))
+	f, err := os.Create(filepath.Join(base, "assets_gen.go")) // #nosec G304 -- writing generated file
 	if err != nil {
 		return err
 	}

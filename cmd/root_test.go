@@ -91,3 +91,20 @@ func TestExecuteFailure(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestRootModels(t *testing.T) {
+	llmClient = stubLLM{models: []string{"m1"}}
+	t.Setenv("OPENAI_API_KEY", "k")
+	config.Reset()
+	cfg := filepath.Join(t.TempDir(), "c.yaml")
+	cmd := newRootCmd()
+	out := new(bytes.Buffer)
+	cmd.SetOut(out)
+	cmd.SetArgs([]string{"--config", cfg, "models"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("models: %v", err)
+	}
+	if out.String() != "m1\n" {
+		t.Fatalf("out=%q", out.String())
+	}
+}
