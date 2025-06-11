@@ -22,6 +22,23 @@ fi
 [[ ${CI:-} && $BRANCH != "main" ]] && export SKIP_RELEASE=1
 
 
+# Ensure required tools are available
+for tool in gofumpt golangci-lint addlicense; do
+  if ! command -v $tool >/dev/null; then
+    case $tool in
+      gofumpt)
+        go install mvdan.cc/gofumpt@latest ;;
+      golangci-lint)
+        go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 ;;
+      addlicense)
+        go install github.com/google/addlicense@latest ;;
+    esac
+  fi
+done
+
+
+
+
 log "Running format/lint..."; make format lint
 log "Checking license headers..."; addlicense -check $(git ls-files '*.go')
 
