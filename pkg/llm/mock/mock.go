@@ -31,11 +31,7 @@ type Client struct {
 
 // New creates a mock client that streams the given tokens.
 func New(tokens ...string) Client {
-
 	return Client{tokens: tokens, models: []string{"gpt-4.1-nano", "gpt-3.5-turbo"}}
-
-	return Client{tokens: tokens, models: []string{"gpt-4", "gpt-3.5-turbo"}}
-
 }
 
 // Completion returns a stream of predetermined tokens.
