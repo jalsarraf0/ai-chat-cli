@@ -28,7 +28,7 @@ func TestDefaultPathTemp(t *testing.T) {
 	t.Setenv("APPDATA", "")
 	t.Setenv("HOME", "")
 	p := defaultPath()
-       want := filepath.Join(os.TempDir(), "ai-chat-cli", "config.yaml")
+	want := filepath.Join(os.TempDir(), "ai-chat-cli", "config.yaml")
 	if p != want {
 		t.Fatalf("want %s got %s", want, p)
 	}

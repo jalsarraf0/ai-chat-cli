@@ -290,7 +290,6 @@ func TestNewNilOptions(t *testing.T) {
 }
 
 func TestListModels(t *testing.T) {
-
 	t.Setenv("OPENAI_API_KEY", "k")
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -327,6 +326,7 @@ func TestListModels(t *testing.T) {
 		}
 	}
 }
+
 func TestListModelsHTTPError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "bad", http.StatusBadRequest)
@@ -338,7 +338,6 @@ func TestListModelsHTTPError(t *testing.T) {
 	_, err := c.ListModels(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "bad") {
 		t.Fatalf("want error got %v", err)
-
 	}
 }
 
@@ -386,7 +385,3 @@ func TestListModelsNoKey(t *testing.T) {
 		t.Fatalf("gpt-4.1-nano missing")
 	}
 }
-
-
-
-
