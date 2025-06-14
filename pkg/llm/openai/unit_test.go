@@ -17,6 +17,8 @@ package openai
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -77,6 +79,21 @@ func TestHTTPError(t *testing.T) {
 	_, err := c.Completion(context.Background(), llm.Request{Model: "m"})
 	if err == nil || !strings.Contains(err.Error(), "fail") {
 		t.Fatalf("want error, got %v", err)
+	}
+}
+
+func TestUnauthorized(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "bad key"}})
+	}))
+	defer srv.Close()
+	t.Setenv("OPENAI_API_KEY", "k")
+	t.Setenv("AICHAT_BASE_URL", srv.URL)
+	c := newUnitClient(srv, func(time.Duration) {})
+	_, err := c.Completion(context.Background(), llm.Request{Model: "m"})
+	if !errors.Is(err, ErrUnauthorized) || !strings.Contains(err.Error(), "bad key") {
+		t.Fatalf("unauthorized: %v", err)
 	}
 }
 
@@ -338,6 +355,21 @@ func TestListModelsHTTPError(t *testing.T) {
 	_, err := c.ListModels(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "bad") {
 		t.Fatalf("want error got %v", err)
+	}
+}
+
+func TestListModelsUnauthorized(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "bad key"}})
+	}))
+	defer srv.Close()
+	t.Setenv("OPENAI_API_KEY", "k")
+	t.Setenv("AICHAT_BASE_URL", srv.URL)
+	c := newUnitClient(srv, func(time.Duration) {})
+	_, err := c.ListModels(context.Background())
+	if !errors.Is(err, ErrUnauthorized) || !strings.Contains(err.Error(), "bad key") {
+		t.Fatalf("unauthorized: %v", err)
 	}
 }
 
