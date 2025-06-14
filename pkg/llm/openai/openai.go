@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -63,6 +64,29 @@ var defaultModels = []string{
 	"moderation-v1",
 	"gpt-4o-nano",
 	"gpt-image-1",
+}
+
+var ErrUnauthorized = errors.New("unauthorized")
+
+func parseError(resp *http.Response) error {
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+	_ = resp.Body.Close()
+	var oe struct {
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	msg := strings.TrimSpace(string(data))
+	if err := json.Unmarshal(data, &oe); err == nil && oe.Error.Message != "" {
+		msg = oe.Error.Message
+	}
+	if msg == "" {
+		msg = resp.Status
+	}
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("%w: %s", ErrUnauthorized, msg)
+	}
+	return errors.New(msg)
 }
 
 func sorted(m map[string]struct{}) []string {
@@ -167,9 +191,7 @@ func (c Client) Completion(ctx context.Context, req llm.Request) (llm.Stream, er
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		_ = resp.Body.Close()
-		return nil, errors.New(string(b))
+		return nil, parseError(resp)
 	}
 	return &stream{scanner: bufio.NewScanner(resp.Body), closer: resp.Body}, nil
 }
@@ -231,8 +253,7 @@ func (c Client) ListModels(ctx context.Context) ([]string, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return sorted(uniq), errors.New(string(b))
+		return sorted(uniq), parseError(resp)
 	}
 	var data struct {
 		Data []struct {

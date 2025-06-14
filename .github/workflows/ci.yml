@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pipeline-guard:
+    runs-on: [self-hosted, linux]
+    outputs:
+      docs_only: ${{ steps.determine.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.x
+      - id: determine
+        run: |
+          BASE=${{ github.event.pull_request.base.sha || github.event.before }}
+          if [ -z "$BASE" ]; then BASE=$(git rev-parse HEAD^); fi
+          if go run -tags tools ./tools/ci-sieve -range "$BASE..HEAD"; then
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: pipeline-guard
+    if: needs.pipeline-guard.outputs.docs_only != 'true'
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        go-version: [1.24.x]
+        arch: [amd64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+      - run: echo "GOTOOLCHAIN=local" >> "$GITHUB_ENV"
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-${{ matrix.go-version }}-
+      - name: Install golangci-lint
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Vet
+        run: go vet ./...
+      - name: Lint
+        run: golangci-lint run
+      - name: Test
+        run: |
+          go test -race -covermode=atomic -coverprofile=coverage.out ./...
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%", ""); print $3}')
+          echo "coverage ${pct}%"
+          if [ ${pct%.*} -lt 93 ]; then
+            echo "::error ::coverage ${pct}% < 93%" && exit 1
+          fi
+      - name: Upload coverage
+        if: env.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.out
