@@ -25,10 +25,13 @@ import (
 
 // Styles defines UI colours.
 type Styles struct {
-	App     lipgloss.Style
-	History lipgloss.Style
-	Input   lipgloss.Style
-	Cursor  lipgloss.Style
+	App         lipgloss.Style
+	History     lipgloss.Style
+	Input       lipgloss.Style
+	Cursor      lipgloss.Style
+	Header      lipgloss.Style
+	Footer      lipgloss.Style
+	Placeholder lipgloss.Style
 }
 
 // LoadStyles builds styles from the embedded theme.
@@ -37,12 +40,18 @@ func LoadStyles(name string) Styles {
 	app := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(p.Background)).Padding(0, 1)
 	hist := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(p.Background)).Height(0)
 	inp := lipgloss.NewStyle().BorderTop(true).BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(p.Background))
-	cursor := lipgloss.NewStyle().Foreground(lipgloss.Color("#00ffff"))
+	cursor := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#ff0055"))
+	header := lipgloss.NewStyle().Bold(true)
+	footer := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+	placeholder := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	if os.Getenv("NO_COLOR") != "" {
 		app = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(0, 1)
 		hist = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Height(0)
 		inp = lipgloss.NewStyle().BorderTop(true).BorderStyle(lipgloss.NormalBorder())
-		cursor = lipgloss.NewStyle()
+		cursor = lipgloss.NewStyle().Bold(true)
+		header = lipgloss.NewStyle().Bold(true)
+		footer = lipgloss.NewStyle()
+		placeholder = lipgloss.NewStyle()
 	}
-	return Styles{App: app, History: hist, Input: inp, Cursor: cursor}
+	return Styles{App: app, History: hist, Input: inp, Cursor: cursor, Header: header, Footer: footer, Placeholder: placeholder}
 }

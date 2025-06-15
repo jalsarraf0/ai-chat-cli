@@ -17,6 +17,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -42,6 +43,7 @@ type Model struct {
 	cursor    int      // scroll offset
 	input     textinput.Model
 	height    int
+	version   string
 	light     bool
 	styles    Styles
 	spinner   spinner.Model
@@ -51,12 +53,18 @@ type Model struct {
 // NewModel creates a Model with optional initial rows.
 func NewModel(initialRows int) Model {
 	ti := textinput.New()
-	ti.Prompt = "› "
+	ti.Prompt = "You: "
+	ti.Placeholder = "Ask me anything..."
 	m := Model{input: ti, height: initialRows, spinner: newSpinner()}
 	m.styles = LoadStyles("")
 	ti.PromptStyle = m.styles.Cursor
 	ti.Cursor.Style = m.styles.Cursor
 	return m
+}
+
+// SetVersion sets the application version displayed in the header.
+func (m *Model) SetVersion(v string) {
+	m.version = v
 }
 
 // Init satisfies tea.Model.
@@ -81,9 +89,13 @@ func (m *Model) UseTheme(name string) {
 
 func (m *Model) historyHeight() int {
 	if m.height == 0 {
-		return 0
+		return 5
 	}
-	return m.height * 80 / 100
+	h := m.height - 2 // header + footer
+	if h < 5 {
+		return 5
+	}
+	return h
 }
 
 // Update handles messages.
@@ -158,15 +170,26 @@ func (m Model) View() string {
 		end = len(m.history)
 	}
 	var b strings.Builder
-	for i := start; i < end; i++ {
-		b.WriteString(m.history[i])
+	if len(m.history) == 0 {
+		b.WriteString(m.styles.Placeholder.Render("No messages yet – type a prompt and press Enter."))
 		b.WriteByte('\n')
+	} else {
+		for i := start; i < end; i++ {
+			b.WriteString(m.history[i])
+			b.WriteByte('\n')
+		}
 	}
-	historyView := m.styles.History.Render(b.String())
+	historyView := m.styles.History.Copy().Height(histLines).Render(strings.TrimRight(b.String(), "\n"))
 	inputView := m.styles.Input.Render(m.input.View())
 	if m.streaming {
 		inputView += " " + m.spinner.View()
 	}
-	content := lipgloss.JoinVertical(lipgloss.Left, historyView, inputView)
+	themeName := "dark"
+	if m.light {
+		themeName = "light"
+	}
+	header := m.styles.Header.Render(fmt.Sprintf("ai-chat-cli %s [%s]", m.version, themeName))
+	footer := m.styles.Footer.Render("Ctrl+C / Esc: quit | PgUp/PgDn: scroll | ↑/↓: history")
+	content := lipgloss.JoinVertical(lipgloss.Left, header, historyView, inputView, footer)
 	return m.styles.App.Render(content)
 }

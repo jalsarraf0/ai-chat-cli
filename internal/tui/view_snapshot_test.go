@@ -26,6 +26,7 @@ import (
 func TestViewSnapshot(t *testing.T) {
 	t.Parallel()
 	m := NewModel(10)
+	m.SetVersion("v1.0.2")
 	m.height = 10
 	m.history = []string{"hello", "world"}
 	var tm tea.Model
