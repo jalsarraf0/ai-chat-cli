@@ -55,6 +55,8 @@ func NewModel(initialRows int) Model {
 	ti := textinput.New()
 	ti.Prompt = "You: "
 	ti.Placeholder = "Ask me anything..."
+	ti.Focus()
+	ti.CharLimit = 512
 	m := Model{input: ti, height: initialRows, spinner: newSpinner()}
 	m.styles = LoadStyles("")
 	ti.PromptStyle = m.styles.Cursor
