@@ -71,9 +71,10 @@ func skipCfgValidation(cmd *cobra.Command) bool {
 func newRootCmd() *cobra.Command {
 	detectedShell = shell.Detect()
 	cmd := &cobra.Command{
-		Use:   "ai-chat [prompt]",
-		Short: "Interact with AI chat services",
-		Args:  cobra.ArbitraryArgs,
+		Use:          "ai-chat [prompt]",
+		Short:        "Interact with AI chat services",
+		Args:         cobra.ArbitraryArgs,
+		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return askRunE(llmClient)(cmd, args)
 		},
