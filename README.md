@@ -81,17 +81,16 @@ plugins (shell) ────┘
 
 ---
 
-## Installation 📦
+## Installing 📦
 
 ### Packages
 
 | Package      | Command                                                                                           |
 | ------------ | ------------------------------------------------------------------------------------------------- |
-| **tar.gz**   | `tar -xzf ai-chat_linux_amd64.tar.gz && sudo mv ai-chat /usr/local/bin`                           |
-| **DEB**      | `sudo dpkg -i ai-chat_<ver>_amd64.deb`                                                            |
-| **RPM**      | `sudo rpm -Uvh ai-chat_<ver>_amd64.rpm`                                                           |
-| **Homebrew** | `brew install jalsarraf0/tap/ai-chat`                                                             |
-| **Scoop**    | `scoop bucket add jalsarraf0 https://github.com/jalsarraf0/scoop-bucket && scoop install ai-chat` |
+| **DEB**      | `sudo dpkg -i ai-chat-cli_<ver>_amd64.deb`                                                            |
+| **RPM**      | `sudo rpm -Uvh ai-chat-cli_<ver>_amd64.rpm`                                                           |
+| **Homebrew** | `brew install jalsarraf0/tap/ai-chat-cli`                                                             |
+| **Scoop**    | `scoop bucket add jalsarraf0 https://github.com/jalsarraf0/scoop-bucket && scoop install ai-chat-cli` |
 
 ### Build from Source
 
@@ -109,13 +108,9 @@ Run the guided setup:
 ./setup.sh
 ```
 
-### Uninstall
+### Uninstalling
 
-Remove the binary and configuration:
-
-```bash
-./uninstall.sh
-```
+Run `scripts/uninstall.sh` (or `scripts/uninstall.ps1` on Windows) to remove all files.
 
 ---
 

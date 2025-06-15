@@ -39,8 +39,9 @@ func newSpinner() spinner.Model {
 
 // Model implements a simple chat interface.
 type Model struct {
-	history   []string // chat log
-	cursor    int      // scroll offset
+	history   []string
+	viewHist  []string
+	cursor    int
 	input     textinput.Model
 	height    int
 	version   string
@@ -48,6 +49,8 @@ type Model struct {
 	styles    Styles
 	spinner   spinner.Model
 	streaming bool
+	streamBuf strings.Builder
+	ctrl      Controller
 }
 
 // NewModel creates a Model with optional initial rows.
@@ -64,15 +67,14 @@ func NewModel(initialRows int) Model {
 	return m
 }
 
+// SetController attaches a Controller for streaming.
+func (m *Model) SetController(c Controller) { m.ctrl = c }
+
 // SetVersion sets the application version displayed in the header.
-func (m *Model) SetVersion(v string) {
-	m.version = v
-}
+func (m *Model) SetVersion(v string) { m.version = v }
 
 // Init satisfies tea.Model.
-func (m Model) Init() tea.Cmd {
-	return textinput.Blink
-}
+func (m Model) Init() tea.Cmd { return textinput.Blink }
 
 // UseLightTheme enables the light palette.
 func (m *Model) UseLightTheme() {
@@ -108,12 +110,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 	case llmTokenMsg:
-		if msg.Token != "" {
-			m.history = append(m.history, msg.Token)
-		}
 		if msg.Done {
+			if m.streamBuf.Len() > 0 {
+				m.history = append(m.history, m.streamBuf.String())
+			}
+			m.viewHist = append([]string{}, m.history...)
+			m.streamBuf.Reset()
 			m.streaming = false
-		} else {
+			return m, nil
+		}
+		if msg.Token != "" {
+			m.streamBuf.WriteString(msg.Token)
+			if len(m.viewHist) > len(m.history) {
+				m.viewHist[len(m.viewHist)-1] = m.streamBuf.String()
+			} else {
+				m.viewHist = append(m.viewHist, m.streamBuf.String())
+			}
 			m.streaming = true
 		}
 		return m, nil
@@ -128,7 +140,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			lines := m.historyHeight()
 			if lines > 0 {
 				m.cursor += lines
-				maxIdx := len(m.history)
+				maxIdx := len(m.viewHist)
 				if m.cursor > maxIdx-lines {
 					m.cursor = maxIdx - lines
 				}
@@ -149,6 +161,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if val != "" {
 				m.history = append(m.history, val)
+				m.viewHist = append(m.viewHist, val)
+				m.streamBuf.Reset()
+				if m.ctrl.prog != nil {
+					m.streaming = true
+					m.ctrl.Stream(val)
+				}
 			}
 			m.input.Reset()
 			m.cursor = 0
@@ -163,23 +181,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the UI.
 func (m Model) View() string {
 	histLines := m.historyHeight()
-	start := len(m.history) - histLines - m.cursor
+	start := len(m.viewHist) - histLines - m.cursor
 	if start < 0 {
 		start = 0
 	}
 	end := start + histLines
-	if end > len(m.history) {
-		end = len(m.history)
+	if end > len(m.viewHist) {
+		end = len(m.viewHist)
+	}
+	lines := m.viewHist[start:end]
+	if len(lines) == 0 {
+		lines = []string{m.styles.Placeholder.Render("No messages yet – type a prompt and press Enter.")}
+	}
+	pad := 0
+	if len(lines) < histLines {
+		pad = (histLines - len(lines)) / 2
 	}
 	var b strings.Builder
-	if len(m.history) == 0 {
-		b.WriteString(m.styles.Placeholder.Render("No messages yet – type a prompt and press Enter."))
+	b.WriteString(strings.Repeat("\n", pad))
+	for _, l := range lines {
+		b.WriteString(l)
 		b.WriteByte('\n')
-	} else {
-		for i := start; i < end; i++ {
-			b.WriteString(m.history[i])
-			b.WriteByte('\n')
-		}
 	}
 	historyView := m.styles.History.Height(histLines).Render(strings.TrimRight(b.String(), "\n"))
 	inputView := m.styles.Input.Render(m.input.View())

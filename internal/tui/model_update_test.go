@@ -38,6 +38,7 @@ func TestModelUpdate(t *testing.T) {
 	}
 	m.height = 10
 	m.history = append(m.history, make([]string, 20)...)
+	m.viewHist = append([]string{}, m.history...)
 	tm, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgUp})
 	m = tm.(Model)
 	if m.cursor == 0 {
@@ -128,6 +129,7 @@ func TestScrollBounds(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		m.history = append(m.history, "x")
 	}
+	m.viewHist = append([]string{}, m.history...)
 	m.cursor = 100
 	tm, _ := m.Update(tea.KeyMsg{Type: tea.KeyPgUp})
 	m = tm.(Model)

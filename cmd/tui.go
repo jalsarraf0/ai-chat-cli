@@ -17,6 +17,7 @@ package cmd
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/jalsarraf0/ai-chat-cli/internal/openai"
 	"github.com/jalsarraf0/ai-chat-cli/internal/tui"
 	"github.com/spf13/cobra"
 )
@@ -40,7 +41,9 @@ func newTuiCmd() *cobra.Command {
 		} else if themeFlag != "" {
 			m.UseTheme(themeFlag)
 		}
-		p := tea.NewProgram(m)
+		p := tea.NewProgram(&m)
+		ctrl := tui.NewController(openai.New(), p)
+		m.SetController(ctrl)
 		_, err := teaRun(p)
 		return err
 	}

@@ -1,67 +1,38 @@
 #!/usr/bin/env sh
 set -e
 
-# Remove installed binaries and configuration, including any API keys.
-
-BIN="$(command -v ai-chat 2>/dev/null || true)"
-GOBIN="$(go env GOBIN 2>/dev/null)"
-if [ -z "$GOBIN" ]; then
-    GOBIN="$(go env GOPATH 2>/dev/null)/bin"
-
-fi
-DEFAULT_BIN="$GOBIN/ai-chat"
-
-CONFIG_PATH="${AI_CHAT_CONFIG:-}"
-if [ -z "$CONFIG_PATH" ]; then
-    base="${XDG_CONFIG_HOME:-$HOME/.config}"
-    CONFIG_PATH="$base/ai-chat-cli/config.yaml"
-fi
-
-fi
-DEFAULT_BIN="$GOBIN/ai-chat"
-
-CONFIG_PATH="${AI_CHAT_CONFIG:-}"
-if [ -z "$CONFIG_PATH" ]; then
-    base="${XDG_CONFIG_HOME:-$HOME/.config}"
-    CONFIG_PATH="$base/ai-chat-cli/config.yaml"
-fi
-
-CONFIG_DIR="$(dirname "$CONFIG_PATH")"
-
-if [ "$1" != "--yes" ]; then
-    printf 'This will remove %s %s and %s\n' "$DEFAULT_BIN" "$BIN" "$CONFIG_DIR"
-    printf 'Continue? [y/N]: '
-    read -r ans
-    case "$ans" in
-        y|Y) ;;
-        *) echo "Aborted."; exit 1;;
-    esac
-fi
-
-
-# Remove binaries if present, using sudo if necessary.
-remove() {
-    target="$1"
-    if [ -e "$target" ]; then
-        if rm -f "$target" 2>/dev/null; then
-            :
-        else
-            sudo rm -f "$target"
-        fi
+# stop service if running
+if command -v systemctl >/dev/null 2>&1; then
+    if systemctl list-units --full -all | grep -q ai-chat.service; then
+        sudo systemctl disable --now ai-chat.service || true
+        sudo rm -f /etc/systemd/system/ai-chat.service
+        sudo systemctl daemon-reload
     fi
-}
-
-remove "$DEFAULT_BIN"
-if [ -n "$BIN" ] && [ "$BIN" != "$DEFAULT_BIN" ]; then
-    remove "$BIN"
 fi
 
-# Remove binaries if present.
-rm -f "$DEFAULT_BIN"
-[ -n "$BIN" ] && [ "$BIN" != "$DEFAULT_BIN" ] && rm -f "$BIN"
+# remove binaries
+bins="/usr/local/bin/ai-chat /usr/bin/ai-chat $(go env GOPATH)/bin/ai-chat"
+for b in $bins; do
+    [ -e "$b" ] && sudo rm -f "$b" || true
+done
 
+# remove config and logs
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/ai-chat-cli"
+sudo rm -rf "$cfg" 2>/dev/null || true
+sudo rm -rf /var/log/ai-chat-cli 2>/dev/null || true
 
-# Remove configuration directory containing credentials.
-rm -rf "$CONFIG_DIR"
+# remove packages
+if command -v dpkg >/dev/null 2>&1; then
+    sudo dpkg -r ai-chat-cli 2>/dev/null || true
+fi
+if command -v rpm >/dev/null 2>&1; then
+    sudo rpm -e ai-chat-cli 2>/dev/null || true
+fi
+if command -v brew >/dev/null 2>&1; then
+    brew uninstall --force ai-chat-cli 2>/dev/null || true
+fi
+if command -v scoop >/dev/null 2>&1; then
+    scoop uninstall ai-chat-cli 2>/dev/null || true
+fi
 
-echo "Uninstalled ai-chat and removed configuration"
+echo "ai-chat-cli uninstalled"

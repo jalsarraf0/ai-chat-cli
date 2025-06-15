@@ -26,3 +26,7 @@ release:
   github:
     owner: jalsarraf0
     name: ai-chat-cli
+
+extras:
+  - scripts/uninstall.sh
+  - scripts/uninstall.ps1

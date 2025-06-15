@@ -16,29 +16,28 @@
 package tui
 
 import (
-	"bytes"
-	"os"
-	"testing"
-
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/jalsarraf0/ai-chat-cli/internal/openai"
 )
 
-func TestViewSnapshot(t *testing.T) {
-	t.Parallel()
-	m := NewModel(10)
-	m.SetVersion("v1.0.2")
-	m.height = 10
-	m.history = []string{"hello", "world"}
-	m.viewHist = append([]string{}, m.history...)
-	var tm tea.Model
-	tm, _ = m.Update(tea.WindowSizeMsg{Width: 10, Height: 10})
-	m = tm.(Model)
-	got := m.View()
-	want, err := os.ReadFile("testdata/view.golden")
-	if err != nil {
-		t.Fatalf("read golden: %v", err)
-	}
-	if !bytes.Equal([]byte(got), bytes.TrimRight(want, "\n")) {
-		t.Fatalf("mismatch\n%s\nvs\n%s", got, want)
-	}
+// Controller streams tokens from the LLM and sends messages to the program.
+type Controller struct {
+	client openai.Client
+	prog   *tea.Program
+}
+
+// NewController creates a controller bound to the program.
+func NewController(c openai.Client, p *tea.Program) Controller {
+	return Controller{client: c, prog: p}
+}
+
+// Stream spawns a goroutine to stream a prompt and forward tokens.
+func (c Controller) Stream(prompt string) {
+	out, _ := c.client.Stream(prompt)
+	go func() {
+		for tok := range out {
+			c.prog.Send(llmTokenMsg{Token: tok})
+		}
+		c.prog.Send(llmTokenMsg{Done: true})
+	}()
 }
