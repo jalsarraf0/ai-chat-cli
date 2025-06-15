@@ -1,28 +1,138 @@
+# goreleaser.yaml -- GoReleaser v2
+version: 2
+
 project_name: ai-chat-cli
+
+before:
+  hooks:
+    - go mod tidy -e -v
+
 builds:
-  - id: default
-    goos: linux
-    goarch: amd64
+  - id: linux
     main: ./cmd/ai-chat-cli
-    env:
-      - CGO_ENABLED=0
-    ldflags:
-      - "-s -w -X 'main.version={{ .Version }}'"
+    goos: [linux]
+    goarch: [amd64, arm64]
+    env: [CGO_ENABLED=0]
+    ldflags: >-
+      -s -w
+      -X main.version={{ .Version }}
+      -X main.commit={{ .Commit }}
+      -X main.date={{ .Date }}
+  - id: darwin
+    main: ./cmd/ai-chat-cli
+    goos: [darwin]
+    goarch: [amd64, arm64]
+    go_universal: true
+    env: [CGO_ENABLED=0]
+    ldflags: >-
+      -s -w
+      -X main.version={{ .Version }}
+      -X main.commit={{ .Commit }}
+      -X main.date={{ .Date }}
+  - id: windows
+    main: ./cmd/ai-chat-cli
+    goos: [windows]
+    goarch: [amd64]
+    env: [CGO_ENABLED=0]
+    ldflags: >-
+      -s -w
+      -X main.version={{ .Version }}
+      -X main.commit={{ .Commit }}
+      -X main.date={{ .Date }}
+
 archives:
-  - id: tar
+  - id: linux
+    builds: [linux]
     format: tar.gz
+    name_template: "ai-chat-cli_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
-      - license*
+      - LICENSE*
+      - README.md
+      - scripts/uninstall.sh
+  - id: darwin
+    builds: [darwin]
+    format: tar.gz
+    name_template: "ai-chat-cli_{{ .Version }}_darwin"
+    files:
+      - LICENSE*
+      - README.md
+      - scripts/uninstall.sh
+  - id: windows
+    builds: [windows]
+    format: zip
+    name_template: "ai-chat-cli_{{ .Version }}_windows_amd64"
+    files:
+      - LICENSE*
+      - README.md
+      - scripts/uninstall.ps1
+
 nfpms:
-  - id: pkg
-    formats: [deb, rpm]
-    maintainer: "Your Name <you@example.com>"
-    description: "ai-chat-cli CLI tool"
-    homepage: "https://github.com/jalsarraf0/ai-chat-cli"
-    license: MIT
-    section: default
-    priority: optional
+  - id: deb
+    builds: [linux]
+    formats: [deb]
+    package_name: ai-chat-cli
+    section: utils
+    maintainer: Jamal Al-Sarraf <you@example.com>
+    vendor: AI-Chat-CLI
+    homepage: https://github.com/jalsarraf0/ai-chat-cli
+    description: |
+      ai-chat-cli — command-line interface for AI-assisted chat.
+    license: Apache-2.0
+    bindir: /usr/bin
+    contents:
+      - src: scripts/uninstall.sh
+        dst: /usr/share/doc/ai-chat-cli/uninstall.sh
+        type: config
+  - id: rpm
+    builds: [linux]
+    formats: [rpm]
+    package_name: ai-chat-cli
+    maintainer: Jamal Al-Sarraf <you@example.com>
+    vendor: AI-Chat-CLI
+    homepage: https://github.com/jalsarraf0/ai-chat-cli
+    description: |
+      ai-chat-cli — command-line interface for AI-assisted chat.
+    license: Apache-2.0
+    bindir: /usr/bin
+    contents:
+      - src: scripts/uninstall.sh
+        dst: /usr/share/doc/ai-chat-cli/uninstall.sh
+        type: config
+
+brews:
+  - tap:
+      owner: jalsarraf0
+      name: tap
+    folder: Formula
+    install: |
+      bin.install "ai-chat-cli"
+      bash_completion.install "scripts/uninstall.sh"
+
+scoops:
+  - name: ai-chat-cli
+    commit_author:
+      name: goreleaser
+      email: you@example.com
+    description: "ai-chat-cli command line tool"
+    homepage: https://github.com/jalsarraf0/ai-chat-cli
+    license: Apache-2.0
+    url_template: "{{ .DownloadURL }}"
+    bin: ai-chat-cli.exe
+    files:
+      - scripts/uninstall.ps1
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+sboms:
+  - id: default
+    artifacts: archive
+
 release:
   github:
     owner: jalsarraf0
     name: ai-chat-cli
+
+snapshot:
+  version_template: "{{ .Tag }}-next-{{ .Commit }}"
