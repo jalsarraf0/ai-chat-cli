@@ -34,6 +34,7 @@ func newTuiCmd() *cobra.Command {
 	cmd.Flags().IntVar(&height, "height", 0, "override initial rows (0 = auto)")
 	cmd.RunE = func(_ *cobra.Command, _ []string) error {
 		m := tui.NewModel(height)
+		m.SetVersion(Version)
 		if themeFlag == "light" {
 			m.UseLightTheme()
 		} else if themeFlag != "" {

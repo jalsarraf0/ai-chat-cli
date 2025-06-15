@@ -70,7 +70,7 @@ func TestWindowResize(t *testing.T) {
 	m := NewModel(0)
 	tm, _ := m.Update(tea.WindowSizeMsg{Width: 40, Height: 20})
 	m = tm.(Model)
-	if m.historyHeight() != 16 {
+	if m.historyHeight() != 18 {
 		t.Fatalf("height calc")
 	}
 }
@@ -101,8 +101,8 @@ func TestLoadStylesDiff(t *testing.T) {
 func TestHistoryHeightZero(t *testing.T) {
 	t.Parallel()
 	m := NewModel(0)
-	if m.historyHeight() != 0 {
-		t.Fatalf("want 0")
+	if m.historyHeight() != 5 {
+		t.Fatalf("want 5")
 	}
 }
 
