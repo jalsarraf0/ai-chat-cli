@@ -39,15 +39,17 @@ func newSpinner() spinner.Model {
 
 // Model implements a simple chat interface.
 type Model struct {
-	history   []string // chat log
-	cursor    int      // scroll offset
-	input     textinput.Model
-	height    int
-	version   string
-	light     bool
-	styles    Styles
-	spinner   spinner.Model
-	streaming bool
+	history    []string
+	tmpHistory []string
+	cursor     int
+	input      textinput.Model
+	height     int
+	version    string
+	light      bool
+	styles     Styles
+	spinner    spinner.Model
+	streaming  bool
+	streamBuf  strings.Builder
 }
 
 // NewModel creates a Model with optional initial rows.
@@ -65,14 +67,10 @@ func NewModel(initialRows int) Model {
 }
 
 // SetVersion sets the application version displayed in the header.
-func (m *Model) SetVersion(v string) {
-	m.version = v
-}
+func (m *Model) SetVersion(v string) { m.version = v }
 
 // Init satisfies tea.Model.
-func (m Model) Init() tea.Cmd {
-	return textinput.Blink
-}
+func (m Model) Init() tea.Cmd { return textinput.Blink }
 
 // UseLightTheme enables the light palette.
 func (m *Model) UseLightTheme() {
@@ -108,10 +106,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 	case llmTokenMsg:
-		if msg.Token != "" {
-			m.history = append(m.history, msg.Token)
+		if !msg.Done {
+			m.streamBuf.WriteString(msg.Token)
 		}
 		if msg.Done {
+			m.history = append(m.history, m.streamBuf.String())
+			m.streamBuf.Reset()
 			m.streaming = false
 		} else {
 			m.streaming = true
@@ -149,6 +149,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if val != "" {
 				m.history = append(m.history, val)
+				m.tmpHistory = append(m.tmpHistory, val)
+				m.streamBuf.Reset()
+				m.streaming = true
+				m.input.Reset()
+				m.cursor = 0
+				return m, tea.Batch(streamCmd(val), m.spinner.Tick)
 			}
 			m.input.Reset()
 			m.cursor = 0
@@ -160,8 +166,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// View renders the UI.
-func (m Model) View() string {
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func (m Model) renderedHistory() (string, []string) {
 	histLines := m.historyHeight()
 	start := len(m.history) - histLines - m.cursor
 	if start < 0 {
@@ -180,8 +192,21 @@ func (m Model) View() string {
 			b.WriteString(m.history[i])
 			b.WriteByte('\n')
 		}
+		if m.streaming {
+			b.WriteString(m.streamBuf.String())
+		}
 	}
-	historyView := m.styles.History.Height(histLines).Render(strings.TrimRight(b.String(), "\n"))
+	out := strings.TrimRight(b.String(), "\n")
+	return out, strings.Split(out, "\n")
+}
+
+// View renders the UI.
+func (m Model) View() string {
+	hist, lines := m.renderedHistory()
+	m.tmpHistory = lines
+	avail := m.historyHeight()
+	pad := max((avail-len(lines))/2, 0)
+	historyView := strings.Repeat("\n", pad) + m.styles.History.Height(avail).Render(hist)
 	inputView := m.styles.Input.Render(m.input.View())
 	if m.streaming {
 		inputView += " " + m.spinner.View()

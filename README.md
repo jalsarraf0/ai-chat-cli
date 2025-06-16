@@ -92,6 +92,24 @@ plugins (shell) ────┘
 | **RPM**      | `sudo rpm -Uvh ai-chat_<ver>_amd64.rpm`                                                           |
 | **Homebrew** | `brew install jalsarraf0/tap/ai-chat`                                                             |
 | **Scoop**    | `scoop bucket add jalsarraf0 https://github.com/jalsarraf0/scoop-bucket && scoop install ai-chat` |
+### Installing
+
+macOS
+```bash
+brew tap jalsarraf0/tap && brew install ai-chat-cli
+```
+
+Windows
+```powershell
+scoop bucket add jalsarraf0 https://github.com/jalsarraf0/scoop-bucket
+scoop install ai-chat-cli
+```
+
+Linux
+```bash
+sudo rpm -i ai-chat-cli_<ver>_amd64.rpm   # or dpkg -i ai-chat-cli_<ver>_amd64.deb
+```
+
 
 ### Build from Source
 
@@ -109,14 +127,16 @@ Run the guided setup:
 ./setup.sh
 ```
 
-### Uninstall
+### Uninstalling
 
 Remove the binary and configuration:
-
+Use ./uninstall.sh on Linux/macOS or ./uninstall.ps1 on Windows.
 ```bash
 ./uninstall.sh
 ```
-
+```powershell
+./uninstall.ps1
+```
 ---
 
 ## Usage 💻

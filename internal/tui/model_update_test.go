@@ -30,8 +30,8 @@ func TestModelUpdate(t *testing.T) {
 	var tm tea.Model
 	tm, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = tm.(Model)
-	if cmd != nil {
-		t.Fatalf("unexpected cmd %v", cmd)
+	if cmd == nil {
+		t.Fatalf("expected command")
 	}
 	if len(m.history) != 1 {
 		t.Fatalf("expected 1 line")
